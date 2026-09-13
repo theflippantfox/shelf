@@ -14,7 +14,7 @@
   import MarginBadge from '$lib/components/analytics/MarginBadge.svelte';
   import {
     TrendingUp, BarChart3, ShoppingCart,
-    Calendar, Package, Banknote, Activity,
+    Calendar, Banknote, Activity,
     Search, ArrowUpDown, ChevronLeft, ChevronRight,
     FileText, Receipt, Clock, Percent,
   } from 'lucide-svelte';
@@ -309,19 +309,20 @@
             </div>
           {/if}
 
-          {#if stockValue}
+          {#if grossProfit}
             <div class="surface-card px-5 py-4 flex items-center gap-4">
               <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--cobalt) 10%, transparent)">
-                <Package size={20} strokeWidth={1.5} style="color:var(--cobalt)" />
+                   style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
+                <Banknote size={20} strokeWidth={1.5} style="color:var(--teal)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Stock</p>
+                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Gross Profit</p>
                 <div class="flex items-baseline gap-2">
-                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(stockValue.retailValue)}</p>
-                  <span class="text-[11px] text-[var(--text-3)]">retail</span>
+                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
+                  {#if grossProfit.delta?.pct}
+                    <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
+                  {/if}
                 </div>
-                <p class="text-[10px] text-[var(--text-3)]">{stockValue.totalUnits.toLocaleString()} units</p>
               </div>
             </div>
           {/if}
@@ -431,29 +432,9 @@
           {/if}
         </div>
 
-        <!-- ── PROFIT + INVENTORY (full width, 2-col) ─────────────────── -->
-        {#if grossProfit || stockValue}
-          <div class="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-3">
-            {#if grossProfit}
-              <div class="surface-card p-4 space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <Banknote size={14} strokeWidth={2} style="color:var(--teal)" />
-                    <h3 class="text-[13px] font-semibold text-[var(--text)]">Gross Profit</h3>
-                  </div>
-                  {#if grossProfit.delta}
-                    <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
-                  {/if}
-                </div>
-                <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(grossProfit.current)}</p>
-                <p class="text-[10px] text-[var(--text-3)]">vs {formatCurrencyCompact(grossProfit.previous)} prev period</p>
-                {#if grossProfit.coverage !== undefined && grossProfit.coverage < 80}
-                  <p class="text-[10px] text-[var(--gold-fg)]">⚠ Cost data on {grossProfit.coverage}% of items</p>
-                {/if}
-              </div>
-            {/if}
-
-            {#if stockValue}
+        <!-- ── INVENTORY (full width) ──────────────────────────────────── -->
+        {#if stockValue}
+          <div class="col-span-12">
               <div class="surface-card p-5 space-y-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-[13px] font-semibold text-[var(--text)]">Inventory</h3>
@@ -488,7 +469,6 @@
                   <span class="text-[13px] font-semibold tabular-nums">{stockValue.totalUnits.toLocaleString()}</span>
                 </div>
               </div>
-            {/if}
           </div>
         {/if}
 
