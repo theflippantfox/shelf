@@ -17,21 +17,27 @@ export async function GET({
   const search = url.searchParams.get("search") ?? "";
   const cat = url.searchParams.get("category") ?? "";
   const alert = url.searchParams.get("alert");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10)));
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
   const supabase = userClientFromCtx({ cookies } as any);
   let q = supabase
     .from("products")
     .select(
       "id, name, sku, description, price, cost_price, qty, low_stock_threshold, track_stock, track_barcode, barcode, image_url, archived_at, category_id, category:categories(id, name, color, icon)",
+      { count: "exact" },
     )
     .eq("shop_id", shopId)
     .is("archived_at", null)
-    .order("name");
+    .order("name")
+    .range(from, to);
 
   if (cat) q = q.eq("category_id", cat);
   if (search) q = q.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
 
-  const { data: products, error } = await q;
+  const { data: products, error, count } = await q;
   if (error) return json({ error: error.message }, { status: 500 });
 
   let result = products ?? [];
@@ -46,7 +52,15 @@ export async function GET({
     );
   }
 
-  return json(result);
+  return json({
+    data: result,
+    meta: {
+      page,
+      limit,
+      total: count ?? 0,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    },
+  });
 }
 
 /**

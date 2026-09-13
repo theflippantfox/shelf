@@ -9,19 +9,34 @@ import { categoryCreateSchema } from "$lib/validators/schemas";
 export async function GET({
   cookies,
   locals,
+  url,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop) return json([]);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") ?? "100", 10)));
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
   const supabase = userClientFromCtx({ cookies } as any);
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from("categories")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("shop_id", locals.currentShop.id)
     .is("archived_at", null)
     .order("sort_order")
-    .order("name");
+    .order("name")
+    .range(from, to);
 
   if (error) return json({ error: error.message }, { status: 500 });
-  return json(data ?? []);
+  return json({
+    data: data ?? [],
+    meta: {
+      page,
+      limit,
+      total: count ?? 0,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    },
+  });
 }
 
 /**
