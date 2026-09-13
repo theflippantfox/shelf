@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
 
 /**
  * POST /api/purchase-orders/[id]/items — add a line item to a PO.
@@ -14,7 +14,8 @@ export async function POST({
   if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { data, error } = await supabase
     .from("purchase_order_items")

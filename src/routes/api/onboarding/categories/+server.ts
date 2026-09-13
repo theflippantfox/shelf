@@ -19,7 +19,8 @@ export async function POST({
   if (!parsed.ok) return parsed.response;
   const { categories } = parsed.data;
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   if (categories?.length) {
     const rows = categories.map((c, i) => ({
@@ -27,7 +28,7 @@ export async function POST({
       shop_id: locals.currentShop!.id,
       sort_order: i,
     }));
-    const { error } = await supabase.from("categories").insert(rows as any);
+    const { error } = await supabase.from("categories").insert(rows);
     if (error) return json({ error: error.message }, { status: 400 });
   }
 

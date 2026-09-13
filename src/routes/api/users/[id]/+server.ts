@@ -29,10 +29,11 @@ export async function PATCH({
     if (ALLOWED.includes(k)) safe[k] = v;
   }
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from("shop_members")
-    .update(safe as any)
+    .update(safe)
     .eq("id", params.id)
     .select()
     .single();
@@ -42,7 +43,6 @@ export async function PATCH({
 }
 
 export async function DELETE({
-  cookies,
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
@@ -56,7 +56,8 @@ export async function DELETE({
 
   // Look up the row to decide cancel-vs-suspend.
   // Use admin to bypass any RLS quirks (we already owner-gated above).
-  const admin = adminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin: any = adminClient();
   const { data: row, error: lookupErr } = await admin
     .from("shop_members")
     .select("id, status")

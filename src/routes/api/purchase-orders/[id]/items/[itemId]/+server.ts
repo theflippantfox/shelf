@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
 
 /**
  * POST /api/purchase-orders/[id]/items/[itemId] — duplicate endpoint from the items route.
@@ -9,11 +9,11 @@ export async function POST({
   cookies,
   request,
   params,
-  locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.id) return json({ error: "Missing id" }, { status: 400 });
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { data, error } = await supabase
     .from("purchase_order_items")
@@ -32,11 +32,11 @@ export async function PATCH({
   cookies,
   request,
   params,
-  locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.itemId) return json({ error: "Missing itemId" }, { status: 400 });
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { data, error } = await supabase
     .from("purchase_order_items")
@@ -55,10 +55,10 @@ export async function PATCH({
 export async function DELETE({
   cookies,
   params,
-  locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.itemId) return json({ error: "Missing itemId" }, { status: 400 });
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { error } = await supabase
     .from("purchase_order_items")
