@@ -4,6 +4,7 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { PAYMENT_METHOD, CREDIT_STATUS } from "$lib/constants";
 import {
   buildKpis,
   buildTrend,
@@ -284,15 +285,15 @@ export const GET = async ({
       .from("sales")
       .select("credit_status, total, credit_amount_paid")
       .eq("shop_id", shopId)
-      .eq("payment_method", "credit")
-      .in("credit_status", ["partial", "pending"])
+      .eq("payment_method", PAYMENT_METHOD.CREDIT)
+      .in("credit_status", [CREDIT_STATUS.PARTIAL, CREDIT_STATUS.PENDING])
       .is("voided_at", null),
     supabase
       .from("sales")
       .select("total, credit_amount_paid, customer_id, customers!inner(name)")
       .eq("shop_id", shopId)
-      .eq("payment_method", "credit")
-      .in("credit_status", ["partial", "pending"])
+      .eq("payment_method", PAYMENT_METHOD.CREDIT)
+      .in("credit_status", [CREDIT_STATUS.PARTIAL, CREDIT_STATUS.PENDING])
       .is("voided_at", null)
       .order("created_at", { ascending: false })
       .limit(50),

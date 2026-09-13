@@ -8,6 +8,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
+import { CREDIT_STATUS } from "$lib/constants";
 
 /**
  * GET /api/sales
@@ -110,7 +111,7 @@ export async function POST({
     // When null, the function uses now(). Server validates + applies.
     p_created_at: created_at ?? null,
     // Credit fields. The RPC defaults to 'paid' for non-credit payment methods.
-    p_credit_status: credit_status ?? "paid",
+    p_credit_status: credit_status ?? CREDIT_STATUS.PAID,
     p_credit_amount_paid: credit_amount_paid ?? 0,
     p_credit_due_date: credit_due_date ?? null,
   });

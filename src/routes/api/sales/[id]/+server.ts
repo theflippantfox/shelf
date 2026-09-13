@@ -14,6 +14,7 @@ import {
   apiNotFound,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
+import { PAYMENT_METHOD } from "$lib/constants";
 
 /**
  * GET /api/sales/[id]
@@ -318,7 +319,7 @@ export async function PATCH({
   // This is a manual adjustment since the INSERT trigger only fires on new
   // sales, not on PATCH edits. The delta is the difference between the
   // old outstanding and the new outstanding.
-  if (newCustomerId && body.payment_method === "credit") {
+  if (newCustomerId && body.payment_method === PAYMENT_METHOD.CREDIT) {
     const newOutstanding =
       (body.total ?? oldTotal) - (newCreditAmountPaid ?? 0);
     const outstandingDelta = newOutstanding - oldOutstanding;

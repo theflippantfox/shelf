@@ -1,6 +1,7 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError } from "$lib/server/apiResponse";
+import { PAYMENT_METHOD, REFUND_METHODS, DESTINATION, ENTRY_TYPE } from "$lib/constants";
 
 /**
  * POST /api/sales/[id]/returns — process a return / refund.
@@ -65,7 +66,7 @@ export async function POST({
   ) {
     throw error(400, "Invalid reason");
   }
-  if (!["cash", "bank", "credit_note", "none"].includes(refund_method)) {
+  if (!REFUND_METHODS.includes(refund_method as any)) {
     throw error(400, "Invalid refund_method");
   }
   if (items.length === 0) {
@@ -216,14 +217,14 @@ export async function POST({
   // Wrapped in try/catch so a register-write failure doesn't roll back
   // the return itself — the customer still gets their money back,
   // and the register can be fixed by a manual entry.
-  if (refund_method === "cash" || refund_method === "bank") {
+  if (refund_method === PAYMENT_METHOD.CASH || refund_method === PAYMENT_METHOD.BANK) {
     try {
-      const destination = refund_method === "cash" ? "counter" : "bank";
+      const destination = refund_method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK;
       const { error: regErr } = await supabase.from("cash_register").insert({
         shop_id: shopId,
         destination,
         amount: -Math.abs(totalRefund),
-        entry_type: "refund",
+        entry_type: ENTRY_TYPE.REFUND,
         source: "refund",
         sale_id: saleId,
         notes: `Refund for sale (${reason})`,
@@ -246,8 +247,8 @@ export async function POST({
   //    change the customer's balance — they already owed us, and
   //    we got our cash back, so the receivable is gone.)
   if (
-    refund_method === "credit_note" &&
-    (sale as any).payment_method === "credit"
+    refund_method === PAYMENT_METHOD.CREDIT_NOTE &&
+    (sale as any).payment_method === PAYMENT_METHOD.CREDIT
   ) {
     const { data: cust } = await supabase
       .from("customers")
@@ -283,7 +284,7 @@ export async function POST({
         (i) => i.condition === "resellable" || i.condition === "expired",
       ).length,
       damaged_count: items.filter((i) => i.condition === "damaged").length,
-      cash_refund: refund_method === "cash" || refund_method === "bank",
+      cash_refund: refund_method === PAYMENT_METHOD.CASH || refund_method === PAYMENT_METHOD.BANK,
     },
   });
 }

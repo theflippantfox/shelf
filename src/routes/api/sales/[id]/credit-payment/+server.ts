@@ -13,7 +13,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
-import { ADMIN_ROLES } from "$lib/constants";
+import { ADMIN_ROLES, VALID_DESTINATIONS, DESTINATION } from "$lib/constants";
 import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
@@ -37,7 +37,7 @@ export async function POST({
  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
   return apiError("amount must be a positive number", 400);
  }
- if (destination && !["counter", "bank", "other"].includes(destination)) {
+ if (destination && !VALID_DESTINATIONS.includes(destination)) {
   return apiError("Invalid destination", 400);
  }
 
@@ -46,7 +46,7 @@ export async function POST({
   {
    p_sale_id: params.id,
    p_amount: amount,
-   p_destination: destination ?? "counter",
+   p_destination: destination ?? DESTINATION.COUNTER,
    p_actor_id: locals.user.id,
    p_notes: notes ?? null,
   } as any,

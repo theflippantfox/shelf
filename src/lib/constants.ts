@@ -77,6 +77,7 @@ export const REFUND_METHODS: PaymentMethod[] = [
 export const DESTINATION = {
  COUNTER: "counter",
  BANK: "bank",
+ OTHER: "other",
 } as const;
 
 export type Destination = (typeof DESTINATION)[keyof typeof DESTINATION];
@@ -88,9 +89,17 @@ export function paymentDestination(method: PaymentMethod): Destination | null {
  return null;
 }
 
+/** All valid destination values (including 'other' for mixed payments). */
+export const VALID_DESTINATIONS = [
+ DESTINATION.COUNTER,
+ DESTINATION.BANK,
+ DESTINATION.OTHER,
+];
+
 // ── Cash register entry types ──────────────────────────────────────────
 export const ENTRY_TYPE = {
  SALE: "sale",
+ EXPENSE: "expense",
  INJECTION: "injection",
  WITHDRAWAL: "withdrawal",
  ADJUSTMENT: "adjustment",

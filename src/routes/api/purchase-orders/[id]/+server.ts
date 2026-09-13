@@ -1,6 +1,7 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError } from "$lib/server/apiResponse";
+import { PO_STATUS } from "$lib/constants";
 
 /**
  * GET /api/purchase-orders/[id] — single PO with items.
@@ -114,7 +115,7 @@ export async function DELETE({
 
   const { error } = await supabase
     .from("purchase_orders")
-    .update({ status: "cancelled" })
+    .update({ status: PO_STATUS.CANCELLED })
     .eq("id", params.id);
 
   if (error) return apiError(error.message, 400);

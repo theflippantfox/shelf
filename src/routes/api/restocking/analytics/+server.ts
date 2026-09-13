@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { apiUnauthorized } from "$lib/server/apiResponse";
+import { PO_STATUS } from "$lib/constants";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -32,7 +33,7 @@ export async function GET({
     .from("purchase_orders")
     .select("id, total_cost, supplier_id")
     .eq("shop_id", shopId)
-    .eq("status", "received")
+    .eq("status", PO_STATUS.RECEIVED)
     .gte("created_at", startDateIso);
   const receivedOrders = receivedOrdersRaw as any[];
 
