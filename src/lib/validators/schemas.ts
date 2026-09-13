@@ -130,6 +130,9 @@ export const appearanceSchema = z.object({
 export const inviteSchema = z.object({
  email: emailSchema,
  role: z.enum(["owner", "manager", "cashier"]),
+ // Optional fields used during onboarding (not normal invite flow)
+ password: z.string().min(6, "Password must be at least 6 characters").optional(),
+ first_name: z.string().trim().max(50).optional(),
 });
 
 // Kept for backwards-compat with any in-flight /api/onboarding/team
@@ -151,10 +154,6 @@ export const categoriesSchema = z.object({
 // ─── CRUD schemas ─────────────────────────────────────────────────────────
 // Used by API routes for request body validation.
 // Keeps field whitelists in sync with validation rules.
-
-const uuidSchema = z.string().uuid();
-const nonNegativeNumber = z.number().min(0);
-const positiveNumber = z.number().gt(0);
 
 // -- Customers ---------------------------------------------------------------
 

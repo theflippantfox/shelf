@@ -23,8 +23,10 @@ export async function POST({
   if (!parsed.ok) return parsed.response;
   const { invites } = parsed.data;
 
-  const admin = adminClient();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin: any = adminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const failures: string[] = [];
 
   for (const invite of invites ?? []) {

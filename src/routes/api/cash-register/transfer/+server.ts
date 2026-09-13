@@ -20,9 +20,11 @@ export async function POST({
   }
 
   // Owner/manager only — transfers move real money between drawers
-  const { data: member, error: memberErr } = await userClientFromCtx({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({
     cookies,
-  } as any)
+  } as any);
+  const { data: member, error: memberErr } = await supabase
     .from("shop_members")
     .select("role, status")
     .eq("shop_id", locals.currentShop.id)
@@ -57,7 +59,7 @@ export async function POST({
     return json({ error: "amount must be a positive number" }, { status: 400 });
   }
 
-  const { error } = await userClientFromCtx({ cookies } as any).rpc(
+  const { error } = await supabase.rpc(
     "transfer_register",
     {
       p_shop_id: locals.currentShop.id,

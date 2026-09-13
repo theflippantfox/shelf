@@ -17,7 +17,8 @@ export async function GET({
   url,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop) return json([]);
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const limit = Math.min(200, parseInt(url.searchParams.get("limit") ?? "50"));
@@ -81,7 +82,8 @@ export async function POST({
 
   if (!items?.length) return json({ error: "Cart is empty" }, { status: 400 });
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   // Atomic via create_sale() SECURITY DEFINER function.
   // Uses userClient so auth.uid() is set inside the function (membership check).

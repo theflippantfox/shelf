@@ -19,7 +19,8 @@ export async function GET({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const [{ data: sale, error: saleErr }, { data: items, error: itemsErr }] =
     await Promise.all([
@@ -54,7 +55,8 @@ export async function PATCH({
   if (!locals.user) return json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   // ── Void path ──────────────────────────────────────────────────────────────
   // The atomic void_sale() RPC does three things in one transaction:

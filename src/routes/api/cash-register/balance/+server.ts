@@ -10,7 +10,9 @@ export async function GET({
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop) return json({ destinations: [], total: 0 });
 
-  const { data, error } = await userClientFromCtx({ cookies } as any).rpc(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
+  const { data, error } = await supabase.rpc(
     "get_register_balance",
     {
       p_shop_id: locals.currentShop.id,
