@@ -56,7 +56,8 @@ export async function getActiveMembership(
  userId: string,
  shopIdHint?: string | null,
 ) {
- const admin = adminClient();
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const admin: any = adminClient();
 
  let q = admin
   .from("shop_members")
@@ -98,7 +99,8 @@ export async function inviteTeammate(
  shopId: string,
  redirectTo?: string,
 ): Promise<string> {
- const admin = adminClient();
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const admin: any = adminClient();
 
  const { data, error: err } = await admin.auth.admin.inviteUserByEmail(email, {
   redirectTo,

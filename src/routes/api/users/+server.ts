@@ -77,7 +77,8 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
   if (!email) return json({ error: 'Email is required' }, { status: 400 });
   const cleanEmail = String(email).trim().toLowerCase();
 
-  const admin = adminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin: any = adminClient();
 
   // 1) Look up the user by email. PostgREST doesn't expose auth.users
   // directly, and admin.auth.admin.listUsers is broken on this local
@@ -128,12 +129,12 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
   if (existing) {
     ({ data, error } = await admin
       .from('shop_members')
-      .update(row as any)
+      .update(row)
       .eq('id', (existing as any).id)
       .select()
       .single());
   } else {
-    ({ data, error } = await admin.from('shop_members').insert(row as any).select().single());
+    ({ data, error } = await admin.from('shop_members').insert(row).select().single());
   }
 
   if (error) return json({ error: error.message }, { status: 400 });
