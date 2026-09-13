@@ -309,20 +309,19 @@
             </div>
           {/if}
 
-          {#if grossProfit}
+          {#if stockValue}
             <div class="surface-card px-5 py-4 flex items-center gap-4">
               <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
-                <Banknote size={20} strokeWidth={1.5} style="color:var(--teal)" />
+                   style="background:color-mix(in srgb, var(--cobalt) 10%, transparent)">
+                <Package size={20} strokeWidth={1.5} style="color:var(--cobalt)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Profit</p>
+                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Stock</p>
                 <div class="flex items-baseline gap-2">
-                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
-                  {#if grossProfit.delta?.pct}
-                    <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
-                  {/if}
+                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(stockValue.retailValue)}</p>
+                  <span class="text-[11px] text-[var(--text-3)]">retail</span>
                 </div>
+                <p class="text-[10px] text-[var(--text-3)]">{stockValue.totalUnits.toLocaleString()} units</p>
               </div>
             </div>
           {/if}
@@ -455,31 +454,38 @@
             {/if}
 
             {#if stockValue}
-              <div class="surface-card p-4 space-y-2">
+              <div class="surface-card p-5 space-y-4">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <Package size={14} strokeWidth={2} style="color:var(--cobalt)" />
-                    <h3 class="text-[13px] font-semibold text-[var(--text)]">Inventory Value</h3>
-                  </div>
-                  <span class="text-[10px] font-semibold tabular-nums" style="color:var(--cobalt-fg)">
-                    {stockValue.potentialMargin.toFixed(1)}% margin
+                  <h3 class="text-[13px] font-semibold text-[var(--text)]">Inventory</h3>
+                  <span class="px-2 py-0.5 text-[10px] font-semibold tabular-nums rounded-full" style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
+                    {stockValue.potentialMargin.toFixed(1)}% potential margin
                   </span>
                 </div>
-                <div class="flex items-end justify-between gap-4">
+
+                <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <p class="text-[10px] text-[var(--text-3)]">At retail</p>
-                    <p class="text-lg font-bold tabular-nums leading-tight">{formatCurrencyCompact(stockValue.retailValue)}</p>
+                    <p class="text-[11px] text-[var(--text-3)] mb-1">At Retail</p>
+                    <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(stockValue.retailValue)}</p>
                   </div>
                   <div class="text-right">
-                    <p class="text-[10px] text-[var(--text-3)]">At cost</p>
-                    <p class="text-sm font-semibold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
+                    <p class="text-[11px] text-[var(--text-3)] mb-1">At Cost</p>
+                    <p class="text-[17px] font-semibold tabular-nums leading-tight text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
-                  <div class="flex-1 h-1.5 rounded-full bg-[var(--surface2)] overflow-hidden">
+
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-[var(--text-3)]">Margin</span>
+                    <span class="font-semibold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
+                  </div>
+                  <div class="h-2 rounded-full bg-[var(--surface2)] overflow-hidden">
                     <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
                   </div>
-                  <p class="text-[10px] text-[var(--text-3)] whitespace-nowrap">{stockValue.totalUnits.toLocaleString()} units</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+                  <span class="text-[11px] text-[var(--text-3)]">Total Units</span>
+                  <span class="text-[13px] font-semibold tabular-nums">{stockValue.totalUnits.toLocaleString()}</span>
                 </div>
               </div>
             {/if}
