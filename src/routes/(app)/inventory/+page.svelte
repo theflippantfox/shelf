@@ -210,59 +210,62 @@ let scanOpen    = $state(false);
 
   async function saveProduct() {
     saving = true;
-    const clientId = crypto.randomUUID();
-    const payload = {
-      name:                form.name,
-      sku:                 form.sku,
-      price:               parseFloat(form.price  || '0'),
-      cost_price:          parseFloat(form.cost_price || '0'),
-      qty:                 parseInt(form.qty || '0'),
-      unit:                form.unit,
-      category:            form.category || null,
-      description:         form.description || null,
-      track_stock:         !!form.track_stock,
-      track_barcode:       !!form.track_barcode,
-      low_stock_threshold: form.track_stock && form.low_stock_threshold
-                             ? parseInt(form.low_stock_threshold) : null,
-      barcode:             form.barcode.trim() || null,
-    };
-    const url    = editTarget ? `/api/products/${editTarget.id}` : '/api/products';
-    const method = editTarget ? 'PATCH' : 'POST';
+    try {
+      const clientId = crypto.randomUUID();
+      const payload = {
+        name:                form.name,
+        sku:                 form.sku,
+        price:               parseFloat(form.price  || '0'),
+        cost_price:          parseFloat(form.cost_price || '0'),
+        qty:                 parseInt(form.qty || '0'),
+        unit:                form.unit,
+        category:            form.category || null,
+        description:         form.description || null,
+        track_stock:         !!form.track_stock,
+        track_barcode:       !!form.track_barcode,
+        low_stock_threshold: form.track_stock && form.low_stock_threshold
+                               ? parseInt(form.low_stock_threshold) : null,
+        barcode:             form.barcode.trim() || null,
+      };
+      const url    = editTarget ? `/api/products/${editTarget.id}` : '/api/products';
+      const method = editTarget ? 'PATCH' : 'POST';
 
-    if (editTarget) {
-      invStore.update(editTarget.id, payload);
-    } else {
-      invStore.add({
-        id:           clientId,
-        client_id:    clientId,
-        archived_at:  null,
-        image_url:    null,
-        ...payload,
-      });
-    }
-    showAdd = false;
-    toasts.success(editTarget ? 'Product updated' : 'Product added');
-
-    const res = await fetch(url, {
-      method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-    });
-    saving = false;
-    if (!res.ok) {
-      toasts.error(editTarget ? 'Update failed — reverted' : 'Add failed — reverted');
       if (editTarget) {
-        await invalidateAll();
-        invStore.replaceAll(data.products as any[]);
+        invStore.update(editTarget.id, payload);
       } else {
-        invStore.rollback(clientId);
+        invStore.add({
+          id:           clientId,
+          client_id:    clientId,
+          archived_at:  null,
+          image_url:    null,
+          ...payload,
+        });
       }
-      return;
-    }
-    const real = await res.json();
-    if (editTarget) {
-      invStore.markSynced(editTarget.id);
-      invStore.update(editTarget.id, real);
-    } else {
-      invStore.reconcile(clientId, real);
+      showAdd = false;
+      toasts.success(editTarget ? 'Product updated' : 'Product added');
+
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        toasts.error(editTarget ? 'Update failed — reverted' : 'Add failed — reverted');
+        if (editTarget) {
+          await invalidateAll();
+          invStore.replaceAll(data.products as any[]);
+        } else {
+          invStore.rollback(clientId);
+        }
+        return;
+      }
+      const real = await res.json();
+      if (editTarget) {
+        invStore.markSynced(editTarget.id);
+        invStore.update(editTarget.id, real);
+      } else {
+        invStore.reconcile(clientId, real);
+      }
+    } finally {
+      saving = false;
     }
   }
 

@@ -109,13 +109,15 @@
   <!-- Mobile: bottom sheet -->
   <div
     class="md:hidden fixed inset-x-0 bottom-0 z-50 pointer-events-none"
-    role="dialog"
-    aria-modal="true"
-    aria-label={title}
+    role="presentation"
   >
     <div
       bind:this={dialogEl}
       class="surface-elevated pointer-events-auto w-full {sizeHeight} flex flex-col overflow-hidden rounded-t-[20px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      transition:fly={{ y: 300, duration: 280 }}
       style="box-shadow: 0 -8px 32px -8px rgb(0 0 0 / 0.18), 0 -1px 0 0 rgb(255 255 255 / 0.4) inset;"
     >
       <!-- Drag handle -->
