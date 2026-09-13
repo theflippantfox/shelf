@@ -24,8 +24,9 @@
     open: boolean;
     onResult: (code: string) => void;
     onClose: () => void;
+    stayOpen?: boolean;
   };
-  let { open, onResult, onClose }: Props = $props();
+  let { open, onResult, onClose, stayOpen = false }: Props = $props();
 
   let videoEl: HTMLVideoElement | null = $state(null);
   let stream: MediaStream | null = null;
@@ -192,10 +193,21 @@
     );
   }
 
+  // Visual feedback for successful scan
+  let lastScanSuccess = $state(false);
+
   function handleResult(code: string) {
-    stop();
-    onResult(code);
-    onClose();
+    if (stayOpen) {
+      // Keep camera running — flash feedback and reset debounce
+      lastScanSuccess = true;
+      lastCode = '';
+      setTimeout(() => { lastScanSuccess = false; }, 600);
+      onResult(code);
+    } else {
+      stop();
+      onResult(code);
+      onClose();
+    }
   }
 
   // ── Start / Stop ──────────────────────────────────────────────────
@@ -296,8 +308,8 @@
       aria-hidden="true"
     >
       <div
-        class="w-[78%] h-[34%] border-2 border-[var(--primary)] rounded-md relative"
-        style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);"
+        class="w-[78%] h-[34%] border-2 {lastScanSuccess ? 'border-[var(--teal)] scale-[1.02]' : 'border-[var(--primary)]'} rounded-md relative transition-all duration-150"
+        style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); {lastScanSuccess ? 'box-shadow: 0 0 0 9999px rgba(0,0,0,0.45), inset 0 0 30px rgba(var(--teal-rgb,16,185,129),0.3);' : ''}"
       >
         <span class="absolute -top-px -left-px w-3 h-3 border-t-2 border-l-2 border-[var(--primary)] rounded-tl-sm"></span>
         <span class="absolute -top-px -right-px w-3 h-3 border-t-2 border-r-2 border-[var(--primary)] rounded-tr-sm"></span>
@@ -367,12 +379,15 @@
           {/if}
         </button>
       {/if}
+      {#if stayOpen}
+        <div class="flex-1"></div>
+      {/if}
       <button
         type="button"
         class="btn btn-secondary"
         onclick={() => { stop(); onClose(); }}
       >
-        <X size={14} /> Cancel
+        <X size={14} /> {stayOpen ? 'Done' : 'Cancel'}
       </button>
     </div>
   {/snippet}

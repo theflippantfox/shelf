@@ -15,10 +15,11 @@
   import Select      from '$lib/components/ui/Select.svelte';
   import Toggle      from '$lib/components/ui/Toggle.svelte';
   import EmptyState  from '$lib/components/ui/EmptyState.svelte';
+import BarcodeScanner from '$lib/components/ui/BarcodeScanner.svelte';
   import KpiCard     from '$lib/components/ui/KpiCard.svelte';
   import DynamicIcon from '$lib/components/ui/DynamicIcon.svelte';
   import { inview } from '$lib/utils/inview';
-  import { Plus, Pencil, PackagePlus, Trash2, ArrowUpDown, X, Package } from 'lucide-svelte';
+  import { Plus, Pencil, PackagePlus, Trash2, ArrowUpDown, X, Package, ScanLine } from 'lucide-svelte';
   import { appConfig } from '$lib/config/app';
   import { invalidateAll } from '$app/navigation';
   import { fly } from 'svelte/transition';
@@ -46,11 +47,12 @@
   type SortKey = 'name-asc' | 'name-desc' | 'stock-asc' | 'stock-desc' | 'updated-desc';
   let sortKey    = $state<SortKey>('name-asc');
 
-  let showAdd     = $state(false);
-  let showDelete  = $state(false);
-  let editTarget  = $state<any>(null);
-  let deleteTarget = $state<any>(null);
-  let saving      = $state(false);
+let showAdd     = $state(false);
+let showDelete  = $state(false);
+let editTarget  = $state<any>(null);
+let deleteTarget = $state<any>(null);
+let saving      = $state(false);
+let scanOpen    = $state(false);
 
   // Tracks which product ids currently have their IntersectionObserver mounted
   // and inside the viewport buffer.
@@ -640,7 +642,28 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {#if form.track_barcode}
-        <Input label="Barcode" bind:value={form.barcode} hint="Optional — scan with the in-app camera to add to cart" />
+        <div class="input-group">
+          <label for="barcode-input" class="input-label">Barcode</label>
+          <div class="flex gap-2">
+            <input
+              id="barcode-input"
+              type="text"
+              bind:value={form.barcode}
+              placeholder="Optional"
+              class="input flex-1 font-mono text-sm"
+            />
+            <button
+              type="button"
+              class="shrink-0 w-10 h-10 rounded-md bg-[var(--primary)] text-[var(--primary-fg)] flex items-center justify-center active:scale-95 transition-transform"
+              onclick={() => (scanOpen = true)}
+              aria-label="Scan barcode"
+              title="Scan barcode with camera"
+            >
+              <ScanLine size={16} strokeWidth={2} />
+            </button>
+          </div>
+          <p class="input-hint">Scan with the in-app camera, or type it in</p>
+        </div>
       {/if}
       {#if form.track_stock}
         <Input label="Low-stock alert at" type="number" bind:value={form.low_stock_threshold} hint="e.g. 5" />
@@ -661,6 +684,12 @@
     </div>
   {/snippet}
 </Sheet>
+
+<BarcodeScanner
+  open={scanOpen}
+  onClose={() => (scanOpen = false)}
+  onResult={(code) => { form.barcode = code; scanOpen = false; }}
+/>
 
 <ConfirmModal
   bind:open={showDelete}
