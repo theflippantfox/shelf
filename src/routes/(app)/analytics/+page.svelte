@@ -412,39 +412,36 @@
 
           <!-- Inventory (4 cols) -->
           <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-sm font-semibold text-[var(--text)]">Inventory</h2>
-              {#if stockValue}
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
-                  {stockValue.potentialMargin.toFixed(1)}% margin
-                </span>
-              {/if}
-            </div>
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Inventory</h2>
             {#if stockValue}
               <div class="space-y-4">
+                <!-- Retail + Cost side by side -->
                 <div class="grid grid-cols-2 gap-4">
                   <div>
-                    <p class="text-xs text-[var(--text-3)] mb-1">Retail</p>
-                    <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(stockValue.retailValue)}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-1">Retail</p>
+                    <p class="text-xl font-bold tabular-nums text-[var(--text)]">{formatCurrencyCompact(stockValue.retailValue)}</p>
                   </div>
                   <div>
-                    <p class="text-xs text-[var(--text-3)] mb-1">Cost</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-1">Cost</p>
                     <p class="text-xl font-bold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
                   </div>
                 </div>
-                <div>
-                  <div class="flex items-center justify-between text-xs mb-1.5">
-                    <span class="text-[var(--text-3)]">Margin</span>
-                    <span class="font-semibold" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
-                  </div>
-                  <div class="h-2 rounded-full bg-[var(--surface2)] overflow-hidden">
-                    <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
-                  </div>
+
+                <!-- Units -->
+                <div class="flex items-center justify-between py-3 border-y border-[var(--border)]">
+                  <span class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">Units in stock</span>
+                  <span class="text-lg font-bold tabular-nums text-[var(--text)]">{stockValue.totalUnits.toLocaleString()}</span>
                 </div>
-                <div class="flex items-center justify-between pt-3 border-t border-[var(--border)]">
-                  <span class="text-xs text-[var(--text-3)]">Units in stock</span>
-                  <span class="text-sm font-semibold">{stockValue.totalUnits.toLocaleString()}</span>
+
+                <!-- Margin bar -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-2">
+                    <span class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">Potential Margin</span>
+                    <span class="text-sm font-bold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
+                  </div>
+                  <div class="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
+                    <div class="h-full rounded-full transition-all" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:linear-gradient(90deg, var(--cobalt), color-mix(in srgb, var(--cobalt) 70%, var(--primary)))"></div>
+                  </div>
                 </div>
               </div>
             {:else}
