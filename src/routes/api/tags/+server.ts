@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { userClientFromCtx } from '$lib/server/supabase';
 
 /**
  * GET /api/tags — list tags for the current shop.
  */
-export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestEvent) {
+export async function GET({ cookies, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json([]);
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
@@ -19,14 +19,30 @@ export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestE
 
 /**
  * POST /api/tags — create a tag.
+ * Only accepts whitelisted fields to prevent mass-assignment.
  */
-export async function POST({ cookies, request, locals  }: import('@sveltejs/kit').RequestEvent) {
+export async function POST({ cookies, request, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
-  const body = await request.json();
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const name = String(body.name ?? '').trim();
+  if (!name) return json({ error: 'name is required' }, { status: 400 });
+
+  const color = body.color ? String(body.color).trim() : undefined;
+  if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    return json({ error: 'color must be a valid hex color' }, { status: 400 });
+  }
+
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from('tags')
-    .insert({ ...body, shop_id: locals.currentShop.id })
+    .insert({ name, color: color ?? null, shop_id: locals.currentShop.id } as any)
     .select()
     .single();
 

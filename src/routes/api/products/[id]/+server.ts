@@ -1,26 +1,30 @@
 import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { userClientFromCtx } from '$lib/server/supabase';
 
 /**
- * GET /api/products/[id] — single product with category join.
+ * GET /api/products/[id] — single product with category join, scoped to current shop.
  */
-export async function GET({ cookies, params, locals  }: import('@sveltejs/kit').RequestEvent) {
+export async function GET({ cookies, params, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
+  if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
+
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from('products')
     .select('*, category:categories(*)')
     .eq('id', params.id)
-    .single();
+    .eq('shop_id', locals.currentShop.id)
+    .maybeSingle();
 
-  if (error) return json({ error: error.message }, { status: 404 });
+  if (error) return json({ error: error.message }, { status: 500 });
+  if (!data) return json({ error: 'Not found' }, { status: 404 });
   return json(data);
 }
 
 /**
- * PATCH /api/products/[id] — update product fields.
+ * PATCH /api/products/[id] — update product fields. Scoped to current shop.
  */
-export async function PATCH({ cookies, params, request, locals  }: import('@sveltejs/kit').RequestEvent) {
+export async function PATCH({ cookies, params, request, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
   const body = await request.json();
@@ -37,23 +41,15 @@ export async function PATCH({ cookies, params, request, locals  }: import('@svel
   if ('unit'                in body) allowed.unit = body.unit;
   if ('description'         in body) allowed.description = clean(body.description);
   if ('low_stock_threshold' in body) {
-    // null / undefined / '' all mean "use the default of 5". The DB
-    // column is NOT NULL so we can't write null directly.
     const v = body.low_stock_threshold;
     allowed.low_stock_threshold = (v === null || v === undefined || v === '' || Number.isNaN(v)) ? 5 : v;
   }
   if ('track_stock'         in body) {
     allowed.track_stock = body.track_stock !== false;
-    // When the toggle is OFF, the threshold is meaningless. Set it to 0
-    // so the query-side "qty <= threshold" check can never match this
-    // product, without violating the NOT NULL constraint on the column.
     if (body.track_stock === false) allowed.low_stock_threshold = 0;
   }
   if ('track_barcode'       in body) {
     allowed.track_barcode = body.track_barcode !== false;
-    // If the toggle was turned OFF, clear any existing barcode so the
-    // DB state matches the UI. Turning it back ON keeps whatever was
-    // there (which is the empty string from the form, → null).
     if (body.track_barcode === false) allowed.barcode = null;
   }
   if ('barcode'             in body) allowed.barcode = clean(body.barcode);
@@ -65,6 +61,7 @@ export async function PATCH({ cookies, params, request, locals  }: import('@svel
     .from('products')
     .update(allowed)
     .eq('id', params.id)
+    .eq('shop_id', locals.currentShop.id)
     .select()
     .single();
 
@@ -73,15 +70,18 @@ export async function PATCH({ cookies, params, request, locals  }: import('@svel
 }
 
 /**
- * DELETE /api/products/[id] — soft-delete by setting archived_at.
+ * DELETE /api/products/[id] — soft-delete by setting archived_at. Scoped to current shop.
  */
-export async function DELETE({ cookies, params, locals  }: import('@sveltejs/kit').RequestEvent) {
+export async function DELETE({ cookies, params, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
+  if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
+
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from('products')
-    .update({ archived_at: new Date().toISOString() })
+    .update({ archived_at: new Date().toISOString() } as any)
     .eq('id', params.id)
+    .eq('shop_id', locals.currentShop.id)
     .select()
     .single();
 

@@ -129,6 +129,79 @@ export const categoriesSchema = z.object({
   categories: z.array(categorySchema).min(0).max(50),
 });
 
+// ─── CRUD schemas ─────────────────────────────────────────────────────────
+// Used by API routes for request body validation.
+// Keeps field whitelists in sync with validation rules.
+
+const uuidSchema = z.string().uuid();
+const nonNegativeNumber = z.number().min(0);
+const positiveNumber = z.number().gt(0);
+
+// -- Customers ---------------------------------------------------------------
+
+export const customerCreateSchema = z.object({
+  name:  nonEmptyString(100),
+  phone: z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
+  email: z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
+  notes: z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+});
+
+export const customerUpdateSchema = z.object({
+  name:  nonEmptyString(100).optional(),
+  phone: z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
+  email: z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
+  notes: z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+});
+
+// -- Categories --------------------------------------------------------------
+
+export const categoryCreateSchema = z.object({
+  name:  nonEmptyString(50),
+  icon:  z.string().trim().min(1, 'Pick an icon'),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a color'),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export const categoryUpdateSchema = z.object({
+  name:  nonEmptyString(50).optional(),
+  icon:  z.string().trim().min(1).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+// -- Suppliers ---------------------------------------------------------------
+
+export const supplierCreateSchema = z.object({
+  name:         nonEmptyString(100),
+  contact_name: z.string().trim().max(100).optional().or(z.literal('')).transform(v => v || undefined),
+  phone:        z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
+  email:        z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
+  address:      z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+  notes:        z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+});
+
+export const supplierUpdateSchema = z.object({
+  name:         nonEmptyString(100).optional(),
+  contact_name: z.string().trim().max(100).optional().or(z.literal('')).transform(v => v || undefined),
+  phone:        z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
+  email:        z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
+  address:      z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+  notes:        z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+  is_active:    z.boolean().optional(),
+});
+
+// -- Tags --------------------------------------------------------------------
+
+export const tagCreateSchema = z.object({
+  name:  nonEmptyString(50),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a color').optional(),
+});
+
+export const tagUpdateSchema = z.object({
+  name:  nonEmptyString(50).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+});
+
 // ─── Inferred types ────────────────────────────────────────────────────────
 
 export type LoginInput    = z.infer<typeof loginSchema>;

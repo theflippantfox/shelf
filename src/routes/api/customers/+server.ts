@@ -1,11 +1,10 @@
 import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { userClientFromCtx } from '$lib/server/supabase';
 
 /**
  * GET /api/customers — list for current shop, with optional search.
- * POST /api/customers — create a customer.
  */
-export async function GET({ cookies, locals, url  }: import('@sveltejs/kit').RequestEvent) {
+export async function GET({ cookies, locals, url }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
   const search = url.searchParams.get('search') ?? '';
   const supabase = userClientFromCtx({ cookies } as any);
@@ -25,14 +24,38 @@ export async function GET({ cookies, locals, url  }: import('@sveltejs/kit').Req
   return json(data ?? []);
 }
 
-export async function POST({ cookies, request, locals  }: import('@sveltejs/kit').RequestEvent) {
+/**
+ * POST /api/customers — create a customer.
+ * Only accepts whitelisted fields to prevent mass-assignment.
+ */
+export async function POST({ cookies, request, locals }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
-  const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
 
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const name = String(body.name ?? '').trim();
+  if (!name) return json({ error: 'name is required' }, { status: 400 });
+
+  const clean = (v: unknown): string | null =>
+    v === '' || v === undefined || v === null ? null : String(v);
+
+  const allowed = {
+    name,
+    phone: clean(body.phone),
+    email: clean(body.email),
+    notes: clean(body.notes),
+    shop_id: locals.currentShop.id,
+  };
+
+  const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from('customers')
-    .insert({ ...body, shop_id: locals.currentShop.id })
+    .insert(allowed as any)
     .select()
     .single();
 
