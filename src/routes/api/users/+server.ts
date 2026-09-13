@@ -11,7 +11,7 @@
  * sign up on their own; owners only invite people who already exist.
  */
 import { json } from '@sveltejs/kit';
-import { adminClient, userClient, userClientFromCtx } from '$lib/server/supabase';
+import { adminClient, userClientFromCtx } from '$lib/server/supabase';
 
 export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
@@ -34,7 +34,7 @@ export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestE
   const members = (data ?? []) as any[];
   const userIds = members.map((m) => m.user?.id).filter(Boolean);
   if (userIds.length) {
-    const { data: rows } = await admin.rpc('get_user_emails', { ids: userIds });
+    const { data: rows } = await admin.rpc('get_user_emails' as any, { ids: userIds } as any);
     const emailMap: Record<string, string> = {};
     for (const u of rows ?? []) {
       emailMap[(u as any).id] = (u as any).email ?? '';
@@ -83,7 +83,7 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
   // directly, and admin.auth.admin.listUsers is broken on this local
   // GoTrue. Use the SECURITY DEFINER RPC find_user_id_by_email.
   const { data: userId, error: lookupErr } = await admin
-    .rpc('find_user_id_by_email', { needle: cleanEmail });
+    .rpc('find_user_id_by_email' as any, { needle: cleanEmail } as any);
 
   if (lookupErr) return json({ error: lookupErr.message }, { status: 500 });
   if (!userId) {
@@ -95,6 +95,7 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
       { status: 404 },
     );
   }
+  // SAFETY: userId comes from the find_user_id_by_email RPC which returns a uuid string
   const found = { id: userId as unknown as string, email: cleanEmail } as any;
 
   // 2) Reject if the user is already a member of this shop (any status)
@@ -127,12 +128,12 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
   if (existing) {
     ({ data, error } = await admin
       .from('shop_members')
-      .update(row)
+      .update(row as any)
       .eq('id', (existing as any).id)
       .select()
       .single());
   } else {
-    ({ data, error } = await admin.from('shop_members').insert(row).select().single());
+    ({ data, error } = await admin.from('shop_members').insert(row as any).select().single());
   }
 
   if (error) return json({ error: error.message }, { status: 400 });

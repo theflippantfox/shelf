@@ -3,7 +3,7 @@
  * supplier, mark the cheapest, and return the matrix for the UI.
  */
 import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { userClientFromCtx } from '$lib/server/supabase';
 
 export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
@@ -29,7 +29,7 @@ export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestE
   ]);
 
   // Build matrix: product_id → supplier_id → latest price
-  const matrix: Record<string, Record<string, any>> = {};
+  const matrix: Record<string, Record<string, { unit_cost: number; recorded_at: string; purchase_order_id: string; is_cheapest?: boolean }>> = {};
   const seen = new Set<string>();
 
   for (const record of history as any[]) {
