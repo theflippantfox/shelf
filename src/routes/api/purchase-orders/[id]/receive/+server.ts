@@ -11,7 +11,7 @@
  *   - recomputes PO subtotal, total_cost, status (received/partial/ordered)
  */
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
 
 export async function POST({
   cookies,
@@ -24,7 +24,8 @@ export async function POST({
     return json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { error } = await supabase.rpc("receive_purchase_order", {
     p_purchase_order_id: params.id,

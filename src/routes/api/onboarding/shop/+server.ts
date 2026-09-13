@@ -27,7 +27,8 @@ export async function POST({
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-  const admin = adminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin: any = adminClient();
   const { data: existing } = await admin
     .from("shops")
     .select("id")

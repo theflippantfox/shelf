@@ -15,7 +15,8 @@ export async function GET({
   if (!locals.user) return json({ error: "Not signed in" }, { status: 401 });
 
   // The user can see their own row even before accepting (RLS update).
-  const supabase = userClientFromCtx({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies });
   const { data, error } = await supabase
     .from("shop_members")
     .select(`
@@ -52,7 +53,8 @@ export async function POST({
 
   // RLS allows the invitee to update their own row when status='invited',
   // restricting new status to 'active' or 'suspended'.
-  const supabase = userClientFromCtx({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies });
   const newStatus = action === "accept" ? "active" : "suspended";
 
   const { data, error } = await supabase

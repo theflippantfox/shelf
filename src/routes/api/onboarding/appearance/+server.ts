@@ -18,7 +18,8 @@ export async function POST({
   const parsed = await parseBody(request, appearanceSchema);
   if (!parsed.ok) return parsed.response;
   const { primary_color, sidebar_bg, theme, palette_id } = parsed.data;
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const update: Record<string, unknown> = {
     primary_color,
@@ -30,7 +31,7 @@ export async function POST({
 
   const { error } = await supabase
     .from("shops")
-    .update(update as any)
+    .update(update)
     .eq("id", locals.currentShop.id);
 
   if (error) return json({ error: error.message }, { status: 400 });
