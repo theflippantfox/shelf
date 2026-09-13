@@ -433,14 +433,24 @@
                   <span class="text-lg font-bold tabular-nums text-[var(--text)]">{stockValue.totalUnits.toLocaleString()}</span>
                 </div>
 
-                <!-- Margin bar -->
+                <!-- Cost vs Margin bar -->
                 <div>
                   <div class="flex items-center justify-between text-xs mb-2">
-                    <span class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">Potential Margin</span>
-                    <span class="text-sm font-bold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
+                    <span class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">Cost vs Margin</span>
+                    <div class="flex items-center gap-3">
+                      <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-[var(--text-3)]"></span>
+                        <span class="text-[10px] text-[var(--text-3)]">Cost {stockValue.retailValue > 0 ? ((stockValue.costValue / stockValue.retailValue) * 100).toFixed(0) : 0}%</span>
+                      </span>
+                      <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full" style="background:var(--cobalt)"></span>
+                        <span class="text-[10px] font-semibold" style="color:var(--cobalt-fg)">Margin {stockValue.potentialMargin.toFixed(0)}%</span>
+                      </span>
+                    </div>
                   </div>
-                  <div class="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
-                    <div class="h-full rounded-full transition-all" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:linear-gradient(90deg, var(--cobalt), color-mix(in srgb, var(--cobalt) 70%, var(--primary)))"></div>
+                  <div class="h-3 rounded-full bg-[var(--surface2)] overflow-hidden flex">
+                    <div class="h-full transition-all" style="width:{stockValue.retailValue > 0 ? ((stockValue.costValue / stockValue.retailValue) * 100).toFixed(1) : 0}%; background:var(--text-3)"></div>
+                    <div class="h-full rounded-r-full transition-all" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:linear-gradient(90deg, var(--cobalt), color-mix(in srgb, var(--cobalt) 70%, var(--primary)))"></div>
                   </div>
                 </div>
               </div>
