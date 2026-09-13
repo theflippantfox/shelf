@@ -26,7 +26,7 @@
     onClose: () => void;
     stayOpen?: boolean;
   };
-  let { open, onResult, onClose, stayOpen = false }: Props = $props();
+  let { open = $bindable(false), onResult, onClose, stayOpen = false }: Props = $props();
 
   let videoEl: HTMLVideoElement | null = $state(null);
   let stream: MediaStream | null = null;

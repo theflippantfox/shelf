@@ -527,9 +527,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
    */
   async function onScanResult(code: string) {
     // Don't close the scanner — stayOpen keeps it running for multi-scan.
-    // Fast path: check local inventory store first (instant, no
-    // network).  The layout seeds the store on every page load, so
-    // all in-stock products are already in memory.
+    // Fast path: check local inventory store first.
     const local = invStore.getByBarcode(code);
     if (local) {
       if ((local as any).qty <= 0) {
