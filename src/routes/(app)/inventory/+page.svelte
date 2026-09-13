@@ -218,7 +218,7 @@ let scanOpen    = $state(false);
         price:               parseFloat(form.price  || '0'),
         cost_price:          parseFloat(form.cost_price || '0'),
         qty:                 parseInt(form.qty || '0'),
-        unit:                form.unit,
+        unit:                form.unit ?? 'piece',
         category:            form.category || null,
         description:         form.description || null,
         track_stock:         !!form.track_stock,
