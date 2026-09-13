@@ -146,7 +146,6 @@ export async function cacheFirst<T>(
   const isFresh = age < maxAge;
 
   if (!alwaysRefresh && isFresh) {
-   // Cache is fresh — return immediately, no network call
    return { data: cached.value, fromCache: true, refreshing: false };
   }
 
@@ -228,20 +227,16 @@ export async function optimisticWrite<T>(
  await writeCache(storeName, key, value);
 
  if (!offlineSync.online) {
-  // Offline — enqueue for later sync (the sync engine handles this)
-  // The write is already in cache, so reads will see the optimistic update
   return { written: true, syncing: false };
  }
 
  // 2. Sync in background
  syncFn()
   .then(async () => {
-   // Success — cache is already up to date from the write above
+   // Cache already up to date from the optimistic write above.
   })
   .catch(async (err: Error) => {
-   // Failure — mark cache entry as stale so next read forces a refresh
    options.onSyncFailure?.(err);
-   // Invalidate the cache entry so the next read fetches fresh data from server
    await deleteCache(storeName, key);
   });
 

@@ -52,41 +52,25 @@ import { register as regStore } from "$lib/stores/register.svelte";
   let lastSaleCustomer = $state<string>('');
   let discountStr   = $state("");
   let customerSearch = $state("");
-  // Payment inputs — always visible, auto-detect method from values
   let cashAmt = $state('');
   let upiAmt = $state('');
   let creditAmt = $state('');
   let roundOff = $state(0);
-  // Held-cart sheet
   let showHeld = $state(false);
 
-  // Reactive count of held carts so the "Held (N)" pill updates live.
-  // We snapshot from the cart store into a $state value on mount +
-  // whenever the held sheet opens, since the cart store's getters
-  // read from localStorage and aren't reactive on their own.
+  // Snapshot held-carts from localStorage (not reactive) into $state
+  // so the "Held (N)" pill updates. Refreshed on mount + tab focus.
   let heldCount = $state(0);
   let heldList: any[] = $state([]);
   function refreshHeld() {
     heldCount = cart.heldCount;
     heldList  = cart.heldCarts;
   }
-  // Re-read on mount and whenever the page becomes visible again
-  // (covers "user came back to the tab after a long break").
   onMount(refreshHeld);
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', refreshHeld);
   }
 
-  // Tracks which product ids are currently in (or near) the viewport — only
-  // those render real card DOM; everything else renders a cheap skeleton.
-  // Cart state lives in the cart store and is independent of card DOM, so
-  // adding to cart / qty steppers all keep working through the full filter
-  // and sort pipeline.
-  //   - SSR (browser === false): all items render real cards.
-  //   - Client mount: observer marks visible items; off-screen items get
-  //     swapped to skeletons via the visibility set.
-  //   - When the products list changes, the $effect re-seeds to the new
-  //     full set so newly-included items become visible immediately.
   let saleVisibleIds = $state<Set<string>>(new Set());
   let saleMounted = $state(false);
 
@@ -120,15 +104,10 @@ import { register as regStore } from "$lib/stores/register.svelte";
   });
 
   /* ── Derived: filtered products ────────────────────────────────────────── */
-  /**
-   * FIX: was `const products = $derived(() => {...})` which made `products` a
-   * function whose inner body never re-executed (same bug as inventory). Use
-   * `$derived.by` so the body actually runs reactively.
-   */
-  // Source of truth: the inventory store. The server data is only
-  // used to seed the store on first load (handled in the layout /
-  // +page.server.ts). Mutations elsewhere (e.g. inventory page)
-  // propagate here automatically via the shared store.
+  // FIX: original `$derived(() => {...})` made products a non-reactive
+  // function. Use `$derived.by` so the body runs reactively.
+  // Source of truth: the inventory store (seeded by layout on load,
+  // mutations propagate via the shared store).
   const products = $derived.by(() => {
     let list = invStore.all as any[];
     if (filterCat) {
@@ -153,7 +132,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
   });
 
   /* ── Derived: filtered customers ───────────────────────────────────────── */
-  // Source of truth: the customers store. See products block above.
   const filteredCustomers = $derived.by(() => {
     const list = custStore.all as any[];
     if (!customerSearch.trim()) return list.slice(0, 8);
@@ -203,10 +181,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
     transfer: { icon: ArrowLeftRight,  label: 'UPI',      tone: 'primary' },
   };
 
-  // ── Payment inputs: smart redistribution ────────────────────────
-  // Cash is always the "remainder". When UPI or Credit changes,
-  // Cash is the “remainder” — it auto-adjusts so the sum always equals finalTotal.
-  // Hard cap: sum of all three can never exceed finalTotal.
+  // Payment inputs: cash auto-adjusts as the remainder.
 
   function onCashInput(raw: string) {
     const credit = parseFloat(creditAmt) || 0;
@@ -222,7 +197,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
     const maxUpi = Math.max(0, finalTotal - credit);
     const val = Math.min(Math.max(0, parseFloat(raw) || 0), maxUpi);
     upiAmt = val > 0 ? String(val) : '';
-    // Cash absorbs the remainder
     const maxCash = Math.max(0, finalTotal - credit - val);
     cashAmt = maxCash > 0 ? String(maxCash) : '';
     applySplits();
@@ -233,7 +207,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
     const maxCr = Math.max(0, finalTotal - upi);
     const val = Math.min(Math.max(0, parseFloat(raw) || 0), maxCr);
     creditAmt = val > 0 ? String(val) : '';
-    // Cash absorbs the remainder
     const maxCash = Math.max(0, finalTotal - upi - val);
     cashAmt = maxCash > 0 ? String(maxCash) : '';
     applySplits();
@@ -248,7 +221,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
     if (cash > 0) cart.addSplit('cash', cash);
     if (upi > 0) cart.addSplit('transfer', upi);
     if (credit > 0) cart.addSplit('credit', credit);
-    // Auto-detect primary method by highest amount
     let method: PaymentMethod = 'cash';
     const max = Math.max(cash, upi, credit);
     if (max === upi) method = 'transfer';
@@ -276,7 +248,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
     return Math.round((finalTotal - used) * 100) / 100;
   });
 
-  // The cart's checkout button. For credit, ensure a customer is picked.
   function handleCheckoutClick() {
     if (isCreditSale && !cart.customerId) {
       toasts.error('Pick a customer for credit sales first');
@@ -286,10 +257,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
     showCheckout = true;
   }
 
-  /* ── Unified credit derivations ────────────────────────────────────────
-     Credit is now just another payment method — fully handled inside the
-     split-payment UI or as a single-method selection. No separate modal.
-     We derive everything we need from the cart + split state. */
   /** True when credit is part of this sale (single-method OR split). */
   const isCreditSale = $derived(
     (parseFloat(creditAmt) || 0) > 0
@@ -352,7 +319,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
       // Optional backdate / clock-skew correction. Null = use now().
       created_at: cart.createdAt,
     };
-    // Credit fields — derived from unified credit state.
     if (isCreditSale) {
       payload.credit_status = activeCreditStatus;
       payload.credit_amount_paid = activeAmountPaid;
@@ -452,9 +418,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
       lastSaleSplitInfo = cart.hasValidSplits ? splitLabel(cart.paymentSplits) : '';
       lastSaleCustomer = cart.customerName || 'Walk-in';
 
-      // Push the new/edited sale into the sales store so the
-      // dashboard's today's revenue / count / list update
-      // instantly without a server round-trip.
       salesStore.add({
         ...data2,
         total:        finalTotal,
@@ -463,9 +426,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
         customer:     cart.customerId ? { id: cart.customerId, name: cart.customerName } : null,
       });
 
-      // Push a sale entry into the register store so the cash
-      // register page's balance reflects the sale instantly,
-      // without waiting for a page reload.
       const saleId2 = data2.id ?? data2.sale_id;
       if (saleId2) {
         regStore.add({
@@ -483,9 +443,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
         });
       }
 
-      // Decrement stock for each cart line in the inventory store
-      // so the inventory page's KPIs and the sale page's product
-      // list reflect the new stock immediately.
       for (const item of cart.items) {
         const p = invStore.getById(item.productId);
         if (p) invStore.update(item.productId, { qty: Math.max(0, (p.qty ?? 0) - item.qty) });
@@ -509,18 +466,13 @@ import { register as regStore } from "$lib/stores/register.svelte";
   }
 
   // ── Hold / resume / discard parked carts ───────────────────
-  // The cart store persists held carts to localStorage so a page
-  // refresh doesn't lose them. The cashier can resume any held
-  // cart from the "Held orders" sheet.
   function holdCart() {
     if (cart.isEmpty) return;
-    // Require confirmation so the cashier doesn't accidentally
-    // park a cart the customer is still adding to.
     const itemsLabel = cart.count === 1 ? '1 item' : `${cart.count} items`;
     const totalLabel = formatCurrency(cart.total);
     if (!confirm(`Hold this cart (${itemsLabel}, ${totalLabel}) for later? The cart will be cleared and you can resume it from the Held orders sheet.`)) return;
     cart.hold();
-    cartOpen = false;          // close the cart sheet
+    cartOpen = false;
     refreshHeld();
     toasts.info('Cart held. Tap "Held" to resume later.');
   }
@@ -535,7 +487,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
       return;
     }
     showHeld = false;
-    cartOpen = true;            // open the cart sheet so the cashier can see what's loaded
+    cartOpen = true;
     refreshHeld();
     toasts.success('Cart resumed');
   }
@@ -570,18 +522,12 @@ import { register as regStore } from "$lib/stores/register.svelte";
   }
 
   /**
-   * Scanner hit handler.  Called by BarcodeScanner with the decoded
-   * barcode string.  Looks up the product and adds it to the cart.
-   *
-   * The scanner already debounces duplicate reads and closes itself
-   * before calling this, so we don't have to worry about a steady
-   * hold firing 30 times — one scan = one cart add.
+   * Scanner hit handler. Called by BarcodeScanner with the decoded
+   * barcode string. Looks up the product and adds it to the cart.
    */
   async function onScanResult(code: string) {
     // Don't close the scanner — stayOpen keeps it running for multi-scan.
-    // Fast path: check local inventory store first (instant, no
-    // network).  The layout seeds the store on every page load, so
-    // all in-stock products are already in memory.
+    // Fast path: check local inventory store first.
     const local = invStore.getByBarcode(code);
     if (local) {
       if ((local as any).qty <= 0) {
@@ -592,9 +538,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
       toasts.success(`Added ${local.name}`);
       return;
     }
-    // Slow path: product not in local store — fetch from server.
-    // This happens when the barcode belongs to a product added on
-    // another device that hasn't synced yet.
     try {
       const res = await fetch(`/api/products/by-barcode/${encodeURIComponent(code)}`);
       if (res.ok) {
@@ -647,12 +590,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
     <div class="flex-1 min-w-0 relative">
       <SearchBar bind:value={search} placeholder="Search by name or SKU…" />
     </div>
-    <!--
-      Mobile-only: the back camera.  Desktop users have no use for
-      this (they have a webcam at most, not a barcode scanner) so
-      it's hidden on md+ where the search bar is wide enough on its
-      own.
-    -->
+  
     <button
       type="button"
       class="md:hidden shrink-0 w-10 h-10 rounded-md bg-[var(--primary)] text-[var(--primary-fg)] flex items-center justify-center active:scale-95 transition-transform"
@@ -709,12 +647,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
 
   <!-- Product grid -->
   {#if navigating.to}
-    <!--
-      Skeleton state during client-side navigation. Shows 8 ghost
-      cards matching the real grid shape so the layout doesn't
-      shift when the data arrives. The `anim-stagger` makes them
-      appear to fill in left-to-right.
-    -->
+
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 anim-stagger">
       {#each Array(8) as _, i (i)}
         <ProductCardSkeleton />
@@ -852,9 +785,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
 
   {#snippet footer()}
     <div class="space-y-3">
-      <!-- Customer picker — required for credit, optional for everything
-           else. Shown above the payment method so the user picks
-           "who's buying" before "how are they paying". -->
+    
       <div>
         <p class="input-label mb-1.5">
           Customer
@@ -1076,8 +1007,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
   </div>
 {/if}
 
-<!-- Held-carts pill (visible when there are held carts in storage,
-     shown above the floating cart pill on both desktop and mobile) -->
+
 {#if heldCount > 0}
   <button
     onclick={openHeldSheet}
@@ -1117,8 +1047,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
   ───────────────────────────────────────────────────────────────────────── -->
 <Sheet bind:open={showCheckout} title={isEdit ? 'Update' : 'Checkout'} maxWidth="max-w-md">
   <div class="flex flex-col gap-4">
-    <!-- Sale timestamp — defaults to now; user can backdate or correct clock skew.
-         Above the customer selector per the design decision. -->
+  
     <div>
       <p class="input-label mb-1.5">
         Date &amp; time
@@ -1355,11 +1284,6 @@ import { register as regStore } from "$lib/stores/register.svelte";
   </div>
 </Sheet>
 
-<!-- ─────────────────────────────────────────────────────────────────────────
-  BARCODE SCANNER
-  Mounted once, controlled by scanOpen.  See BarcodeScanner.svelte for
-  the camera + decoding logic.
-  ───────────────────────────────────────────────────────────────────────── -->
 <BarcodeScanner
   open={scanOpen}
   onClose={() => (scanOpen = false)}

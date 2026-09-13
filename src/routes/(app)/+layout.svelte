@@ -42,26 +42,12 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
     if (data.customers)  custStore.replaceAll(data.customers  as any[]);
   });
 
-  // The cart prices/quantities come from the server payload and
-  // the inventory store hydration. When the user navigates to
-  // /sale, the inventory store is already fresh from the server.
-
-  // Offline-first hydration: on every page mount, populate the
-  // stores from IndexedDB BEFORE the server payload lands. That
-  // way, when the user opens the app while offline, every page
-  // already has its data. The server payload (in the $effect.pre
-  // above) overlays whatever's in IDB — so the experience is
-  //   1. Page loads → IDB data shows immediately (instant, works offline)
-  //   2. Server data lands → IDB is replaced with fresh data
-  //   3. User makes a write → optimistic update in the store
-  //   4. Network returns → sync engine flushes the queued write
+  // Offline-first hydration: populate stores from IndexedDB before
+  // server payload lands, so offline users see data immediately.
   $effect(() => {
     void invStore.hydrateFromCache();
     void custStore.hydrateFromCache();
 
-    // Re-hydrate stores whenever the offline sync engine
-    // refreshes caches (online transition, periodic sync, etc.)
-    // so stale IDB data is replaced in the in-memory stores.
     let lastSync = offlineSync.lastSyncAt;
     const poll = setInterval(() => {
       if (offlineSync.lastSyncAt !== lastSync) {
@@ -74,23 +60,13 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
   });
 
   $effect(() => {
-    // Warm the offline caches + drain any pending sales left in
-    // IndexedDB from a previous session. Both calls are no-ops
-    // when offline (they short-circuit on _online). They also
-    // gracefully no-op on SSR (browser-only). We don't await —
-    // the page renders first and the caches update in the
-    // background.
     void offlineSync.flushPendingSales();
     void offlineSync.flushPendingOps();
     void offlineSync.refreshAllCaches();
   });
 
   // ── Realtime subscriptions ────────────────────────────────────────────
-  // Subscribe to Supabase Postgres changes so the local cache and
-  // stores stay in sync when another device/user mutates data.
-  // Tears down on layout destroy and re-subscribes on shop switch.
   $effect(() => {
-    // React to shop changes — subscribe once the shop is available.
     const shop = currentShop.data;
     if (!shop) return;
 
@@ -98,7 +74,6 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
     return () => unsubscribeFromRealtime();
   });
 
-  // Command-bar state — opened by Header's search button or ⌘K
   let cmdOpen   = $state(false);
   let products  = $state<any[]>([]);
 
@@ -109,20 +84,17 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
         const d = await res.json();
         products = d.products ?? d ?? [];
       }
-    } catch { /* offline or auth not yet ready — fine */ }
+    } catch { /* offline or auth not yet ready */ }
 
-    // Populate the shop switcher. SSR has nothing here because the
-    // endpoint requires the user to be signed in.
     try {
       const res = await fetch('/api/auth/my-shops');
       if (res.ok) {
         const shops = await res.json();
         currentShop.setAllShops(shops);
       }
-    } catch { /* offline — header switcher will just show current */ }
+    } catch { /* offline */ }
 
-    // Pre-warm analytics cache so /analytics loads instantly.
-    // Fire-and-forget — runs in background, no await.
+    // Pre-warm analytics cache.
     const cacheKey = buildAnalyticsCacheKey('?period=30d');
     readAnalyticsCache(cacheKey).then((cached) => {
       if (!cached) {

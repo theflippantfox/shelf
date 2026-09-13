@@ -24,10 +24,6 @@
   let { data } = $props();
   const shopTz = (data as any).shopTz ?? 'UTC';
 
-  // Seed the register store from the server data. After that, all
-  // reads (balance, grouped history, outstanding credit) come from
-  // the store so manual entries, transfers, and voids show up
-  // instantly without a server round-trip.
   $effect(() => { regStore.replaceAll(
     (data.entries ?? []) as any[],
     (data.credit?.total ?? 0) as number,
@@ -73,7 +69,6 @@
       return;
     }
     
-    // The expected is the current 'counter' balance.
     const expected = regStore.counterBalance ?? 0;
     const discrepancy = (physicalCount === '') ? 0 : actual - expected;
 
@@ -139,9 +134,6 @@
     sheetSubmitting = true;
     const clientId = crypto.randomUUID();
     try {
-      // Optimistic: push the entry into the local store immediately
-      // so the balance + history update without a server round-trip.
-      // The server response (with the real id) replaces the temp row.
       if (sheetTab === 'transfer') {
         const transferGroupId = crypto.randomUUID();
         const signed = Math.abs(amt);
@@ -188,7 +180,6 @@
         const data = await res.json();
         if (!res.ok) {
           toasts.error(data.error ?? 'Transfer failed');
-          // Rollback: remove the optimistic rows by their client_id.
           regStore.replaceAll((regStore.all as any[]).filter(e => !(e as any)._pending));
           await invalidateAll();
           regStore.replaceAll(
@@ -197,9 +188,6 @@
           );
           return;
         }
-        // 202 = queued offline. Optimistic rows stay _pending; the
-        // sync engine will drain the queue and the next page load
-        // picks up the real server rows.
         if (res.status === 202) {
           toasts.info('Transfer saved offline — will sync when online');
           showSheet = false;
@@ -207,7 +195,6 @@
           return;
         }
         toasts.success(`Transferred ${formatCurrency(signed)}`);
-        // Re-sync from server to get the real ids + per-pair rows.
         await invalidateAll();
       } else {
         const signed = sheetTab === 'expense' ? -Math.abs(amt) : Math.abs(amt);
@@ -247,16 +234,12 @@
           );
           return;
         }
-        // 202 = queued offline (no real server row yet). The optimistic
-        // entry stays in the store with _pending until the sync engine
-        // drains the queue and the page is invalidated.
         if (res.status === 202) {
           toasts.info('Entry saved offline — will sync when online');
           showSheet = false;
           sheetSubmitting = false;
           return;
         }
-        // Reconcile: replace the temp row with the real server row.
         regStore.reconcile(clientId, data);
         toasts.success(
           sheetTab === 'expense' ? `Logged ${formatCurrency(signed)} expense` : `Logged ${formatCurrency(signed)} injection`,
@@ -363,7 +346,6 @@
     return d.format('D MMM');
   }
 
-  // Group entries by day (newest first within each day)
   const groupedByDay = $derived.by(() => {
     const groups: Record<string, any[]> = {};
     for (const e of regStore.all as any[]) {
@@ -387,9 +369,6 @@
       .filter((e) => entryDate(e) >= sevenDaysAgoIso)
       .reduce((s, e) => s + (e.amount ?? 0), 0),
   );
-  // Balance is derived from the entries. Same numbers as the server's
-  // get_register_balance RPC, but always live (any manual entry shows
-  // up here without a refresh).
   const counterBal = $derived(
     (regStore.balance.destinations ?? []).find((d: any) => d.destination === 'counter')?.balance ?? 0,
   );

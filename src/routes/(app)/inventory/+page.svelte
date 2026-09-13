@@ -26,14 +26,11 @@ import BarcodeScanner from '$lib/components/ui/BarcodeScanner.svelte';
 
   let { data } = $props();
 
-  // Sync the inventory store when server data changes (e.g. after a
-  // hard navigation). Once the store is hydrated, ALL reads come from
-  // the store, NOT from data.products — so writes via store mutations
-  // appear instantly across the app without a server round-trip.
+  // Sync the inventory store when server data changes.
   $effect(() => { invStore.replaceAll(data.products as any[]); });
 
-  // Mirror local search/category state into the store so the dashboard
-  // (which reads from the same store) can pick them up later.
+  // Mirror local search/category state into the store so other pages
+  // (dashboard, sale) can pick them up.
   $effect(() => { invStore.setSearch(search); });
   $effect(() => { invStore.setCategory(filterCat); });
 
@@ -54,17 +51,10 @@ let deleteTarget = $state<any>(null);
 let saving      = $state(false);
 let scanOpen    = $state(false);
 
-  // Tracks which product ids currently have their IntersectionObserver mounted
-  // and inside the viewport buffer.
-  //   - SSR (browser === false): all items render real cards (no skeletons
-  //     on first paint).
-  //   - Client mount: observer is set up on every wrapper. The rootMargin
-  //     buffer (400px) means at first paint every visible item intersects,
-  //     so the observer immediately marks them visible. Off-screen items
-  //     have their IDs removed from the set, which swaps them to skeletons.
-  //   - When the filter changes, the $effect below re-seeds to the new
-  //     full set so newly-included items become visible immediately
-  //     without waiting for the observer to catch up.
+  // Viewport tracking for lazy skeleton rendering.
+  // SSR: all items render real cards (no flash of skeletons on hydration).
+  // Client mount: IntersectionObserver trims visibleIds as user scrolls.
+  // Filter change: re-seeds so newly-included items appear immediately.
   let visibleIds = $state<Set<string>>(new Set());
   let mounted = $state(false);
 
@@ -76,10 +66,6 @@ let scanOpen    = $state(false);
     }
   }
 
-  // On client mount, seed visibility to all filtered ids so the first paint
-  // shows real cards. The observer will then trim as the user scrolls.
-  // SSR also starts with the full set so the server-rendered HTML is real
-  // cards (avoids a flash of skeletons on hydration).
   $effect(() => {
     visibleIds = new Set(filtered.map((p: any) => p.id));
     if (!mounted) mounted = true;
@@ -88,10 +74,6 @@ let scanOpen    = $state(false);
   let form = $state({
     name: '', sku: '', price: '', cost_price: '',
     qty: '', unit: 'piece', category: '', description: '',
-    // Toggles default ON for new products. When OFF the matching field
-    // is hidden in the form and ignored on submit. Toggling OFF and
-    // back ON keeps the value the user already typed (so they can
-    // re-enable tracking without re-entering the barcode/threshold).
     track_stock: true,
     track_barcode: true,
     low_stock_threshold: '',
@@ -108,15 +90,10 @@ let scanOpen    = $state(false);
   const thresholdOf = (p: any) =>
     p.track_stock === false ? Infinity : (p.low_stock_threshold ?? data.threshold);
 
-  /**
-   * NOTE: `$derived` evaluates an EXPRESSION. The original code wrapped the
-   * body in `() => { ... }` which made `stockStats` a function-of-closure
-   * instead of a reactive value — KPIs and chip counts never updated after
-   * invalidation. Fixed: derive the object.
-   */
+  // NOTE: the original code wrapped the body in () => { ... } which made
+  // stockStats a function-of-closure instead of a reactive value — KPIs
+  // and chip counts never updated after invalidation.
   const stockStats = $derived.by(() => {
-    // Read from the store so the counts update instantly when a
-    // product is added / edited / deleted anywhere in the app.
     return {
       total:   invStore.count,
       inStock: invStore.inStock.length,
@@ -129,8 +106,6 @@ let scanOpen    = $state(false);
   });
 
   const filtered = $derived.by(() => {
-    // The store is the source of truth. Start from the store's already-
-    // category-filtered list, then layer on search, stock filter, sort.
     let list = invStore.filtered.slice();
     const q = search.trim();
     if (q) {
@@ -173,11 +148,7 @@ let scanOpen    = $state(false);
   }
 
   function getStockBadge(p: any) {
-    // If the product has opted out of low-stock tracking, never flag it.
     if (p.track_stock === false) {
-      // If it's actually out of stock, that's still useful to surface
-      // (you might want to restock even uncounted items). Otherwise
-      // we just say "In stock" — no low-stock warning.
       if (p.qty === 0) return { label: 'Out of stock', cls: 'badge-crimson' };
       return { label: 'In stock', cls: 'badge-teal' };
     }
@@ -192,8 +163,6 @@ let scanOpen    = $state(false);
   }
 
   function stockBarColor(p: any): string {
-    // Uncounted items use a neutral teal bar regardless of qty
-    // (except qty=0, which is still worth highlighting).
     if (p.track_stock === false) {
       return p.qty === 0 ? 'var(--crimson)' : 'var(--teal)';
     }
@@ -226,10 +195,6 @@ let scanOpen    = $state(false);
       unit:       p.unit,
       category:   p.category?.id ?? p.category ?? '',
       description: p.description ?? '',
-      // Derive the toggles from the row. track_* columns are NOT NULL
-      // with default true, so this is always defined for real rows.
-      // For PATCH bodies from old clients that don't send these, the
-      // server defaults to true.
       track_stock:   p.track_stock   !== false,
       track_barcode: p.track_barcode !== false,
       low_stock_threshold: p.low_stock_threshold ? String(p.low_stock_threshold) : '',
@@ -255,22 +220,15 @@ let scanOpen    = $state(false);
       unit:                form.unit,
       category:            form.category || null,
       description:         form.description || null,
-      // Toggles drive whether the field is even sent. The server
-      // clears the matching column when the toggle goes OFF.
       track_stock:         !!form.track_stock,
       track_barcode:       !!form.track_barcode,
       low_stock_threshold: form.track_stock && form.low_stock_threshold
                              ? parseInt(form.low_stock_threshold) : null,
-      // Empty string → null so the DB stores no barcode, not an
-      // empty string.  The unique index ignores nulls.
       barcode:             form.barcode.trim() || null,
     };
     const url    = editTarget ? `/api/products/${editTarget.id}` : '/api/products';
     const method = editTarget ? 'PATCH' : 'POST';
 
-    // Optimistic update — the row appears instantly. We use a
-    // client_id so we can replace the temp row with the server's
-    // response (which has the real UUID and any server-computed fields).
     if (editTarget) {
       invStore.update(editTarget.id, payload);
     } else {
@@ -282,12 +240,9 @@ let scanOpen    = $state(false);
         ...payload,
       });
     }
-    // Close the sheet immediately — the user is done.
     showAdd = false;
     toasts.success(editTarget ? 'Product updated' : 'Product added');
 
-    // Fire the server write in the background. On success, mark
-    // synced. On failure, roll back the optimistic change and toast.
     const res = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
@@ -305,8 +260,6 @@ let scanOpen    = $state(false);
     const real = await res.json();
     if (editTarget) {
       invStore.markSynced(editTarget.id);
-      // Refresh the row with any server-computed fields (e.g. created_at,
-      // category join, image_url, etc.).
       invStore.update(editTarget.id, real);
     } else {
       invStore.reconcile(clientId, real);
@@ -316,7 +269,6 @@ let scanOpen    = $state(false);
   async function doDelete() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
-    // Optimistic: mark archived in the local store immediately.
     invStore.archive(id);
     showDelete = false;
     toasts.success('Product archived');
@@ -325,12 +277,10 @@ let scanOpen    = $state(false);
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       toasts.error('Failed to archive — reverted');
-      // Refresh from server to roll back.
       await invalidateAll();
       invStore.replaceAll(data.products as any[]);
       return;
     }
-    // Remove the row from the visible list (it was archived).
     invStore.remove(id);
   }
 
