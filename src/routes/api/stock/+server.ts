@@ -25,7 +25,8 @@ export async function POST({
       { status: 400 },
     );
 
-  const supabase = userClientFromCtx({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies });
 
   // Read current qty
   const { data: product, error: readErr } = await supabase
