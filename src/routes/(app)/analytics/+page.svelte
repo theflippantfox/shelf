@@ -377,10 +377,10 @@
           </div>
         {/if}
 
-        <!-- ── REVENUE TREND (8 cols) + PAYMENT METHODS (4 cols) ──────── -->
-        <div class="col-span-12 lg:col-span-8 surface-card p-4 md:p-5 space-y-3">
+        <!-- ── REVENUE TREND (full width, taller) ──────────────────────── -->
+        <div class="col-span-12 surface-card p-5 md:p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">
+            <h3 class="text-[14px] font-semibold text-[var(--text)]">
               {activeMetric === 'revenue' ? 'Revenue' : activeMetric === 'transactions' ? 'Transactions' : 'Avg Order'} Trend
             </h3>
             <div class="inline-flex gap-1 bg-[var(--surface2)] p-1 rounded-lg">
@@ -397,98 +397,102 @@
               {/each}
             </div>
           </div>
-          <div class="h-56 w-full">
+          <div class="h-64 md:h-72 w-full">
             <AreaChart labels={trendLabels} datasets={trendDatasets}
-              yFormat={activeMetric === 'transactions' ? 'count' : 'currency'} height={224} />
+              yFormat={activeMetric === 'transactions' ? 'count' : 'currency'} height={288} />
           </div>
         </div>
 
-        <div class="col-span-12 lg:col-span-4 surface-card p-4 md:p-5 space-y-3">
-          <h3 class="text-[13px] font-semibold text-[var(--text)]">Payment Methods</h3>
+        <!-- ── PAYMENT METHODS (5 cols) + INVENTORY (7 cols) ──────────── -->
+        <div class="col-span-12 lg:col-span-5 surface-card p-5 space-y-4">
+          <h3 class="text-[14px] font-semibold text-[var(--text)]">Payment Methods</h3>
           {#if paymentRows.length === 0}
             <p class="text-xs text-[var(--text-3)] py-8 text-center">No payments in this period.</p>
           {:else}
             {@const totalPaymentRev = paymentRows.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0)}
-            <div class="h-36 w-full">
+            <div class="h-44 w-full">
               <DonutChart
                 labels={paymentRows.map((pm: any) => pm.label)}
                 data={paymentRows.map((pm: any) => pm.revenue ?? 0)}
                 centerValue={formatCurrency(totalPaymentRev)}
                 centerLabel="total"
+                height={176}
               />
             </div>
-            <div class="space-y-1.5 pt-1">
+            <div class="space-y-2 pt-1">
               {#each paymentRows as pm, i}
+                {@const pct = totalPaymentRev > 0 ? ((pm.revenue / totalPaymentRev) * 100).toFixed(1) : '0'}
                 <div class="flex items-center justify-between text-[12px]">
                   <span class="flex items-center gap-2 text-[var(--text-2)] truncate">
-                    <span class="w-2 h-2 rounded-sm shrink-0"
+                    <span class="w-2.5 h-2.5 rounded-sm shrink-0"
                           style="background:{['var(--primary)', 'var(--cobalt)', 'var(--gold)', 'var(--rose)', 'var(--crimson)', 'var(--teal)'][i % 6]}"></span>
                     {pm.label}
                   </span>
-                  <span class="font-semibold tabular-nums shrink-0">{formatCurrency(pm.revenue)}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[var(--text-3)] tabular-nums">{pct}%</span>
+                    <span class="font-semibold tabular-nums shrink-0">{formatCurrency(pm.revenue)}</span>
+                  </div>
                 </div>
               {/each}
             </div>
           {/if}
         </div>
 
-        <!-- ── INVENTORY (full width) ──────────────────────────────────── -->
-        {#if stockValue}
-          <div class="col-span-12">
-              <div class="surface-card p-5 space-y-4">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-[13px] font-semibold text-[var(--text)]">Inventory</h3>
-                  <span class="px-2 py-0.5 text-[10px] font-semibold tabular-nums rounded-full" style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
-                    {stockValue.potentialMargin.toFixed(1)}% potential margin
-                  </span>
-                </div>
+        <div class="col-span-12 lg:col-span-7">
+          {#if stockValue}
+            <div class="surface-card p-5 space-y-4 h-full">
+              <div class="flex items-center justify-between">
+                <h3 class="text-[14px] font-semibold text-[var(--text)]">Inventory</h3>
+                <span class="px-2 py-0.5 text-[10px] font-semibold tabular-nums rounded-full" style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
+                  {stockValue.potentialMargin.toFixed(1)}% potential margin
+                </span>
+              </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <p class="text-[11px] text-[var(--text-3)] mb-1">At Retail</p>
-                    <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(stockValue.retailValue)}</p>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-[11px] text-[var(--text-3)] mb-1">At Cost</p>
-                    <p class="text-[17px] font-semibold tabular-nums leading-tight text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
-                  </div>
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <p class="text-[11px] text-[var(--text-3)] mb-1">At Retail</p>
+                  <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(stockValue.retailValue)}</p>
                 </div>
-
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between text-[11px]">
-                    <span class="text-[var(--text-3)]">Margin</span>
-                    <span class="font-semibold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
-                  </div>
-                  <div class="h-2 rounded-full bg-[var(--surface2)] overflow-hidden">
-                    <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
-                  </div>
+                <div>
+                  <p class="text-[11px] text-[var(--text-3)] mb-1">At Cost</p>
+                  <p class="text-[22px] font-bold tabular-nums leading-tight text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
                 </div>
-
-                <div class="flex items-center justify-between pt-2 border-t border-[var(--border)]">
-                  <span class="text-[11px] text-[var(--text-3)]">Total Units</span>
-                  <span class="text-[13px] font-semibold tabular-nums">{stockValue.totalUnits.toLocaleString()}</span>
+                <div>
+                  <p class="text-[11px] text-[var(--text-3)] mb-1">Units</p>
+                  <p class="text-[22px] font-bold tabular-nums leading-tight">{stockValue.totalUnits.toLocaleString()}</p>
                 </div>
               </div>
-          </div>
-        {/if}
 
-        <!-- ── 12-MONTH TREND (full width) ────────────────────────────── -->
-        <div class="col-span-12 surface-card p-4 md:p-5 space-y-3">
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-[var(--text-3)]">Margin</span>
+                  <span class="font-semibold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
+                </div>
+                <div class="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
+                  <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- ── 12-MONTH TREND (full width, taller) ────────────────────── -->
+        <div class="col-span-12 surface-card p-5 md:p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">12-Month Trend</h3>
-            <span class="text-[10px] font-semibold text-[var(--text-3)]">{monthlyLabels.length} month{monthlyLabels.length === 1 ? '' : 's'}</span>
+            <h3 class="text-[14px] font-semibold text-[var(--text)]">12-Month Trend</h3>
+            <span class="text-[11px] font-medium text-[var(--text-3)]">{monthlyLabels.length} month{monthlyLabels.length === 1 ? '' : 's'}</span>
           </div>
-          <div class="h-48 w-full">
-            <BarChart labels={monthlyLabels} data={monthlyRevData} color="var(--cobalt)" height={192} yFormat="currency" highlightLast />
+          <div class="h-52 md:h-56 w-full">
+            <BarChart labels={monthlyLabels} data={monthlyRevData} color="var(--cobalt)" height={224} yFormat="currency" highlightLast />
           </div>
         </div>
 
         <!-- ── CALENDAR (4 cols) + BUSIEST TIMES (8 cols) ────────────── -->
-        <div class="col-span-12 lg:col-span-4 surface-card p-4 space-y-3">
+        <div class="col-span-12 lg:col-span-4 surface-card p-5 space-y-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">Sales Calendar</h3>
+            <h3 class="text-[14px] font-semibold text-[var(--text)]">Sales Calendar</h3>
             {#if calendar?.hasData}
-              <span class="text-[10px] font-semibold text-[var(--text-3)]">{formatCurrencyCompact(calendar.total)} in {calendar.monthLabel}</span>
+              <span class="text-[11px] font-medium text-[var(--text-3)]">{formatCurrencyCompact(calendar.total)} in {calendar.monthLabel}</span>
             {/if}
           </div>
 
@@ -535,9 +539,9 @@
           {/if}
         </div>
 
-        <div class="col-span-12 lg:col-span-8 surface-card p-4 space-y-3">
+        <div class="col-span-12 lg:col-span-8 surface-card p-5 space-y-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">Busiest Times</h3>
+            <h3 class="text-[14px] font-semibold text-[var(--text)]">Busiest Times</h3>
             <div class="flex items-center gap-1.5 text-[10px] text-[var(--text-3)]">
               <span>Less</span>
               <div class="flex gap-0.5">
@@ -552,8 +556,8 @@
         </div>
 
         <!-- ── TOP PRODUCTS (6 cols) + CATEGORIES (6 cols) ────────────── -->
-        <div class="col-span-12 lg:col-span-6 surface-card p-4 space-y-3">
-          <h3 class="text-[13px] font-semibold text-[var(--text)]">Top Products</h3>
+        <div class="col-span-12 lg:col-span-6 surface-card p-5 space-y-4">
+          <h3 class="text-[14px] font-semibold text-[var(--text)]">Top Products</h3>
           <div class="overflow-x-auto">
             <table class="tbl w-full">
               <thead>
@@ -584,8 +588,8 @@
         </div>
 
         {#if (analytics.categories ?? []).length > 0}
-          <div class="col-span-12 lg:col-span-6 surface-card p-4 space-y-3">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">Categories</h3>
+          <div class="col-span-12 lg:col-span-6 surface-card p-5 space-y-4">
+            <h3 class="text-[14px] font-semibold text-[var(--text)]">Categories</h3>
             <div class="overflow-x-auto">
               <table class="tbl w-full">
                 <thead>
@@ -614,8 +618,8 @@
         {/if}
 
         <!-- ── CUSTOMER TIERS (4 cols) + TOP CUSTOMERS (8 cols) ───────── -->
-        <div class="col-span-12 lg:col-span-4 surface-card p-4 space-y-3">
-          <h3 class="text-[13px] font-semibold text-[var(--text)]">Customers <span class="text-[var(--text-3)] font-normal">({uniqueBuyers} buyers)</span></h3>
+        <div class="col-span-12 lg:col-span-4 surface-card p-5 space-y-4">
+          <h3 class="text-[14px] font-semibold text-[var(--text)]">Customers <span class="text-[var(--text-3)] font-normal">({uniqueBuyers} buyers)</span></h3>
           <div class="grid grid-cols-3 gap-2">
             <div class="rounded-lg p-3 text-center" style="background:color-mix(in srgb, var(--gold) 12%, transparent)">
               <p class="text-[9px] font-bold uppercase tracking-wide" style="color:var(--gold-fg)">VIP</p>
@@ -633,8 +637,8 @@
           <p class="text-[9px] text-[var(--text-3)] text-center">Tiers based on lifetime spend</p>
         </div>
 
-        <div class="col-span-12 lg:col-span-8 surface-card p-4 space-y-3">
-          <h3 class="text-[13px] font-semibold text-[var(--text)]">Top Customers</h3>
+        <div class="col-span-12 lg:col-span-8 surface-card p-5 space-y-4">
+          <h3 class="text-[14px] font-semibold text-[var(--text)]">Top Customers</h3>
           <div class="overflow-x-auto">
             <table class="tbl w-full">
               <thead>
