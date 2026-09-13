@@ -463,7 +463,7 @@
         <!-- ── CALENDAR + BUSIEST TIMES ────────────────────────────────── -->
         <div class="grid grid-cols-12 gap-5">
           <!-- Sales Calendar (4 cols) -->
-          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5 flex flex-col">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-sm font-semibold text-[var(--text)]">Sales Calendar</h2>
               {#if calendar?.hasData}
@@ -477,10 +477,10 @@
               <div class="h-48 flex items-center justify-center text-sm text-[var(--text-3)]">No sales in {calendar.monthLabel}</div>
             {:else}
               {@const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']}
-              <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--text-3)] font-medium text-center mb-1">
+              <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--text-3)] font-medium text-center mb-1.5">
                 {#each dayLabels as l}<div>{l}</div>{/each}
               </div>
-              <div class="grid grid-cols-7 gap-1" style="grid-template-rows: repeat({calendar.weeks}, minmax(0, 1fr));">
+              <div class="grid grid-cols-7 gap-1 flex-1" style="grid-template-rows: repeat({calendar.weeks}, 1fr);">
                 {#each calendar.cells as c}
                   {#if c.date}
                     {@const v = c.value}
@@ -496,7 +496,7 @@
                   {/if}
                 {/each}
               </div>
-              <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)] mt-3">
+              <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)] mt-2 pt-2 border-t border-[var(--border)]">
                 <span>Less</span>
                 <div class="flex gap-0.5">
                   {#each [0, 1, 2, 3, 4] as i}
