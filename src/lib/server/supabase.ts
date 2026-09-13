@@ -14,7 +14,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import type { RequestEvent } from '@sveltejs/kit';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import {
   PUBLIC_SUPABASE_URL,
@@ -62,7 +62,7 @@ export function userClient(event: RequestEvent): SupabaseClient<Database> {
  * Pass `{ cookies, locals }` (or any object with a `cookies.getAll()`).
  */
 export function userClientFromCtx(
-  ctx: { cookies: { getAll(): { name: string; value: string }[]; set?(name: string, value: string, opts?: any): void } }
+  ctx: { cookies: Cookies }
 ): SupabaseClient<Database> {
   return createServerClient<Database>(
     PUBLIC_SUPABASE_URL,
