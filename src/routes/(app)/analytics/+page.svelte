@@ -249,11 +249,13 @@
               <TrendingUp size={20} strokeWidth={1.5} style="color:var(--primary)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Revenue</p>
-              <p class="text-[20px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(kpis.revenue.current)}</p>
-              {#if kpis.revenue.delta?.pct}
-                <TrendBadge direction={kpis.revenue.delta.direction} label={`${Math.abs(kpis.revenue.delta.pct)}%`} />
-              {/if}
+              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Revenue</p>
+              <div class="flex items-baseline gap-2">
+                <p class="text-[22px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(kpis.revenue.current)}</p>
+                {#if kpis.revenue.delta?.pct}
+                  <TrendBadge direction={kpis.revenue.delta.direction} label={`${Math.abs(kpis.revenue.delta.pct)}%`} />
+                {/if}
+              </div>
             </div>
           </div>
 
@@ -263,11 +265,13 @@
               <Activity size={20} strokeWidth={1.5} style="color:var(--cobalt)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Transactions</p>
-              <p class="text-[20px] font-bold tabular-nums leading-tight">{kpis.transactions.current.toLocaleString()}</p>
-              {#if kpis.transactions.delta?.pct}
-                <TrendBadge direction={kpis.transactions.delta.direction} label={`${Math.abs(kpis.transactions.delta.pct)}%`} />
-              {/if}
+              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Transactions</p>
+              <div class="flex items-baseline gap-2">
+                <p class="text-[22px] font-bold tabular-nums leading-tight">{kpis.transactions.current.toLocaleString()}</p>
+                {#if kpis.transactions.delta?.pct}
+                  <TrendBadge direction={kpis.transactions.delta.direction} label={`${Math.abs(kpis.transactions.delta.pct)}%`} />
+                {/if}
+              </div>
             </div>
           </div>
 
@@ -277,11 +281,13 @@
               <BarChart3 size={20} strokeWidth={1.5} style="color:var(--teal)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Avg Order</p>
-              <p class="text-[20px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
-              {#if kpis.avgOrder.delta?.pct}
-                <TrendBadge direction={kpis.avgOrder.delta.direction} label={`${Math.abs(kpis.avgOrder.delta.pct)}%`} />
-              {/if}
+              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Avg Order</p>
+              <div class="flex items-baseline gap-2">
+                <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
+                {#if kpis.avgOrder.delta?.pct}
+                  <TrendBadge direction={kpis.avgOrder.delta.direction} label={`${Math.abs(kpis.avgOrder.delta.pct)}%`} />
+                {/if}
+              </div>
             </div>
           </div>
 
@@ -292,11 +298,13 @@
                 <Percent size={20} strokeWidth={1.5} style="color:var(--gold)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Margin</p>
-                <p class="text-[20px] font-bold tabular-nums leading-tight">{kpis.margin.current.toFixed(1)}%</p>
-                {#if kpis.margin.delta?.pp}
-                  <TrendBadge direction={kpis.margin.delta.direction} label={`${Math.abs(kpis.margin.delta.pp)}pp`} />
-                {/if}
+                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Margin</p>
+                <div class="flex items-baseline gap-2">
+                  <p class="text-[22px] font-bold tabular-nums leading-tight">{kpis.margin.current.toFixed(1)}%</p>
+                  {#if kpis.margin.delta?.pp}
+                    <TrendBadge direction={kpis.margin.delta.direction} label={`${Math.abs(kpis.margin.delta.pp)}pp`} />
+                  {/if}
+                </div>
               </div>
             </div>
           {/if}
@@ -308,11 +316,13 @@
                 <Banknote size={20} strokeWidth={1.5} style="color:var(--teal)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Profit</p>
-                <p class="text-[20px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
-                {#if grossProfit.delta?.pct}
-                  <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
-                {/if}
+                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Profit</p>
+                <div class="flex items-baseline gap-2">
+                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
+                  {#if grossProfit.delta?.pct}
+                    <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
+                  {/if}
+                </div>
               </div>
             </div>
           {/if}
