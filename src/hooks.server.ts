@@ -18,7 +18,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     const shopIdHint = event.cookies.get(SHOP_COOKIE);
     try {
       // Always load the profile so locals.user is non-null for any signed-in user.
-      const admin = adminClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const admin: any = adminClient();
       const { data: profile } = await admin.from('profiles').select('*').eq('id', user.id).single();
 
       if (profile) {
