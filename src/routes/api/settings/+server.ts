@@ -5,18 +5,16 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiForbidden, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function PATCH({
   cookies,
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   if (locals.shopMember?.role !== "owner")
-    return json(
-      { error: "Only owners can update shop settings" },
-      { status: 403 },
-    );
+    return apiForbidden("Only owners can update shop settings");
 
   const body = await request.json();
   const ALLOWED = [
@@ -53,6 +51,6 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }

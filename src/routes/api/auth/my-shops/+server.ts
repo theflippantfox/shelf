@@ -5,12 +5,13 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function GET({
   cookies,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.user) return json({ error: "Not signed in" }, { status: 401 });
+  if (!locals.user) return apiUnauthorized("Not signed in");
 
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
@@ -24,7 +25,7 @@ export async function GET({
     .order("status", { ascending: true }) // invited before active
     .order("role");
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
 
   const shops = (data ?? [])
     .map((row: any) => ({

@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * POST /api/purchase-orders/[id]/items — add a line item to a PO.
@@ -10,8 +11,8 @@ export async function POST({
   locals,
   request,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const body = await request.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +33,6 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

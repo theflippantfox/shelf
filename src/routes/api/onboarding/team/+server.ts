@@ -10,6 +10,7 @@ import { json } from "@sveltejs/kit";
 import { adminClient, userClientFromCtx } from "$lib/server/supabase";
 import { teamSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
+import { apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
   cookies,
@@ -17,7 +18,7 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user)
-    return json({ error: "No shop context" }, { status: 401 });
+    return apiUnauthorized("No shop context");
 
   const parsed = await parseBody(request, teamSchema);
   if (!parsed.ok) return parsed.response;

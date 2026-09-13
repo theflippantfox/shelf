@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { adminClient } from "$lib/server/supabase";
 import { shopSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 const SHOP_COOKIE = "shelf-current-shop";
 
@@ -15,7 +16,7 @@ export async function POST({
   cookies,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.user)
-    return json({ error: "Not authenticated" }, { status: 401 });
+    return apiUnauthorized("Not authenticated");
 
   const parsed = await parseBody(request, shopSchema);
   if (!parsed.ok) return parsed.response;
@@ -36,7 +37,7 @@ export async function POST({
     .maybeSingle();
 
   if (existing)
-    return json({ error: "That handle is already taken" }, { status: 409 });
+    return apiError("That handle is already taken", 409);
 
   const { data: shop, error: shopErr } = await admin
     .from("shops")
@@ -66,9 +67,9 @@ export async function POST({
     .single();
 
   if (shopErr || !shop)
-    return json(
-      { error: shopErr?.message ?? "Failed to create shop" },
-      { status: 500 },
+    return apiError(
+      shopErr?.message ?? "Failed to create shop",
+      500,
     );
 
   // Add the creator as owner
@@ -80,7 +81,7 @@ export async function POST({
     invited_at: new Date().toISOString(),
   });
 
-  if (memberErr) return json({ error: memberErr.message }, { status: 500 });
+  if (memberErr) return apiError(memberErr.message);
 
   // Pin the shop cookie so subsequent onboarding requests have a shop context
   cookies.set(SHOP_COOKIE, (shop as any).id, {
@@ -90,5 +91,5 @@ export async function POST({
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  return json({ shopId: (shop as any).id }, { status: 201 });
+  return apiCreated({ shopId: (shop as any).id });
 }

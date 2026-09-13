@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { localeSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * POST /api/onboarding/locale — save locale/currency/timezone settings.
@@ -12,7 +13,7 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop)
-    return json({ error: "No shop context" }, { status: 401 });
+    return apiUnauthorized("No shop context");
 
   const parsed = await parseBody(request, localeSchema);
   if (!parsed.ok) return parsed.response;
@@ -24,6 +25,6 @@ export async function POST({
     .update({ ...parsed.data, onboarding_step: "appearance" })
     .eq("id", locals.currentShop.id);
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ ok: true });
 }

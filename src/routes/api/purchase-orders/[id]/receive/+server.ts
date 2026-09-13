@@ -12,6 +12,7 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
   cookies,
@@ -19,9 +20,9 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!params.id) return apiError("Missing id", 400);
   if (!locals.currentShop || !locals.user)
-    return json({ error: "Unauthorized" }, { status: 401 });
+    return apiUnauthorized("Unauthorized");
 
   const body = await request.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +45,6 @@ export async function POST({
     p_received_by: locals.user.id,
   });
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json({ success: true });
 }

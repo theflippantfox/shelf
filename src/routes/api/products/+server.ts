@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * GET /api/products — list products for the current shop.
@@ -41,7 +42,7 @@ export async function GET({
   if (search) q = q.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
 
   const { data: products, error, count } = await q;
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
 
   let result = products ?? [];
   if (alert === "true") {
@@ -74,7 +75,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const body = await request.json();
   const supabase = userClientFromCtx({ cookies } as any);
 
@@ -112,6 +113,6 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

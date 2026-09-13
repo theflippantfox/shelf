@@ -4,12 +4,13 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function GET({
   cookies,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const supabase = userClientFromCtx({ cookies } as any);
 
   const [

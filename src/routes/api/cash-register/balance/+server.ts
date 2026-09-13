@@ -3,6 +3,7 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError } from "$lib/server/apiResponse";
 
 export async function GET({
   cookies,
@@ -15,7 +16,7 @@ export async function GET({
   const { data, error } = await supabase.rpc("get_register_balance", {
     p_shop_id: locals.currentShop.id,
   });
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
 
   const destinations = (data ?? []).map((r: any) => ({
     destination: r.destination,

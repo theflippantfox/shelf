@@ -1,5 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError } from "$lib/server/apiResponse";
 
 /**
  * POST /api/sales/[id]/returns — process a return / refund.
@@ -306,6 +307,6 @@ export async function GET({
     .select("*, items:sale_return_items(*)")
     .eq("sale_id", params.id)
     .order("created_at", { ascending: false });
-  if (supErr) return json({ error: supErr.message }, { status: 500 });
+  if (supErr) return apiError(supErr.message);
   return json(data ?? []);
 }

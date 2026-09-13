@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { categoriesSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * POST /api/onboarding/categories — bulk-create starter categories.
@@ -13,7 +14,7 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop)
-    return json({ error: "No shop context" }, { status: 401 });
+    return apiUnauthorized("No shop context");
 
   const parsed = await parseBody(request, categoriesSchema);
   if (!parsed.ok) return parsed.response;
@@ -29,7 +30,7 @@ export async function POST({
       sort_order: i,
     }));
     const { error } = await supabase.from("categories").insert(rows);
-    if (error) return json({ error: error.message }, { status: 400 });
+    if (error) return apiError(error.message, 400);
   }
 
   const { error: shopErr } = await supabase
@@ -37,6 +38,6 @@ export async function POST({
     .update({ onboarding_complete: true, onboarding_step: "complete" })
     .eq("id", locals.currentShop.id);
 
-  if (shopErr) return json({ error: shopErr.message }, { status: 400 });
+  if (shopErr) return apiError(shopErr.message, 400);
   return json({ ok: true });
 }

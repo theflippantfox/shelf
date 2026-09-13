@@ -14,6 +14,7 @@ import {
 } from '$env/static/public';
 import { loginSchema } from '$lib/validators/schemas';
 import { parseBody } from '$lib/validators/parseBody';
+import { apiError } from '$lib/server/apiResponse';
 
 const COOKIE_OPTS = {
   path: '/',
@@ -36,7 +37,7 @@ function makeAuthClient(cookies: import('@sveltejs/kit').Cookies) {
   });
 }
 
-export async function POST({ request, cookies }) {
+export async function POST({ request, cookies }: import('@sveltejs/kit').RequestEvent) {
   const parsed = await parseBody(request, loginSchema);
   if (!parsed.ok) return parsed.response;
   const { email, password } = parsed.data;
@@ -45,16 +46,16 @@ export async function POST({ request, cookies }) {
     const supabase = makeAuthClient(cookies);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error || !data.user) {
-      return json({ error: 'Invalid email or password' }, { status: 401 });
+      return apiError('Invalid email or password', 401);
     }
     return json({ ok: true, userId: data.user.id });
   } catch (err) {
     console.error('[auth login]', err);
-    return json({ error: 'Login failed — please try again' }, { status: 500 });
+    return apiError('Login failed — please try again', 500);
   }
 }
 
-export async function DELETE({ cookies }) {
+export async function DELETE({ cookies }: import('@sveltejs/kit').RequestEvent) {
   try {
     const supabase = makeAuthClient(cookies);
     await supabase.auth.signOut();
