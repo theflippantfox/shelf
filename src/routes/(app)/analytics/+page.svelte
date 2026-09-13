@@ -13,7 +13,7 @@
   import TrendBadge from '$lib/components/analytics/TrendBadge.svelte';
   import MarginBadge from '$lib/components/analytics/MarginBadge.svelte';
   import {
-    TrendingUp, BarChart3, ShoppingCart,
+    TrendingUp, Users, BarChart3, ShoppingCart,
     Calendar, Package, Banknote, Activity,
     Search, ArrowUpDown, ChevronLeft, ChevronRight,
     FileText, Receipt, Clock, Percent,
@@ -241,8 +241,8 @@
     {#if hasData && activeTab === 'overview'}
       <div class="grid grid-cols-12 gap-3 anim-stagger">
 
-        <!-- ── KPI STRIP (full width) ──────────────────────────────────── -->
-        <div class="col-span-12 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <!-- ── KPI STRIP (full width, 6 cols) ──────────────────────────── -->
+        <div class="col-span-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div class="surface-card px-4 py-3 flex items-center gap-3">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                  style="background:color-mix(in srgb, var(--primary) 12%, transparent)">
@@ -300,6 +300,36 @@
               </div>
             </div>
           {/if}
+
+          {#if grossProfit}
+            <div class="surface-card px-4 py-3 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                   style="background:color-mix(in srgb, var(--teal) 12%, transparent)">
+                <Banknote size={16} strokeWidth={2} style="color:var(--teal)" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Profit</p>
+                <p class="text-[17px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
+                {#if grossProfit.delta?.pct}
+                  <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
+                {/if}
+              </div>
+            </div>
+          {/if}
+
+          <div class="surface-card px-4 py-3 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                 style="background:color-mix(in srgb, var(--primary) 12%, transparent)">
+              <Users size={16} strokeWidth={2} style="color:var(--primary)" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Buyers</p>
+              <p class="text-[17px] font-bold tabular-nums leading-tight">{uniqueBuyers.toLocaleString()}</p>
+              {#if customerTiers}
+                <span class="text-[9px] text-[var(--text-3)]">{customerTiers.vip} VIP</span>
+              {/if}
+            </div>
+          </div>
         </div>
 
         <!-- ── OUTSTANDING RECEIVABLES (full width, conditional) ───────── -->
