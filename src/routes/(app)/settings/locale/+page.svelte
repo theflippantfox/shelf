@@ -9,7 +9,7 @@ import { setFormatLocale } from '$lib/utils/format';
   import Button    from '$lib/components/ui/Button.svelte';
 
   let { data } = $props();
-  const shop = data.shop as any;
+  const shop = $derived(data.shop as any);
 
   let timezone    = $state(shop.timezone      ?? 'UTC');
   let currency    = $state(shop.currency_code ?? 'INR');
