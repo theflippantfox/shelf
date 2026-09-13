@@ -6,7 +6,7 @@
  *       Delegates to a SQL function `create_sale()` for atomicity.
  */
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
 
 /**
  * GET /api/sales

@@ -7,100 +7,119 @@
  *
  * Keep these pure (no Svelte imports) so they can run in either environment.
  */
-import { z } from 'zod';
+import { z } from "zod";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Email is case-insensitive at the storage layer (Supabase lowercases). */
 const emailSchema = z
-  .string()
-  .trim()
-  .min(1, 'Email is required')
-  .email('Enter a valid email address')
-  .max(254, 'Email is too long');
+ .string()
+ .trim()
+ .min(1, "Email is required")
+ .email("Enter a valid email address")
+ .max(254, "Email is too long");
 
 /** Supabase Auth requires passwords ≥ 6, but we enforce 8+ for a better floor. */
 const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(72, 'Password is too long (max 72)');
+ .string()
+ .min(8, "Password must be at least 8 characters")
+ .max(72, "Password is too long (max 72)");
 
 const slugSchema = z
-  .string()
-  .trim()
-  .min(2, 'Handle must be at least 2 characters')
-  .max(40, 'Handle is too long')
-  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, 'Use lowercase letters, numbers, and hyphens only (no leading/trailing hyphen)');
+ .string()
+ .trim()
+ .min(2, "Handle must be at least 2 characters")
+ .max(40, "Handle is too long")
+ .regex(
+  /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/,
+  "Use lowercase letters, numbers, and hyphens only (no leading/trailing hyphen)",
+ );
 
 const nonEmptyString = (max = 100) =>
-  z.string().trim().min(1, 'Required').max(max, `Must be at most ${max} characters`);
+ z
+  .string()
+  .trim()
+  .min(1, "Required")
+  .max(max, `Must be at most ${max} characters`);
 
 const optString = (max = 500) =>
-  z.string().trim().max(max, `Must be at most ${max} characters`).optional().or(z.literal('')).transform((v) => (v ? v : undefined));
+ z
+  .string()
+  .trim()
+  .max(max, `Must be at most ${max} characters`)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v ? v : undefined));
 
 // ─── Auth schemas ──────────────────────────────────────────────────────────
 
 export const loginSchema = z.object({
-  email:    emailSchema,
-  password: z.string().min(1, 'Password is required').max(72),
+ email: emailSchema,
+ password: z.string().min(1, "Password is required").max(72),
 });
 
-export const registerSchema = z.object({
+export const registerSchema = z
+ .object({
   first_name: nonEmptyString(50),
-  last_name:  optString(50),
-  email:      emailSchema,
-  password:   passwordSchema,
-  confirm:    z.string(),
-}).refine((d) => d.password === d.confirm, {
-  message: 'Passwords do not match',
-  path:    ['confirm'],
-});
+  last_name: optString(50),
+  email: emailSchema,
+  password: passwordSchema,
+  confirm: z.string(),
+ })
+ .refine((d) => d.password === d.confirm, {
+  message: "Passwords do not match",
+  path: ["confirm"],
+ });
 
 /**
  * API-level schema (no `confirm` field — confirmation is a UI concern,
  * the API trusts the form to have already verified the match).
  */
 export const registerApiSchema = z.object({
-  first_name: nonEmptyString(50),
-  last_name:  optString(50),
-  email:      emailSchema,
-  password:   passwordSchema,
+ first_name: nonEmptyString(50),
+ last_name: optString(50),
+ email: emailSchema,
+ password: passwordSchema,
 });
 
 export const forgotPasswordSchema = z.object({
-  email: emailSchema,
+ email: emailSchema,
 });
 
-export const resetPasswordSchema = z.object({
+export const resetPasswordSchema = z
+ .object({
   password: passwordSchema,
-  confirm:  z.string(),
-}).refine((d) => d.password === d.confirm, {
-  message: 'Passwords do not match',
-  path:    ['confirm'],
-});
+  confirm: z.string(),
+ })
+ .refine((d) => d.password === d.confirm, {
+  message: "Passwords do not match",
+  path: ["confirm"],
+ });
 
 // ─── Onboarding schemas ────────────────────────────────────────────────────
 
 export const shopSchema = z.object({
-  name: nonEmptyString(80),
-  slug: slugSchema,
+ name: nonEmptyString(80),
+ slug: slugSchema,
 });
 
 export const localeSchema = z.object({
-  country_code:    z.string().trim().length(2, 'Pick a country'),
-  timezone:        z.string().trim().min(1, 'Pick a timezone'),
-  currency_code:   z.string().trim().length(3, 'Pick a currency'),
-  currency_symbol: z.string().min(1).max(8),
-  currency_locale: z.string().min(1).max(20),
-  date_format:     z.enum(['D MMM YYYY', 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).default('D MMM YYYY'),
-  time_format:     z.enum(['12h', '24h']).default('12h'),
+ country_code: z.string().trim().length(2, "Pick a country"),
+ timezone: z.string().trim().min(1, "Pick a timezone"),
+ currency_code: z.string().trim().length(3, "Pick a currency"),
+ currency_symbol: z.string().min(1).max(8),
+ currency_locale: z.string().min(1).max(20),
+ date_format: z
+  .enum(["D MMM YYYY", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"])
+  .default("D MMM YYYY"),
+ time_format: z.enum(["12h", "24h"]).default("12h"),
 });
 
 export const appearanceSchema = z.object({
-  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a palette'),
-  sidebar_bg:    z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a palette'),
-  theme:         z.enum(['light', 'dark', 'system']).default('system'),
-  palette_id:    z.string().trim().max(64).optional(),
+ primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Pick a palette"),
+ sidebar_bg: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Pick a palette"),
+ theme: z.enum(["light", "dark", "system"]).default("system"),
+ palette_id: z.string().trim().max(64).optional(),
 });
 
 // Note: the team-invite schema is now minimal — invitees are existing
@@ -109,24 +128,24 @@ export const appearanceSchema = z.object({
 //   (onboarding/team    → page just lists existing pending invites,
 //                         no schema needed)
 export const inviteSchema = z.object({
-  email: emailSchema,
-  role:  z.enum(['owner', 'manager', 'cashier']),
+ email: emailSchema,
+ role: z.enum(["owner", "manager", "cashier"]),
 });
 
 // Kept for backwards-compat with any in-flight /api/onboarding/team
 // payloads from older clients. New code uses inviteSchema directly.
 export const teamSchema = z.object({
-  invites: z.array(inviteSchema).default([]),
+ invites: z.array(inviteSchema).default([]),
 });
 
 const categorySchema = z.object({
-  name:  nonEmptyString(50),
-  icon:  z.string().trim().min(1, 'Pick an icon'),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a color'),
+ name: nonEmptyString(50),
+ icon: z.string().trim().min(1, "Pick an icon"),
+ color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Pick a color"),
 });
 
 export const categoriesSchema = z.object({
-  categories: z.array(categorySchema).min(0).max(50),
+ categories: z.array(categorySchema).min(0).max(50),
 });
 
 // ─── CRUD schemas ─────────────────────────────────────────────────────────
@@ -140,76 +159,185 @@ const positiveNumber = z.number().gt(0);
 // -- Customers ---------------------------------------------------------------
 
 export const customerCreateSchema = z.object({
-  name:  nonEmptyString(100),
-  phone: z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
-  email: z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
-  notes: z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+ name: nonEmptyString(100),
+ phone: z
+  .string()
+  .trim()
+  .max(30)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ email: z
+  .string()
+  .trim()
+  .email()
+  .max(254)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ notes: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
 });
 
 export const customerUpdateSchema = z.object({
-  name:  nonEmptyString(100).optional(),
-  phone: z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
-  email: z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
-  notes: z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+ name: nonEmptyString(100).optional(),
+ phone: z
+  .string()
+  .trim()
+  .max(30)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ email: z
+  .string()
+  .trim()
+  .email()
+  .max(254)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ notes: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
 });
 
 // -- Categories --------------------------------------------------------------
 
 export const categoryCreateSchema = z.object({
-  name:  nonEmptyString(50),
-  icon:  z.string().trim().min(1, 'Pick an icon'),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a color'),
-  sort_order: z.number().int().min(0).optional(),
+ name: nonEmptyString(50),
+ icon: z.string().trim().min(1, "Pick an icon"),
+ color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Pick a color"),
+ sort_order: z.number().int().min(0).optional(),
 });
 
 export const categoryUpdateSchema = z.object({
-  name:  nonEmptyString(50).optional(),
-  icon:  z.string().trim().min(1).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  sort_order: z.number().int().min(0).optional(),
+ name: nonEmptyString(50).optional(),
+ icon: z.string().trim().min(1).optional(),
+ color: z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/)
+  .optional(),
+ sort_order: z.number().int().min(0).optional(),
 });
 
 // -- Suppliers ---------------------------------------------------------------
 
 export const supplierCreateSchema = z.object({
-  name:         nonEmptyString(100),
-  contact_name: z.string().trim().max(100).optional().or(z.literal('')).transform(v => v || undefined),
-  phone:        z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
-  email:        z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
-  address:      z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
-  notes:        z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
+ name: nonEmptyString(100),
+ contact_name: z
+  .string()
+  .trim()
+  .max(100)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ phone: z
+  .string()
+  .trim()
+  .max(30)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ email: z
+  .string()
+  .trim()
+  .email()
+  .max(254)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ address: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ notes: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
 });
 
 export const supplierUpdateSchema = z.object({
-  name:         nonEmptyString(100).optional(),
-  contact_name: z.string().trim().max(100).optional().or(z.literal('')).transform(v => v || undefined),
-  phone:        z.string().trim().max(30).optional().or(z.literal('')).transform(v => v || undefined),
-  email:        z.string().trim().email().max(254).optional().or(z.literal('')).transform(v => v || undefined),
-  address:      z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
-  notes:        z.string().trim().max(500).optional().or(z.literal('')).transform(v => v || undefined),
-  is_active:    z.boolean().optional(),
+ name: nonEmptyString(100).optional(),
+ contact_name: z
+  .string()
+  .trim()
+  .max(100)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ phone: z
+  .string()
+  .trim()
+  .max(30)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ email: z
+  .string()
+  .trim()
+  .email()
+  .max(254)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ address: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ notes: z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v || undefined),
+ is_active: z.boolean().optional(),
 });
 
 // -- Tags --------------------------------------------------------------------
 
 export const tagCreateSchema = z.object({
-  name:  nonEmptyString(50),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Pick a color').optional(),
+ name: nonEmptyString(50),
+ color: z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Pick a color")
+  .optional(),
 });
 
 export const tagUpdateSchema = z.object({
-  name:  nonEmptyString(50).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+ name: nonEmptyString(50).optional(),
+ color: z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/)
+  .optional(),
 });
 
 // ─── Inferred types ────────────────────────────────────────────────────────
 
-export type LoginInput    = z.infer<typeof loginSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
-export type ShopInput     = z.infer<typeof shopSchema>;
-export type LocaleInput   = z.infer<typeof localeSchema>;
+export type ShopInput = z.infer<typeof shopSchema>;
+export type LocaleInput = z.infer<typeof localeSchema>;
 export type AppearanceInput = z.infer<typeof appearanceSchema>;
-export type TeamInput     = z.infer<typeof teamSchema>;
+export type TeamInput = z.infer<typeof teamSchema>;
 export type CategoriesInput = z.infer<typeof categoriesSchema>;
 
 // ─── Field-error helper ────────────────────────────────────────────────────
@@ -224,14 +352,16 @@ export type FieldErrors<T> = Partial<Record<keyof T, string>>;
  * On the server, prefer the original `result.error` so the
  * API can also return 400 with structured details.
  */
-export function flattenZodErrors<T>(result: z.ZodSafeParseResult<T>): FieldErrors<T> {
-  if (result.success) return {};
-  const out: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path[0];
-    if (typeof key === 'string' && !(key in out)) out[key] = issue.message;
-  }
-  return out as FieldErrors<T>;
+export function flattenZodErrors<T>(
+ result: z.ZodSafeParseResult<T>,
+): FieldErrors<T> {
+ if (result.success) return {};
+ const out: Record<string, string> = {};
+ for (const issue of result.error.issues) {
+  const key = issue.path[0];
+  if (typeof key === "string" && !(key in out)) out[key] = issue.message;
+ }
+ return out as FieldErrors<T>;
 }
 
 /**
@@ -239,15 +369,15 @@ export function flattenZodErrors<T>(result: z.ZodSafeParseResult<T>): FieldError
  * message or empty string. Useful for live `oninput` validation.
  */
 export function validateField<T extends z.ZodTypeAny>(
-  schema: T,
-  field: keyof z.infer<T>,
-  form: Partial<z.infer<T>>,
+ schema: T,
+ field: keyof z.infer<T>,
+ form: Partial<z.infer<T>>,
 ): string {
-  // Use the schema's shape to pick the field's own validator
-  const shape = (schema as any)._def?.shape?.();
-  if (!shape || !(field in shape)) return '';
-  const fieldSchema = shape[field];
-  const result = fieldSchema.safeParse((form as any)[field]);
-  if (result.success) return '';
-  return result.error.issues[0]?.message ?? '';
+ // Use the schema's shape to pick the field's own validator
+ const shape = (schema as any)._def?.shape?.();
+ if (!shape || !(field in shape)) return "";
+ const fieldSchema = shape[field];
+ const result = fieldSchema.safeParse((form as any)[field]);
+ if (result.success) return "";
+ return result.error.issues[0]?.message ?? "";
 }

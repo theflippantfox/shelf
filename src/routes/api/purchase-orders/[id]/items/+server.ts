@@ -1,18 +1,23 @@
-import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { json } from "@sveltejs/kit";
+import { userClient, userClientFromCtx } from "$lib/server/supabase";
 
 /**
  * POST /api/purchase-orders/[id]/items — add a line item to a PO.
  */
-export async function POST({ cookies, params, locals, request  }: import('@sveltejs/kit').RequestEvent) {
-  if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
-  if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
+export async function POST({
+  cookies,
+  params,
+  locals,
+  request,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
 
   const body = await request.json();
   const supabase = userClientFromCtx({ cookies } as any);
 
   const { data, error } = await supabase
-    .from('purchase_order_items')
+    .from("purchase_order_items")
     .insert({
       purchase_order_id: params.id,
       product_id: body.product,

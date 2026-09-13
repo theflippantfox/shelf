@@ -10,18 +10,23 @@
  *   - optionally creates product_batches for items with expiry/batch tracking
  *   - recomputes PO subtotal, total_cost, status (received/partial/ordered)
  */
-import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { json } from "@sveltejs/kit";
+import { userClient, userClientFromCtx } from "$lib/server/supabase";
 
-export async function POST({ cookies, params, request, locals  }: import('@sveltejs/kit').RequestEvent) {
-  if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
+export async function POST({
+  cookies,
+  params,
+  request,
+  locals,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
   if (!locals.currentShop || !locals.user)
-    return json({ error: 'Unauthorized' }, { status: 401 });
+    return json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
   const supabase = userClientFromCtx({ cookies } as any);
 
-  const { error } = await supabase.rpc('receive_purchase_order', {
+  const { error } = await supabase.rpc("receive_purchase_order", {
     p_purchase_order_id: params.id,
     p_items: (body.items ?? []).map((i: any) => ({
       po_item_id: i.id,

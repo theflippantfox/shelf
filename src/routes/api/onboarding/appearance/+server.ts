@@ -1,14 +1,19 @@
-import { json } from '@sveltejs/kit';
-import { userClientFromCtx } from '$lib/server/supabase';
-import { appearanceSchema } from '$lib/validators/schemas';
-import { parseBody } from '$lib/validators/parseBody';
+import { json } from "@sveltejs/kit";
+import { userClientFromCtx } from "$lib/server/supabase";
+import { appearanceSchema } from "$lib/validators/schemas";
+import { parseBody } from "$lib/validators/parseBody";
 
 /**
  * POST /api/onboarding/appearance — save theme/colors.
  * Advances to the 'team' step.
  */
-export async function POST({ cookies, request, locals  }: import('@sveltejs/kit').RequestEvent) {
-  if (!locals.currentShop) return json({ error: 'No shop context' }, { status: 401 });
+export async function POST({
+  cookies,
+  request,
+  locals,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!locals.currentShop)
+    return json({ error: "No shop context" }, { status: 401 });
 
   const parsed = await parseBody(request, appearanceSchema);
   if (!parsed.ok) return parsed.response;
@@ -19,14 +24,14 @@ export async function POST({ cookies, request, locals  }: import('@sveltejs/kit'
     primary_color,
     sidebar_bg,
     theme,
-    onboarding_step: 'team',
+    onboarding_step: "team",
   };
   if (palette_id) update.palette_id = palette_id;
 
   const { error } = await supabase
-    .from('shops')
+    .from("shops")
     .update(update as any)
-    .eq('id', locals.currentShop.id);
+    .eq("id", locals.currentShop.id);
 
   if (error) return json({ error: error.message }, { status: 400 });
   return json({ ok: true });

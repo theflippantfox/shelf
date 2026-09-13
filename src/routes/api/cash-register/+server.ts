@@ -78,16 +78,17 @@ export async function POST({
  request,
  locals,
 }: import("@sveltejs/kit").RequestEvent) {
-if (!locals.currentShop || !locals.user) {
-  return json({ error: 'No shop' }, { status: 401 });
-}
+ if (!locals.currentShop || !locals.user) {
+  return json({ error: "No shop" }, { status: 401 });
+ }
 
-// All entry types require owner or manager
-const deny = requireRole(locals, ['owner', 'manager']);
-if (deny) return deny;
+ // All entry types require owner or manager
+ const deny = requireRole(locals, ["owner", "manager"]);
+ if (deny) return deny;
 
-const body = await request.json();
-const { destination, amount, entry_type, notes, effective_at, adjusts_id } = body ?? {};
+ const body = await request.json();
+ const { destination, amount, entry_type, notes, effective_at, adjusts_id } =
+  body ?? {};
 
  if (!destination || !["counter", "bank", "other"].includes(destination)) {
   return json({ error: "Invalid destination" }, { status: 400 });
@@ -123,18 +124,18 @@ const { destination, amount, entry_type, notes, effective_at, adjusts_id } = bod
  if (entry_type === "injection" && amount < 0)
   return json({ error: "Injection amount must be positive" }, { status: 400 });
 
-if (entry_type === 'injection' && locals.shopMember?.role === 'cashier') {
+ if (entry_type === "injection" && locals.shopMember?.role === "cashier") {
   return json(
-    { error: 'Only owners and managers can add injections' },
-    { status: 403 },
+   { error: "Only owners and managers can add injections" },
+   { status: 403 },
   );
-}
-if (entry_type === 'adjustment' && locals.shopMember?.role === 'cashier') {
+ }
+ if (entry_type === "adjustment" && locals.shopMember?.role === "cashier") {
   return json(
-    { error: 'Only owners and managers can add adjustments' },
-    { status: 403 },
+   { error: "Only owners and managers can add adjustments" },
+   { status: 403 },
   );
-}
+ }
 
  // Call the RPC
  const { data, error } = await userClientFromCtx({ cookies } as any).rpc(

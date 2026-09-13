@@ -92,12 +92,12 @@ function buildGrossProfit(
     previous,
     coverage,
     delta:
-      deltaPct !== null
-        ? {
+      deltaPct === null
+        ? null
+        : {
             pct: Math.round(deltaPct),
             direction: deltaPct >= 0 ? "up" : "down",
-          }
-        : null,
+          },
   };
 }
 

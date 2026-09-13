@@ -8,7 +8,7 @@
  * a known issue and will be addressed in Stage 6a by moving to a Postgres function.
  */
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
 
 /**
  * GET /api/sales/[id]

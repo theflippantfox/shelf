@@ -6,14 +6,18 @@
  * is complete, teammates should be invited via /api/users which uses Supabase's
  * built-in invite (recovery link).
  */
-import { json } from '@sveltejs/kit';
-import { adminClient, userClientFromCtx } from '$lib/server/supabase';
-import { teamSchema } from '$lib/validators/schemas';
-import { parseBody } from '$lib/validators/parseBody';
+import { json } from "@sveltejs/kit";
+import { adminClient, userClientFromCtx } from "$lib/server/supabase";
+import { teamSchema } from "$lib/validators/schemas";
+import { parseBody } from "$lib/validators/parseBody";
 
-export async function POST({ cookies, request, locals }: import('@sveltejs/kit').RequestEvent) {
+export async function POST({
+  cookies,
+  request,
+  locals,
+}: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user)
-    return json({ error: 'No shop context' }, { status: 401 });
+    return json({ error: "No shop context" }, { status: 401 });
 
   const parsed = await parseBody(request, teamSchema);
   if (!parsed.ok) return parsed.response;
@@ -26,25 +30,24 @@ export async function POST({ cookies, request, locals }: import('@sveltejs/kit')
   for (const invite of invites ?? []) {
     if (!invite.email || !invite.password) continue;
     try {
-      const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        email: invite.email,
-        password: invite.password,
-        email_confirm: true,
-        user_metadata: { first_name: invite.first_name, last_name: '' },
-      });
+      const { data: created, error: createErr } =
+        await admin.auth.admin.createUser({
+          email: invite.email,
+          password: invite.password,
+          email_confirm: true,
+          user_metadata: { first_name: invite.first_name, last_name: "" },
+        });
       if (createErr || !created?.user) {
-        failures.push(`${invite.email}: ${createErr?.message ?? 'failed'}`);
+        failures.push(`${invite.email}: ${createErr?.message ?? "failed"}`);
         continue;
       }
 
-      const { error: memberErr } = await admin
-        .from('shop_members')
-        .insert({
-          shop_id: locals.currentShop.id,
-          user_id: created.user.id,
-          role: invite.role ?? 'cashier',
-          status: 'active',
-        });
+      const { error: memberErr } = await admin.from("shop_members").insert({
+        shop_id: locals.currentShop.id,
+        user_id: created.user.id,
+        role: invite.role ?? "cashier",
+        status: "active",
+      });
 
       if (memberErr) {
         failures.push(`${invite.email}: ${memberErr.message}`);
@@ -56,9 +59,9 @@ export async function POST({ cookies, request, locals }: import('@sveltejs/kit')
 
   // Advance the onboarding step regardless of partial failures
   await supabase
-    .from('shops')
-    .update({ onboarding_step: 'categories' })
-    .eq('id', locals.currentShop.id);
+    .from("shops")
+    .update({ onboarding_step: "categories" })
+    .eq("id", locals.currentShop.id);
 
   if (failures.length > 0) {
     return json({ ok: true, warnings: failures });
