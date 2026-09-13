@@ -52,10 +52,11 @@ export async function PATCH({
     return json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from("customers")
-    .update(allowed as any)
+    .update(allowed)
     .eq("id", params.id)
     .eq("shop_id", locals.currentShop.id)
     .select()
@@ -76,7 +77,8 @@ export async function DELETE({
   if (!params.id) return json({ error: "Missing id" }, { status: 400 });
   if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const { error } = await supabase
     .from("customers")
     .delete()

@@ -37,7 +37,8 @@ export async function PATCH({
   if (!params.id) return json({ error: "Missing id" }, { status: 400 });
   if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   // Whitelist allowed fields. Map `category` → `category_id`. Empty strings → null.
   const clean = (v: any) => (v === "" || v === undefined ? null : v);
@@ -90,10 +91,11 @@ export async function DELETE({
   if (!params.id) return json({ error: "Missing id" }, { status: 400 });
   if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
     .from("products")
-    .update({ archived_at: new Date().toISOString() } as any)
+    .update({ archived_at: new Date().toISOString() })
     .eq("id", params.id)
     .eq("shop_id", locals.currentShop.id)
     .select()
