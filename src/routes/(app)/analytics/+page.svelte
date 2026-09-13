@@ -190,608 +190,620 @@
 
 <svelte:head><title>Analytics · Shëlf</title></svelte:head>
 
-<div class="fade-up">
-  <!-- ── HEADER ────────────────────────────────────────────────────────── -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
-    <h1 class="text-[22px] md:text-[26px] font-semibold text-[var(--text)] tracking-tight">Analytics</h1>
-    <div class="flex items-center gap-3">
-      <div class="inline-flex gap-1 bg-[var(--surface2)] p-1 rounded-lg">
-        <button
-          class="px-3 py-1.5 text-[12px] font-semibold rounded-md transition-all"
-          style="background:{activeTab === 'overview' ? 'var(--primary)' : 'transparent'}; color:{activeTab === 'overview' ? 'var(--primary-fg)' : 'var(--text-2)'}"
-          onclick={() => switchTab('overview')}
-        >Overview</button>
-        <button
-          class="px-3 py-1.5 text-[12px] font-semibold rounded-md transition-all"
-          style="background:{activeTab === 'pnl' ? 'var(--primary)' : 'transparent'}; color:{activeTab === 'pnl' ? 'var(--primary-fg)' : 'var(--text-2)'}"
-          onclick={() => switchTab('pnl')}
-        >P&L Report</button>
-      </div>
-      <PeriodSelector {presets} active={period?.preset ?? '30d'} onchange={changePeriod} />
+{#if !analytics}
+  <!-- LOADING STATE -->
+  <div class="flex items-center justify-center h-[60vh]">
+    <div class="text-center">
+      <div class="w-10 h-10 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin mx-auto mb-4"></div>
+      <p class="text-sm font-medium text-[var(--text-2)]">Loading analytics…</p>
     </div>
   </div>
+{:else}
+  {@const hasData = (kpis?.transactions?.current ?? 0) > 0 || (kpis?.revenue?.current ?? 0) > 0}
 
-  {#if !analytics}
-    <div class="surface-card flex flex-col items-center justify-center h-64 text-[var(--text-3)]">
-      <div class="w-8 h-8 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin mb-3"></div>
-      <p class="text-[13px] font-semibold text-[var(--text)]">Crunching your numbers</p>
-    </div>
-  {:else}
-    {@const hasData = (kpis?.transactions?.current ?? 0) > 0 || (kpis?.revenue?.current ?? 0) > 0}
-
-    {#if !hasData}
-      <div class="surface-card flex flex-col items-center justify-center text-center py-14 px-5">
-        <div class="w-14 h-14 rounded-full flex items-center justify-center mb-3"
-             style="background: color-mix(in srgb, var(--primary) 14%, transparent);">
-          <BarChart3 size={24} strokeWidth={1.5} style="color:var(--primary)" />
+  <!-- EMPTY STATE -->
+  {#if !hasData}
+    <div class="flex items-center justify-center h-[60vh]">
+      <div class="text-center max-w-sm">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+             style="background: color-mix(in srgb, var(--primary) 8%, transparent);">
+          <BarChart3 size={32} strokeWidth={1.5} style="color:var(--primary)" />
         </div>
-        <p class="text-[15px] font-semibold text-[var(--text)]">No data for this period</p>
-        <p class="text-[12.5px] text-[var(--text-3)] mt-1 max-w-sm leading-relaxed">
-          Once you start ringing up sales, your revenue, profit, and trends will show up here.
-        </p>
-        <a href="/sale" class="btn btn-primary mt-4">
-          <ShoppingCart size={14} strokeWidth={2} /> Make your first sale
+        <h2 class="text-lg font-semibold text-[var(--text)] mb-2">No data yet</h2>
+        <p class="text-sm text-[var(--text-3)] mb-6">Start ringing up sales to see your revenue, profit, and trends here.</p>
+        <a href="/sale" class="btn btn-primary">
+          <ShoppingCart size={16} strokeWidth={2} /> Make your first sale
         </a>
       </div>
-    {/if}
+    </div>
+  {:else}
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- HEADER                                                            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-[var(--text)] tracking-tight">Analytics</h1>
+        <div class="inline-flex bg-[var(--surface2)] rounded-lg p-0.5">
+          <button
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-all"
+            style="background:{activeTab === 'overview' ? 'var(--bg)' : 'transparent'}; color:{activeTab === 'overview' ? 'var(--text)' : 'var(--text-3)'}; box-shadow:{activeTab === 'overview' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'}"
+            onclick={() => switchTab('overview')}
+          >Overview</button>
+          <button
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-all"
+            style="background:{activeTab === 'pnl' ? 'var(--bg)' : 'transparent'}; color:{activeTab === 'pnl' ? 'var(--text)' : 'var(--text-3)'}; box-shadow:{activeTab === 'pnl' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'}"
+            onclick={() => switchTab('pnl')}
+          >P&L Report</button>
+        </div>
+      </div>
+      <PeriodSelector {presets} active={period?.preset ?? '30d'} onchange={changePeriod} />
+    </header>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- OVERVIEW TAB                                                      -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    {#if hasData && activeTab === 'overview'}
-      <div class="grid grid-cols-12 gap-3 anim-stagger">
+    {#if activeTab === 'overview'}
+      <div class="space-y-5">
 
-        <!-- ── KPI STRIP (full width, 5 cols) ──────────────────────────── -->
-        <div class="col-span-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div class="surface-card px-5 py-4 flex items-center gap-4">
-            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--primary) 10%, transparent)">
-              <TrendingUp size={20} strokeWidth={1.5} style="color:var(--primary)" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Revenue</p>
-              <div class="flex items-baseline gap-2">
-                <p class="text-[22px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(kpis.revenue.current)}</p>
-                {#if kpis.revenue.delta?.pct}
-                  <TrendBadge direction={kpis.revenue.delta.direction} label={`${Math.abs(kpis.revenue.delta.pct)}%`} />
-                {/if}
+        <!-- ── KPI ROW ──────────────────────────────────────────────────── -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <!-- Revenue -->
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                   style="background:color-mix(in srgb, var(--primary) 10%, transparent)">
+                <TrendingUp size={16} strokeWidth={2} style="color:var(--primary)" />
               </div>
+              <span class="text-xs font-medium text-[var(--text-3)]">Revenue</span>
             </div>
-          </div>
-
-          <div class="surface-card px-5 py-4 flex items-center gap-4">
-            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--cobalt) 10%, transparent)">
-              <Activity size={20} strokeWidth={1.5} style="color:var(--cobalt)" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Transactions</p>
-              <div class="flex items-baseline gap-2">
-                <p class="text-[22px] font-bold tabular-nums leading-tight">{kpis.transactions.current.toLocaleString()}</p>
-                {#if kpis.transactions.delta?.pct}
-                  <TrendBadge direction={kpis.transactions.delta.direction} label={`${Math.abs(kpis.transactions.delta.pct)}%`} />
-                {/if}
+            <p class="text-2xl font-bold tabular-nums text-[var(--text)]">{formatCurrencyCompact(kpis.revenue.current)}</p>
+            {#if kpis.revenue.delta?.pct}
+              <div class="mt-1">
+                <TrendBadge direction={kpis.revenue.delta.direction} label={`${Math.abs(kpis.revenue.delta.pct)}%`} />
               </div>
-            </div>
-          </div>
-
-          <div class="surface-card px-5 py-4 flex items-center gap-4">
-            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
-              <BarChart3 size={20} strokeWidth={1.5} style="color:var(--teal)" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Avg Order</p>
-              <div class="flex items-baseline gap-2">
-                <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
-                {#if kpis.avgOrder.delta?.pct}
-                  <TrendBadge direction={kpis.avgOrder.delta.direction} label={`${Math.abs(kpis.avgOrder.delta.pct)}%`} />
-                {/if}
-              </div>
-            </div>
-          </div>
-
-          {#if kpis.margin}
-            <div class="surface-card px-5 py-4 flex items-center gap-4">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--gold) 10%, transparent)">
-                <Percent size={20} strokeWidth={1.5} style="color:var(--gold)" />
-              </div>
-              <div class="min-w-0">
-                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Margin</p>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-[22px] font-bold tabular-nums leading-tight">{kpis.margin.current.toFixed(1)}%</p>
-                  {#if kpis.margin.delta?.pp}
-                    <TrendBadge direction={kpis.margin.delta.direction} label={`${Math.abs(kpis.margin.delta.pp)}pp`} />
-                  {/if}
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          {#if grossProfit}
-            <div class="surface-card px-5 py-4 flex items-center gap-4">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
-                <Banknote size={20} strokeWidth={1.5} style="color:var(--teal)" />
-              </div>
-              <div class="min-w-0">
-                <p class="text-[11px] font-medium text-[var(--text-3)] mb-1">Gross Profit</p>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-[22px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
-                  {#if grossProfit.delta?.pct}
-                    <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
-                  {/if}
-                </div>
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- ── OUTSTANDING RECEIVABLES (full width, conditional) ───────── -->
-        {#if analytics?.outstanding && analytics.outstanding.total > 0}
-          <div class="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="surface-card px-4 py-3 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--gold) 12%, transparent)">
-                <Clock size={16} strokeWidth={2} style="color:var(--gold)" />
-              </div>
-              <div>
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Outstanding</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight" style="color:var(--gold-fg)">
-                  {formatCurrencyCompact(analytics.outstanding.total)}
-                </p>
-                <p class="text-[10px] text-[var(--text-3)]">{analytics.outstanding.byCustomer.length} customer{analytics.outstanding.byCustomer.length === 1 ? '' : 's'}</p>
-              </div>
-            </div>
-            <div class="surface-card p-4 space-y-2">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-3)]">By Status</p>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-[var(--text-2)] flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-[var(--crimson)]"></span> Pending
-                </span>
-                <span class="font-semibold tabular-nums">{formatCurrencyCompact(analytics.outstanding.byStatus.pending ?? 0)}</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-[var(--text-2)] flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-[var(--gold)]"></span> Partial
-                </span>
-                <span class="font-semibold tabular-nums">{formatCurrencyCompact(analytics.outstanding.byStatus.partial ?? 0)}</span>
-              </div>
-            </div>
-            <div class="surface-card p-4 space-y-2">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-3)]">Top Customers</p>
-              {#if analytics.outstanding.byCustomer.length === 0}
-                <p class="text-xs text-[var(--text-3)]">No outstanding credit.</p>
-              {:else}
-                <ul class="space-y-1.5">
-                  {#each analytics.outstanding.byCustomer.slice(0, 4) as c (c.id)}
-                    <li class="flex items-center justify-between text-xs">
-                      <a href="/customers/{c.id}" class="font-medium text-[var(--text)] truncate hover:text-[var(--primary)]">{c.name}</a>
-                      <span class="font-semibold tabular-nums whitespace-nowrap" style="color:var(--gold-fg)">{formatCurrencyCompact(c.outstanding)}</span>
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-          </div>
-        {/if}
-
-        <!-- ── REVENUE TREND (full width, taller) ──────────────────────── -->
-        <div class="col-span-12 surface-card p-5 md:p-6 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[14px] font-semibold text-[var(--text)]">
-              {activeMetric === 'revenue' ? 'Revenue' : activeMetric === 'transactions' ? 'Transactions' : 'Avg Order'} Trend
-            </h3>
-            <div class="inline-flex gap-1 bg-[var(--surface2)] p-1 rounded-lg">
-              {#each metricTabs as tab}
-                {@const active = activeMetric === tab.key}
-                <button
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all"
-                  style="background:{active ? 'var(--primary)' : 'transparent'}; color:{active ? 'var(--primary-fg)' : 'var(--text-2)'}"
-                  onclick={() => (activeMetric = tab.key)}
-                >
-                  <DynamicIcon name={tab.icon} size={11} strokeWidth={2} />
-                  {tab.label}
-                </button>
-              {/each}
-            </div>
-          </div>
-          <div class="h-64 md:h-72 w-full">
-            <AreaChart labels={trendLabels} datasets={trendDatasets}
-              yFormat={activeMetric === 'transactions' ? 'count' : 'currency'} height={288} />
-          </div>
-        </div>
-
-        <!-- ── PAYMENT METHODS (5 cols) + INVENTORY (7 cols) ──────────── -->
-        <div class="col-span-12 lg:col-span-5 surface-card p-5 space-y-4">
-          <h3 class="text-[14px] font-semibold text-[var(--text)]">Payment Methods</h3>
-          {#if paymentRows.length === 0}
-            <p class="text-xs text-[var(--text-3)] py-8 text-center">No payments in this period.</p>
-          {:else}
-            {@const totalPaymentRev = paymentRows.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0)}
-            <div class="h-44 w-full">
-              <DonutChart
-                labels={paymentRows.map((pm: any) => pm.label)}
-                data={paymentRows.map((pm: any) => pm.revenue ?? 0)}
-                centerValue={formatCurrency(totalPaymentRev)}
-                centerLabel="total"
-                height={176}
-              />
-            </div>
-            <div class="space-y-2 pt-1">
-              {#each paymentRows as pm, i}
-                {@const pct = totalPaymentRev > 0 ? ((pm.revenue / totalPaymentRev) * 100).toFixed(1) : '0'}
-                <div class="flex items-center justify-between text-[12px]">
-                  <span class="flex items-center gap-2 text-[var(--text-2)] truncate">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0"
-                          style="background:{['var(--primary)', 'var(--cobalt)', 'var(--gold)', 'var(--rose)', 'var(--crimson)', 'var(--teal)'][i % 6]}"></span>
-                    {pm.label}
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[var(--text-3)] tabular-nums">{pct}%</span>
-                    <span class="font-semibold tabular-nums shrink-0">{formatCurrency(pm.revenue)}</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-
-        <div class="col-span-12 lg:col-span-7">
-          {#if stockValue}
-            <div class="surface-card p-5 space-y-4 h-full">
-              <div class="flex items-center justify-between">
-                <h3 class="text-[14px] font-semibold text-[var(--text)]">Inventory</h3>
-                <span class="px-2 py-0.5 text-[10px] font-semibold tabular-nums rounded-full" style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
-                  {stockValue.potentialMargin.toFixed(1)}% potential margin
-                </span>
-              </div>
-
-              <div class="grid grid-cols-3 gap-4">
-                <div>
-                  <p class="text-[11px] text-[var(--text-3)] mb-1">At Retail</p>
-                  <p class="text-[22px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(stockValue.retailValue)}</p>
-                </div>
-                <div>
-                  <p class="text-[11px] text-[var(--text-3)] mb-1">At Cost</p>
-                  <p class="text-[22px] font-bold tabular-nums leading-tight text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
-                </div>
-                <div>
-                  <p class="text-[11px] text-[var(--text-3)] mb-1">Units</p>
-                  <p class="text-[22px] font-bold tabular-nums leading-tight">{stockValue.totalUnits.toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-[var(--text-3)]">Margin</span>
-                  <span class="font-semibold tabular-nums" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
-                </div>
-                <div class="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
-                  <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
-                </div>
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- ── 12-MONTH TREND (full width, taller) ────────────────────── -->
-        <div class="col-span-12 surface-card p-5 md:p-6 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[14px] font-semibold text-[var(--text)]">12-Month Trend</h3>
-            <span class="text-[11px] font-medium text-[var(--text-3)]">{monthlyLabels.length} month{monthlyLabels.length === 1 ? '' : 's'}</span>
-          </div>
-          <div class="h-52 md:h-56 w-full">
-            <BarChart labels={monthlyLabels} data={monthlyRevData} color="var(--cobalt)" height={224} yFormat="currency" highlightLast />
-          </div>
-        </div>
-
-        <!-- ── CALENDAR (4 cols) + BUSIEST TIMES (8 cols) ────────────── -->
-        <div class="col-span-12 lg:col-span-4 surface-card p-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[14px] font-semibold text-[var(--text)]">Sales Calendar</h3>
-            {#if calendar?.hasData}
-              <span class="text-[11px] font-medium text-[var(--text-3)]">{formatCurrencyCompact(calendar.total)} in {calendar.monthLabel}</span>
             {/if}
           </div>
 
-          {#if !calendar}
-            <div class="h-48 flex items-center justify-center text-[12px] text-[var(--text-3)]">No calendar data.</div>
-          {:else if !calendar.hasData}
-            <div class="h-48 flex items-center justify-center text-[12px] text-[var(--text-3)]">No sales in {calendar.monthLabel}.</div>
-          {:else}
-            {@const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']}
-            <div class="flex items-center justify-between text-[11px] font-semibold">
-              <span>{calendar.monthLabel}</span>
-              {#if calendar.bestDay}
-                <span class="text-[9px] text-[var(--text-3)] font-normal">Best: day {calendar.bestDay.date.slice(8)} · {formatCurrencyCompact(calendar.bestDay.value)}</span>
+          <!-- Transactions -->
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                   style="background:color-mix(in srgb, var(--cobalt) 10%, transparent)">
+                <Activity size={16} strokeWidth={2} style="color:var(--cobalt)" />
+              </div>
+              <span class="text-xs font-medium text-[var(--text-3)]">Transactions</span>
+            </div>
+            <p class="text-2xl font-bold tabular-nums text-[var(--text)]">{kpis.transactions.current.toLocaleString()}</p>
+            {#if kpis.transactions.delta?.pct}
+              <div class="mt-1">
+                <TrendBadge direction={kpis.transactions.delta.direction} label={`${Math.abs(kpis.transactions.delta.pct)}%`} />
+              </div>
+            {/if}
+          </div>
+
+          <!-- Avg Order -->
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                   style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
+                <BarChart3 size={16} strokeWidth={2} style="color:var(--teal)" />
+              </div>
+              <span class="text-xs font-medium text-[var(--text-3)]">Avg Order</span>
+            </div>
+            <p class="text-2xl font-bold tabular-nums text-[var(--text)]">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
+            {#if kpis.avgOrder.delta?.pct}
+              <div class="mt-1">
+                <TrendBadge direction={kpis.avgOrder.delta.direction} label={`${Math.abs(kpis.avgOrder.delta.pct)}%`} />
+              </div>
+            {/if}
+          </div>
+
+          <!-- Margin -->
+          {#if kpis.margin}
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                     style="background:color-mix(in srgb, var(--gold) 10%, transparent)">
+                  <Percent size={16} strokeWidth={2} style="color:var(--gold)" />
+                </div>
+                <span class="text-xs font-medium text-[var(--text-3)]">Margin</span>
+              </div>
+              <p class="text-2xl font-bold tabular-nums text-[var(--text)]">{kpis.margin.current.toFixed(1)}%</p>
+              {#if kpis.margin.delta?.pp}
+                <div class="mt-1">
+                  <TrendBadge direction={kpis.margin.delta.direction} label={`${Math.abs(kpis.margin.delta.pp)}pp`} />
+                </div>
               {/if}
             </div>
-            <div class="grid grid-cols-7 gap-1 text-[9px] text-[var(--text-3)] font-medium text-center">
-              {#each dayLabels as l}<div>{l}</div>{/each}
-            </div>
-            <div class="grid grid-cols-7 gap-1" style="grid-template-rows: repeat({calendar.weeks}, minmax(0, 1fr));">
-              {#each calendar.cells as c}
-                {#if c.date}
-                  {@const v = c.value}
-                  {@const intensity = v > 0 ? Math.max(0.18, v / (calendar.max || 1)) : 0}
-                  <div class="rounded-md flex items-center justify-center text-[10px] font-semibold tabular-nums transition-transform hover:scale-110 min-h-0
-                              {c.isToday ? 'ring-1 ring-[var(--primary)] ring-offset-1 ring-offset-[var(--surface)]' : ''}"
-                       style="background: {c.isFuture ? 'transparent' : v > 0 ? `color-mix(in srgb, var(--teal) ${Math.round(intensity * 100)}%, var(--surface2))` : 'color-mix(in srgb, var(--surface2) 60%, var(--text-3) 8%)'};
-                              border: {c.isFuture ? '1px dashed color-mix(in srgb, var(--text-3) 35%, transparent)' : '1px solid transparent'};
-                              color: {c.isFuture ? 'var(--text-3)' : v > 0 ? 'var(--primary-fg)' : 'var(--text-2)'};"
-                       title="{c.day} · {c.date}{c.isFuture ? '' : `\n${formatCurrency(v)} · ${c.count} sale${c.count === 1 ? '' : 's'}`}">{c.day}</div>
-                {:else}
-                  <div></div>
-                {/if}
-              {/each}
-            </div>
-            <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)]">
-              <span>Less</span>
-              <div class="flex gap-0.5">
-                {#each [0, 1, 2, 3, 4] as i}
-                  <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--teal) {15 + i * 18}%, var(--surface2))"></div>
-                {/each}
+          {/if}
+
+          <!-- Gross Profit -->
+          {#if grossProfit}
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                     style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
+                  <Banknote size={16} strokeWidth={2} style="color:var(--teal)" />
+                </div>
+                <span class="text-xs font-medium text-[var(--text-3)]">Gross Profit</span>
               </div>
-              <span>More</span>
+              <p class="text-2xl font-bold tabular-nums" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
+              {#if grossProfit.delta?.pct}
+                <div class="mt-1">
+                  <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
 
-        <div class="col-span-12 lg:col-span-8 surface-card p-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[14px] font-semibold text-[var(--text)]">Busiest Times</h3>
-            <div class="flex items-center gap-1.5 text-[10px] text-[var(--text-3)]">
-              <span>Less</span>
-              <div class="flex gap-0.5">
-                {#each [0, 1, 2, 3, 4] as i}
-                  <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--primary) {20 + i * 16}%, var(--surface2))"></div>
+        <!-- ── MAIN CHART ROW ──────────────────────────────────────────── -->
+        <div class="grid grid-cols-12 gap-5">
+          <!-- Revenue Trend (8 cols) -->
+          <div class="col-span-12 lg:col-span-8 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-[var(--text)]">
+                {activeMetric === 'revenue' ? 'Revenue' : activeMetric === 'transactions' ? 'Transactions' : 'Avg Order'} Trend
+              </h2>
+              <div class="inline-flex bg-[var(--surface2)] rounded-lg p-0.5">
+                {#each metricTabs as tab}
+                  {@const active = activeMetric === tab.key}
+                  <button
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all"
+                    style="background:{active ? 'var(--bg)' : 'transparent'}; color:{active ? 'var(--text)' : 'var(--text-3)'}; box-shadow:{active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'}"
+                    onclick={() => (activeMetric = tab.key)}
+                  >
+                    <DynamicIcon name={tab.icon} size={12} strokeWidth={2} />
+                    {tab.label}
+                  </button>
                 {/each}
               </div>
-              <span>More</span>
+            </div>
+            <div class="h-64">
+              <AreaChart labels={trendLabels} datasets={trendDatasets}
+                yFormat={activeMetric === 'transactions' ? 'count' : 'currency'} height={256} />
             </div>
           </div>
-          <Heatmap values={heatmapValues} hours={Array.from({ length: 24 }, (_, i) => `${i}`)} fillHeight />
-        </div>
 
-        <!-- ── TOP PRODUCTS (6 cols) + CATEGORIES (6 cols) ────────────── -->
-        <div class="col-span-12 lg:col-span-6 surface-card p-5 space-y-4">
-          <h3 class="text-[14px] font-semibold text-[var(--text)]">Top Products</h3>
-          <div class="overflow-x-auto">
-            <table class="tbl w-full">
-              <thead>
-                <tr>
-                  <th class="w-8 text-left text-[10px]">#</th>
-                  <th class="text-left text-[10px]">Product</th>
-                  <th class="text-right text-[10px]">Revenue</th>
-                  <th class="text-right text-[10px]">Units</th>
-                  <th class="text-right text-[10px]">Margin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each analytics.products?.byRevenue ?? [] as product, i}
-                  <tr>
-                    <td>
-                      <span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono"
-                            style="background:{i < 3 ? 'var(--gold-dim)' : 'var(--surface2)'}; color:{i < 3 ? 'var(--gold-fg)' : 'var(--text-3)'}">{i + 1}</span>
-                    </td>
-                    <td class="font-medium text-[12px]">{product.name ?? '—'}</td>
-                    <td class="text-right text-[12px] font-semibold tabular-nums">{formatCurrency(product.revenue)}</td>
-                    <td class="text-right text-[12px] tabular-nums text-[var(--text-2)]">{product.units}</td>
-                    <td class="text-right"><MarginBadge value={product.margin} /></td>
-                  </tr>
+          <!-- Payment Methods (4 cols) -->
+          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Payment Methods</h2>
+            {#if paymentRows.length === 0}
+              <p class="text-sm text-[var(--text-3)] py-12 text-center">No payments</p>
+            {:else}
+              {@const totalPaymentRev = paymentRows.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0)}
+              <div class="h-40 mb-4">
+                <DonutChart
+                  labels={paymentRows.map((pm: any) => pm.label)}
+                  data={paymentRows.map((pm: any) => pm.revenue ?? 0)}
+                  centerValue={formatCurrency(totalPaymentRev)}
+                  centerLabel="total"
+                  height={160}
+                />
+              </div>
+              <div class="space-y-2.5">
+                {#each paymentRows as pm, i}
+                  {@const pct = totalPaymentRev > 0 ? ((pm.revenue / totalPaymentRev) * 100).toFixed(0) : '0'}
+                  <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded shrink-0"
+                          style="background:{['var(--primary)', 'var(--cobalt)', 'var(--gold)', 'var(--rose)', 'var(--crimson)', 'var(--teal)'][i % 6]}"></span>
+                    <span class="flex-1 text-sm text-[var(--text-2)]">{pm.label}</span>
+                    <span class="text-sm font-semibold tabular-nums">{formatCurrency(pm.revenue)}</span>
+                    <span class="text-xs text-[var(--text-3)] w-10 text-right">{pct}%</span>
+                  </div>
                 {/each}
-              </tbody>
-            </table>
+              </div>
+            {/if}
           </div>
         </div>
 
-        {#if (analytics.categories ?? []).length > 0}
-          <div class="col-span-12 lg:col-span-6 surface-card p-5 space-y-4">
-            <h3 class="text-[14px] font-semibold text-[var(--text)]">Categories</h3>
+        <!-- ── SECONDARY ROW ───────────────────────────────────────────── -->
+        <div class="grid grid-cols-12 gap-5">
+          <!-- 12-Month Trend (8 cols) -->
+          <div class="col-span-12 lg:col-span-8 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-[var(--text)]">12-Month Trend</h2>
+              <span class="text-xs text-[var(--text-3)]">{monthlyLabels.length} months</span>
+            </div>
+            <div class="h-48">
+              <BarChart labels={monthlyLabels} data={monthlyRevData} color="var(--cobalt)" height={192} yFormat="currency" highlightLast />
+            </div>
+          </div>
+
+          <!-- Inventory (4 cols) -->
+          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-[var(--text)]">Inventory</h2>
+              {#if stockValue}
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full"
+                      style="background:color-mix(in srgb, var(--cobalt) 10%, transparent); color:var(--cobalt-fg)">
+                  {stockValue.potentialMargin.toFixed(1)}% margin
+                </span>
+              {/if}
+            </div>
+            {#if stockValue}
+              <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <p class="text-xs text-[var(--text-3)] mb-1">Retail</p>
+                    <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(stockValue.retailValue)}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-[var(--text-3)] mb-1">Cost</p>
+                    <p class="text-xl font-bold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-[var(--text-3)]">Margin</span>
+                    <span class="font-semibold" style="color:var(--cobalt-fg)">{stockValue.potentialMargin.toFixed(1)}%</span>
+                  </div>
+                  <div class="h-2 rounded-full bg-[var(--surface2)] overflow-hidden">
+                    <div class="h-full rounded-full" style="width:{Math.min(100, stockValue.potentialMargin).toFixed(1)}%; background:var(--cobalt)"></div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                  <span class="text-xs text-[var(--text-3)]">Units in stock</span>
+                  <span class="text-sm font-semibold">{stockValue.totalUnits.toLocaleString()}</span>
+                </div>
+              </div>
+            {:else}
+              <p class="text-sm text-[var(--text-3)] py-8 text-center">No inventory data</p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- ── CALENDAR + BUSIEST TIMES ────────────────────────────────── -->
+        <div class="grid grid-cols-12 gap-5">
+          <!-- Sales Calendar (4 cols) -->
+          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-[var(--text)]">Sales Calendar</h2>
+              {#if calendar?.hasData}
+                <span class="text-xs text-[var(--text-3)]">{formatCurrencyCompact(calendar.total)} in {calendar.monthLabel}</span>
+              {/if}
+            </div>
+
+            {#if !calendar}
+              <div class="h-48 flex items-center justify-center text-sm text-[var(--text-3)]">No data</div>
+            {:else if !calendar.hasData}
+              <div class="h-48 flex items-center justify-center text-sm text-[var(--text-3)]">No sales in {calendar.monthLabel}</div>
+            {:else}
+              {@const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']}
+              <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--text-3)] font-medium text-center mb-1">
+                {#each dayLabels as l}<div>{l}</div>{/each}
+              </div>
+              <div class="grid grid-cols-7 gap-1" style="grid-template-rows: repeat({calendar.weeks}, minmax(0, 1fr));">
+                {#each calendar.cells as c}
+                  {#if c.date}
+                    {@const v = c.value}
+                    {@const intensity = v > 0 ? Math.max(0.18, v / (calendar.max || 1)) : 0}
+                    <div class="rounded-md flex items-center justify-center text-[10px] font-semibold tabular-nums transition-transform hover:scale-110 min-h-0
+                                {c.isToday ? 'ring-2 ring-[var(--primary)] ring-offset-1 ring-offset-[var(--bg)]' : ''}"
+                         style="background: {c.isFuture ? 'transparent' : v > 0 ? `color-mix(in srgb, var(--teal) ${Math.round(intensity * 100)}%, var(--surface2))` : 'var(--surface2)'};
+                                border: {c.isFuture ? '1px dashed var(--border)' : '1px solid transparent'};
+                                color: {c.isFuture ? 'var(--text-3)' : v > 0 ? 'white' : 'var(--text-2)'};"
+                         title="{c.day} · {c.date}{c.isFuture ? '' : `\n${formatCurrency(v)} · ${c.count} sale${c.count === 1 ? '' : 's'}`}">{c.day}</div>
+                  {:else}
+                    <div></div>
+                  {/if}
+                {/each}
+              </div>
+              <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)] mt-3">
+                <span>Less</span>
+                <div class="flex gap-0.5">
+                  {#each [0, 1, 2, 3, 4] as i}
+                    <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--teal) {15 + i * 18}%, var(--surface2))"></div>
+                  {/each}
+                </div>
+                <span>More</span>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Busiest Times (8 cols) -->
+          <div class="col-span-12 lg:col-span-8 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-[var(--text)]">Busiest Times</h2>
+              <div class="flex items-center gap-1.5 text-[10px] text-[var(--text-3)]">
+                <span>Less</span>
+                <div class="flex gap-0.5">
+                  {#each [0, 1, 2, 3, 4] as i}
+                    <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--primary) {20 + i * 16}%, var(--surface2))"></div>
+                  {/each}
+                </div>
+                <span>More</span>
+              </div>
+            </div>
+            <Heatmap values={heatmapValues} hours={Array.from({ length: 24 }, (_, i) => `${i}`)} fillHeight />
+          </div>
+        </div>
+
+        <!-- ── TABLES ROW ──────────────────────────────────────────────── -->
+        <div class="grid grid-cols-12 gap-5">
+          <!-- Top Products (6 cols) -->
+          <div class="col-span-12 lg:col-span-6 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Top Products</h2>
             <div class="overflow-x-auto">
-              <table class="tbl w-full">
+              <table class="w-full text-sm">
                 <thead>
-                  <tr>
-                    <th class="text-left text-[10px]">Category</th>
-                    <th class="text-right text-[10px]">Revenue</th>
-                    <th class="text-right text-[10px]">Units</th>
-                    <th class="text-right text-[10px]">Avg Sale</th>
-                    <th class="text-right text-[10px]">Margin</th>
+                  <tr class="border-b border-[var(--border)]">
+                    <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-2">#</th>
+                    <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Product</th>
+                    <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Revenue</th>
+                    <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Units</th>
+                    <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">Margin</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {#each analytics.categories as cat}
-                    <tr>
-                      <td class="font-medium text-[12px]">{cat.name}</td>
-                      <td class="text-right text-[12px] font-semibold tabular-nums">{formatCurrency(cat.revenue)}</td>
-                      <td class="text-right text-[12px] tabular-nums text-[var(--text-2)]">{cat.units}</td>
-                      <td class="text-right text-[12px] tabular-nums text-[var(--text-2)]">{formatCurrency(Math.round(cat.revenue / (cat.units || 1)))}</td>
-                      <td class="text-right"><MarginBadge value={cat.margin} /></td>
+                  {#each analytics.products?.byRevenue ?? [] as product, i}
+                    <tr class="border-b border-[var(--border)] last:border-0">
+                      <td class="py-3 pr-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-semibold"
+                              style="background:{i < 3 ? 'var(--gold-dim)' : 'var(--surface2)'}; color:{i < 3 ? 'var(--gold-fg)' : 'var(--text-3)'}">{i + 1}</span>
+                      </td>
+                      <td class="py-3 pr-4 font-medium text-[var(--text)]">{product.name ?? '—'}</td>
+                      <td class="py-3 pr-4 text-right font-semibold tabular-nums">{formatCurrency(product.revenue)}</td>
+                      <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{product.units}</td>
+                      <td class="py-3 text-right"><MarginBadge value={product.margin} /></td>
                     </tr>
                   {/each}
                 </tbody>
               </table>
             </div>
           </div>
+
+          <!-- Categories (6 cols) -->
+          {#if (analytics.categories ?? []).length > 0}
+            <div class="col-span-12 lg:col-span-6 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+              <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Categories</h2>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-[var(--border)]">
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Category</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Revenue</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Units</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Avg Sale</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each analytics.categories as cat}
+                      <tr class="border-b border-[var(--border)] last:border-0">
+                        <td class="py-3 pr-4 font-medium text-[var(--text)]">{cat.name}</td>
+                        <td class="py-3 pr-4 text-right font-semibold tabular-nums">{formatCurrency(cat.revenue)}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{cat.units}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{formatCurrency(Math.round(cat.revenue / (cat.units || 1)))}</td>
+                        <td class="py-3 text-right"><MarginBadge value={cat.margin} /></td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- ── CUSTOMERS ROW ───────────────────────────────────────────── -->
+        <div class="grid grid-cols-12 gap-5">
+          <!-- Customer Tiers (4 cols) -->
+          <div class="col-span-12 lg:col-span-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Customers <span class="text-[var(--text-3)] font-normal">({uniqueBuyers})</span></h2>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center p-3 rounded-lg" style="background:color-mix(in srgb, var(--gold) 8%, transparent)">
+                <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:var(--gold-fg)">VIP</p>
+                <p class="text-2xl font-bold tabular-nums">{customerTiers?.vip ?? 0}</p>
+              </div>
+              <div class="text-center p-3 rounded-lg" style="background:color-mix(in srgb, var(--primary) 6%, transparent)">
+                <p class="text-xs font-semibold uppercase tracking-wide mb-1">Regular</p>
+                <p class="text-2xl font-bold tabular-nums">{customerTiers?.regular ?? 0}</p>
+              </div>
+              <div class="text-center p-3 rounded-lg bg-[var(--surface2)]">
+                <p class="text-xs font-semibold uppercase tracking-wide mb-1 text-[var(--text-3)]">New</p>
+                <p class="text-2xl font-bold tabular-nums">{customerTiers?.new ?? 0}</p>
+              </div>
+            </div>
+            <p class="text-[11px] text-[var(--text-3)] text-center mt-3">Tiers based on lifetime spend</p>
+          </div>
+
+          <!-- Top Customers (8 cols) -->
+          <div class="col-span-12 lg:col-span-8 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Top Customers</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-[var(--border)]">
+                    <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-2">#</th>
+                    <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Name</th>
+                    <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Spent</th>
+                    <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">Visits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each leaderboard as customer, i}
+                    <tr class="border-b border-[var(--border)] last:border-0">
+                      <td class="py-3 pr-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-semibold"
+                              style="background:{i < 3 ? 'var(--gold-dim)' : 'var(--surface2)'}; color:{i < 3 ? 'var(--gold-fg)' : 'var(--text-3)'}">{i + 1}</span>
+                      </td>
+                      <td class="py-3 pr-4 font-medium text-[var(--text)]">{customer.name ?? '—'}</td>
+                      <td class="py-3 pr-4 text-right font-semibold tabular-nums">{formatCurrency(customer.spent)}</td>
+                      <td class="py-3 text-right tabular-nums text-[var(--text-2)]">{customer.visits}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── OUTSTANDING RECEIVABLES (conditional) ────────────────────── -->
+        {#if analytics?.outstanding && analytics.outstanding.total > 0}
+          <div class="grid grid-cols-12 gap-5">
+            <div class="col-span-12 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+              <div class="flex items-center gap-2 mb-4">
+                <Clock size={16} strokeWidth={2} style="color:var(--gold)" />
+                <h2 class="text-sm font-semibold text-[var(--text)]">Outstanding Credit</h2>
+                <span class="ml-auto text-lg font-bold tabular-nums" style="color:var(--gold-fg)">{formatCurrencyCompact(analytics.outstanding.total)}</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[var(--surface2)]">
+                  <span class="text-sm text-[var(--text-2)]">Pending</span>
+                  <span class="text-sm font-semibold tabular-nums">{formatCurrencyCompact(analytics.outstanding.byStatus.pending ?? 0)}</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[var(--surface2)]">
+                  <span class="text-sm text-[var(--text-2)]">Partial</span>
+                  <span class="text-sm font-semibold tabular-nums">{formatCurrencyCompact(analytics.outstanding.byStatus.partial ?? 0)}</span>
+                </div>
+                <div class="p-3 rounded-lg bg-[var(--surface2)]">
+                  {#if analytics.outstanding.byCustomer.length > 0}
+                    <ul class="space-y-1.5">
+                      {#each analytics.outstanding.byCustomer.slice(0, 3) as c (c.id)}
+                        <li class="flex items-center justify-between text-sm">
+                          <a href="/customers/{c.id}" class="font-medium text-[var(--text)] hover:text-[var(--primary)] truncate">{c.name}</a>
+                          <span class="font-semibold tabular-nums whitespace-nowrap" style="color:var(--gold-fg)">{formatCurrencyCompact(c.outstanding)}</span>
+                        </li>
+                      {/each}
+                    </ul>
+                  {:else}
+                    <span class="text-sm text-[var(--text-3)]">No outstanding credit</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          </div>
         {/if}
 
-        <!-- ── CUSTOMER TIERS (4 cols) + TOP CUSTOMERS (8 cols) ───────── -->
-        <div class="col-span-12 lg:col-span-4 surface-card p-5 space-y-4">
-          <h3 class="text-[14px] font-semibold text-[var(--text)]">Customers <span class="text-[var(--text-3)] font-normal">({uniqueBuyers} buyers)</span></h3>
-          <div class="grid grid-cols-3 gap-2">
-            <div class="rounded-lg p-3 text-center" style="background:color-mix(in srgb, var(--gold) 12%, transparent)">
-              <p class="text-[9px] font-bold uppercase tracking-wide" style="color:var(--gold-fg)">VIP</p>
-              <p class="text-xl font-bold tabular-nums mt-0.5">{customerTiers?.vip ?? 0}</p>
-            </div>
-            <div class="rounded-lg p-3 text-center" style="background:color-mix(in srgb, var(--primary) 10%, transparent)">
-              <p class="text-[9px] font-bold uppercase tracking-wide">Regular</p>
-              <p class="text-xl font-bold tabular-nums mt-0.5">{customerTiers?.regular ?? 0}</p>
-            </div>
-            <div class="rounded-lg p-3 text-center" style="background:var(--surface2)">
-              <p class="text-[9px] font-bold uppercase tracking-wide text-[var(--text-3)]">New</p>
-              <p class="text-xl font-bold tabular-nums mt-0.5">{customerTiers?.new ?? 0}</p>
-            </div>
-          </div>
-          <p class="text-[9px] text-[var(--text-3)] text-center">Tiers based on lifetime spend</p>
-        </div>
-
-        <div class="col-span-12 lg:col-span-8 surface-card p-5 space-y-4">
-          <h3 class="text-[14px] font-semibold text-[var(--text)]">Top Customers</h3>
-          <div class="overflow-x-auto">
-            <table class="tbl w-full">
-              <thead>
-                <tr>
-                  <th class="w-8 text-left text-[10px]">#</th>
-                  <th class="text-left text-[10px]">Name</th>
-                  <th class="text-right text-[10px]">Spent</th>
-                  <th class="text-right text-[10px]">Visits</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each leaderboard as customer, i}
-                  <tr>
-                    <td>
-                      <span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono"
-                            style="background:{i < 3 ? 'var(--gold-dim)' : 'var(--surface2)'}; color:{i < 3 ? 'var(--gold-fg)' : 'var(--text-3)'}">{i + 1}</span>
-                    </td>
-                    <td class="font-medium text-[12px]">{customer.name ?? '—'}</td>
-                    <td class="text-right text-[12px] font-semibold tabular-nums">{formatCurrency(customer.spent)}</td>
-                    <td class="text-right text-[12px] tabular-nums text-[var(--text-2)]">{customer.visits}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     {/if}
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- P&L TAB                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    {#if hasData && activeTab === 'pnl'}
-      <div class="grid grid-cols-12 gap-3 anim-stagger">
-        <!-- P&L sub-tabs (full width) -->
-        <div class="col-span-12">
-          <div class="inline-flex gap-1 bg-[var(--surface2)] p-1 rounded-lg">
-            {#each [{ key: 'calendar', label: 'Calendar', icon: Calendar }, { key: 'report', label: 'Report', icon: FileText }, { key: 'bills', label: 'Bill-by-Bill', icon: Receipt }] as t}
-              {@const active = pnlTab === t.key}
-              <button
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md transition-all"
-                style="background:{active ? 'var(--primary)' : 'transparent'}; color:{active ? 'var(--primary-fg)' : 'var(--text-2)'}"
-                onclick={() => switchPnlTab(t.key as 'calendar' | 'report' | 'bills')}
-              >
-                <t.icon size={13} strokeWidth={2} />
-                {t.label}
-              </button>
-            {/each}
-          </div>
+    {#if activeTab === 'pnl'}
+      <div class="space-y-5">
+        <!-- P&L sub-tabs -->
+        <div class="inline-flex bg-[var(--surface2)] rounded-lg p-0.5">
+          {#each [{ key: 'calendar', label: 'Calendar', icon: Calendar }, { key: 'report', label: 'Report', icon: FileText }, { key: 'bills', label: 'Bill-by-Bill', icon: Receipt }] as t}
+            {@const active = pnlTab === t.key}
+            <button
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all"
+              style="background:{active ? 'var(--bg)' : 'transparent'}; color:{active ? 'var(--text)' : 'var(--text-3)'}; box-shadow:{active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'}"
+              onclick={() => switchPnlTab(t.key as 'calendar' | 'report' | 'bills')}
+            >
+              <t.icon size={14} strokeWidth={2} />
+              {t.label}
+            </button>
+          {/each}
         </div>
 
         {#if !pnl}
-          <div class="col-span-12 surface-card flex flex-col items-center justify-center h-64 text-[var(--text-3)]">
-            <div class="w-8 h-8 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin mb-3"></div>
-            <p class="text-[13px] font-semibold text-[var(--text)]">Loading P&L data</p>
+          <div class="flex items-center justify-center h-64">
+            <div class="text-center">
+              <div class="w-8 h-8 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin mx-auto mb-3"></div>
+              <p class="text-sm text-[var(--text-2)]">Loading P&L data…</p>
+            </div>
           </div>
         {/if}
 
         <!-- ── P&L CALENDAR ────────────────────────────────────────────── -->
         {#if pnl && pnlTab === 'calendar'}
           {@const cal = pnl.profitCalendar}
-          <div class="col-span-12 lg:col-span-7 surface-card p-4 md:p-5">
-            <div class="flex items-center justify-between mb-4">
-              <button class="btn btn-sm btn-secondary" onclick={() => navMonth(-1)}>
-                <ChevronLeft size={14} strokeWidth={2} /> Prev
-              </button>
-              <h2 class="text-[15px] font-semibold text-[var(--text)]">{cal.monthLabel}</h2>
-              <button class="btn btn-sm btn-secondary" onclick={() => navMonth(1)}>
-                Next <ChevronRight size={14} strokeWidth={2} />
-              </button>
+          <div class="grid grid-cols-12 gap-5">
+            <div class="col-span-12 lg:col-span-7 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+              <div class="flex items-center justify-between mb-4">
+                <button class="btn btn-sm btn-secondary" onclick={() => navMonth(-1)}>
+                  <ChevronLeft size={14} /> Prev
+                </button>
+                <h2 class="text-base font-semibold text-[var(--text)]">{cal.monthLabel}</h2>
+                <button class="btn btn-sm btn-secondary" onclick={() => navMonth(1)}>
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+
+              {#if !cal.hasData}
+                <div class="h-48 flex items-center justify-center text-sm text-[var(--text-3)]">No sales data for {cal.monthLabel}</div>
+              {:else}
+                {@const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']}
+                <div class="grid grid-cols-7 gap-1 text-[10px] text-[var(--text-3)] font-medium text-center mb-1">
+                  {#each dayLabels as l}<div>{l}</div>{/each}
+                </div>
+                <div class="grid grid-cols-7 gap-1" style="grid-template-rows: repeat({cal.weeks}, minmax(0, 1fr));">
+                  {#each cal.cells as c}
+                    {#if c.date}
+                      <button
+                        class="rounded-md flex flex-col items-center justify-center py-2 text-xs font-semibold tabular-nums transition-all hover:scale-105 min-h-[44px]
+                               {c.isToday ? 'ring-2 ring-[var(--primary)] ring-offset-1 ring-offset-[var(--bg)]' : ''}"
+                        style="background: {c.isFuture ? 'transparent' : profitColor(c.profit, cal.max)};
+                               border: {c.isFuture ? '1px dashed var(--border)' : '1px solid transparent'};"
+                        title="{c.day} · {c.date}{c.isFuture ? '' : `\nProfit: ${formatCurrency(c.profit)}\nRevenue: ${formatCurrency(c.revenue)}\nCOGS: ${formatCurrency(c.cogs)}\n${c.count} sale${c.count === 1 ? '' : 's'}`}"
+                        onclick={() => { expandedDate = expandedDate === c.date ? null : c.date; }}
+                      >
+                        <span>{c.day}</span>
+                        {#if !c.isFuture && c.count > 0}
+                          <span class="text-[9px] opacity-80">{formatCurrencyCompact(c.profit)}</span>
+                        {/if}
+                      </button>
+                    {:else}
+                      <div></div>
+                    {/if}
+                  {/each}
+                </div>
+
+                <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)] mt-3">
+                  <span>Loss</span>
+                  <div class="flex gap-0.5">
+                    {#each [0, 1, 2, 3] as i}
+                      <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--crimson) {20 + i * 22}%, var(--surface2))"></div>
+                    {/each}
+                  </div>
+                  <span class="mx-1">|</span>
+                  <div class="flex gap-0.5">
+                    {#each [0, 1, 2, 3] as i}
+                      <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--teal) {20 + i * 22}%, var(--surface2))"></div>
+                    {/each}
+                  </div>
+                  <span>Profit</span>
+                </div>
+
+                {#if expandedDate && cal.daySales?.[expandedDate]?.length}
+                  <div class="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+                    <p class="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider">Sales on {expandedDate}</p>
+                    {#each cal.daySales[expandedDate] as s}
+                      <div class="flex items-center justify-between text-sm py-2 px-3 rounded-lg bg-[var(--surface2)]">
+                        <a href="/history/{s.saleId}" class="font-mono text-[var(--text-2)] hover:text-[var(--primary)]">{s.saleId.slice(0, 8)}</a>
+                        <div class="flex items-center gap-4">
+                          <span class="text-[var(--text-3)] tabular-nums">{formatCurrencyCompact(s.revenue)}</span>
+                          <span class="font-semibold tabular-nums" style="color:var(--{s.profit >= 0 ? 'teal' : 'crimson'}-fg)">
+                            {s.profit >= 0 ? '+' : ''}{formatCurrencyCompact(s.profit)}
+                          </span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              {/if}
             </div>
 
-            {#if !cal.hasData}
-              <div class="h-48 flex items-center justify-center text-[12px] text-[var(--text-3)]">No sales data for {cal.monthLabel}.</div>
-            {:else}
-              {@const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']}
-              <div class="grid grid-cols-7 gap-1 text-[9px] text-[var(--text-3)] font-medium text-center mb-1">
-                {#each dayLabels as l}<div>{l}</div>{/each}
-              </div>
-              <div class="grid grid-cols-7 gap-1" style="grid-template-rows: repeat({cal.weeks}, minmax(0, 1fr));">
-                {#each cal.cells as c}
-                  {#if c.date}
-                    <button
-                      class="rounded-md flex flex-col items-center justify-center py-2 text-[11px] font-semibold tabular-nums transition-all hover:scale-105 min-h-[44px]
-                             {c.isToday ? 'ring-1 ring-[var(--primary)] ring-offset-1 ring-offset-[var(--surface)]' : ''}"
-                      style="background: {c.isFuture ? 'transparent' : profitColor(c.profit, cal.max)};
-                             border: {c.isFuture ? '1px dashed color-mix(in srgb, var(--text-3) 35%, transparent)' : '1px solid transparent'};"
-                      title="{c.day} · {c.date}{c.isFuture ? '' : `\nProfit: ${formatCurrency(c.profit)}\nRevenue: ${formatCurrency(c.revenue)}\nCOGS: ${formatCurrency(c.cogs)}\n${c.count} sale${c.count === 1 ? '' : 's'}`}"
-                      onclick={() => { expandedDate = expandedDate === c.date ? null : c.date; }}
-                    >
-                      <span>{c.day}</span>
-                      {#if !c.isFuture && c.count > 0}
-                        <span class="text-[8px] opacity-80">{formatCurrencyCompact(c.profit)}</span>
-                      {/if}
-                    </button>
-                  {:else}
-                    <div></div>
-                  {/if}
-                {/each}
-              </div>
-
-              <div class="flex items-center justify-end gap-1.5 text-[10px] text-[var(--text-3)] mt-2">
-                <span>Loss</span>
-                <div class="flex gap-0.5">
-                  {#each [0, 1, 2, 3] as i}
-                    <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--crimson) {20 + i * 22}%, var(--surface2))"></div>
-                  {/each}
+            <div class="col-span-12 lg:col-span-5 space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <p class="text-xs text-[var(--text-3)] mb-1">Revenue</p>
+                  <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(cal.totalRev)}</p>
                 </div>
-                <span class="mx-1">|</span>
-                <div class="flex gap-0.5">
-                  {#each [0, 1, 2, 3] as i}
-                    <div class="w-2.5 h-2.5 rounded-sm" style="background:color-mix(in srgb, var(--teal) {20 + i * 22}%, var(--surface2))"></div>
-                  {/each}
+                <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <p class="text-xs text-[var(--text-3)] mb-1">COGS</p>
+                  <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(cal.totalCogs)}</p>
                 </div>
-                <span>Profit</span>
-              </div>
-
-              {#if expandedDate && cal.daySales?.[expandedDate]?.length}
-                <div class="mt-3 pt-3 border-t border-[var(--border)] space-y-1.5">
-                  <p class="text-[11px] font-semibold text-[var(--text-3)] uppercase tracking-wide">Sales on {expandedDate}</p>
-                  {#each cal.daySales[expandedDate] as s}
-                    <div class="flex items-center justify-between text-[12px] py-1 px-2 rounded-md bg-[var(--surface2)]">
-                      <a href="/history/{s.saleId}" class="font-mono text-[var(--text-2)] hover:text-[var(--primary)]">{s.saleId.slice(0, 8)}</a>
-                      <div class="flex items-center gap-3">
-                        <span class="text-[var(--text-3)] tabular-nums">{formatCurrencyCompact(s.revenue)}</span>
-                        <span class="font-semibold tabular-nums" style="color:var(--{s.profit >= 0 ? 'teal' : 'crimson'}-fg)">
-                          {s.profit >= 0 ? '+' : ''}{formatCurrencyCompact(s.profit)}
-                        </span>
-                      </div>
-                    </div>
-                  {/each}
+                <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <p class="text-xs text-[var(--text-3)] mb-1">Gross Profit</p>
+                  <p class="text-xl font-bold tabular-nums" style="color:{cal.totalProfit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(cal.totalProfit)}</p>
                 </div>
-              {/if}
-            {/if}
-          </div>
-
-          <div class="col-span-12 lg:col-span-5 space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div class="surface-card px-4 py-3">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Revenue</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(cal.totalRev)}</p>
-              </div>
-              <div class="surface-card px-4 py-3">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">COGS</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(cal.totalCogs)}</p>
-              </div>
-              <div class="surface-card px-4 py-3">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Gross Profit</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight" style="color:{cal.totalProfit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(cal.totalProfit)}</p>
-              </div>
-              <div class="surface-card px-4 py-3">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Margin</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight">{cal.totalRev > 0 ? `${(((cal.totalRev - cal.totalCogs) / cal.totalRev) * 100).toFixed(1)}%` : '—'}</p>
+                <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+                  <p class="text-xs text-[var(--text-3)] mb-1">Margin</p>
+                  <p class="text-xl font-bold tabular-nums">{cal.totalRev > 0 ? `${(((cal.totalRev - cal.totalCogs) / cal.totalRev) * 100).toFixed(1)}%` : '—'}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -800,73 +812,73 @@
         <!-- ── P&L REPORT ──────────────────────────────────────────────── -->
         {#if pnl && pnlTab === 'report'}
           {@const k = pnl.kpis}
-          <div class="col-span-12 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div class="surface-card px-4 py-3">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Revenue</p>
-              <p class="text-[17px] font-bold tabular-nums">{formatCurrencyCompact(k.revenue.current)}</p>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <p class="text-xs text-[var(--text-3)] mb-1">Revenue</p>
+              <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(k.revenue.current)}</p>
               {#if k.revenue.delta?.pct}
-                <TrendBadge direction={k.revenue.delta.direction} label={`${k.revenue.delta.pct}%`} />
+                <div class="mt-1"><TrendBadge direction={k.revenue.delta.direction} label={`${k.revenue.delta.pct}%`} /></div>
               {/if}
             </div>
-            <div class="surface-card px-4 py-3">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">COGS</p>
-              <p class="text-[17px] font-bold tabular-nums">{formatCurrencyCompact(k.cogs.current)}</p>
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <p class="text-xs text-[var(--text-3)] mb-1">COGS</p>
+              <p class="text-xl font-bold tabular-nums">{formatCurrencyCompact(k.cogs.current)}</p>
               {#if k.cogs.delta?.pct}
-                <TrendBadge direction={k.cogs.delta.direction} label={`${k.cogs.delta.pct}%`} />
+                <div class="mt-1"><TrendBadge direction={k.cogs.delta.direction} label={`${k.cogs.delta.pct}%`} /></div>
               {/if}
             </div>
-            <div class="surface-card px-4 py-3">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Gross Profit</p>
-              <p class="text-[17px] font-bold tabular-nums" style="color:{k.profit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(k.profit.current)}</p>
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <p class="text-xs text-[var(--text-3)] mb-1">Gross Profit</p>
+              <p class="text-xl font-bold tabular-nums" style="color:{k.profit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(k.profit.current)}</p>
               {#if k.profit.delta?.pct}
-                <TrendBadge direction={k.profit.delta.direction} label={`${k.profit.delta.pct}%`} />
+                <div class="mt-1"><TrendBadge direction={k.profit.delta.direction} label={`${k.profit.delta.pct}%`} /></div>
               {/if}
             </div>
-            <div class="surface-card px-4 py-3">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Margin</p>
-              <p class="text-[17px] font-bold tabular-nums">{k.margin.current.toFixed(1)}%</p>
+            <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
+              <p class="text-xs text-[var(--text-3)] mb-1">Margin</p>
+              <p class="text-xl font-bold tabular-nums">{k.margin.current.toFixed(1)}%</p>
               {#if k.margin.delta?.pct}
-                <TrendBadge direction={k.margin.delta.direction} label={`${k.margin.delta.pct}%`} />
+                <div class="mt-1"><TrendBadge direction={k.margin.delta.direction} label={`${k.margin.delta.pct}%`} /></div>
               {/if}
             </div>
           </div>
 
           {#if k.coverage < 80}
-            <div class="col-span-12 surface-card-flat p-3 text-[11px] text-[var(--gold-fg)] flex items-center gap-2">
+            <div class="bg-[var(--bg)] border border-[var(--gold)] rounded-xl p-3 text-xs text-[var(--gold-fg)] flex items-center gap-2">
               <span>⚠</span>
               <span>Cost data available for {k.coverage}% of line items. Margin figures may be understated.</span>
             </div>
           {/if}
 
-          <!-- Daily breakdown (full width table) -->
-          <div class="col-span-12 surface-card p-4 space-y-3">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">Daily Breakdown</h3>
+          <!-- Daily breakdown -->
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Daily Breakdown</h2>
             {#if pnl.dailyRows.length === 0}
-              <p class="text-xs text-[var(--text-3)] py-4 text-center">No sales data for this period.</p>
+              <p class="text-sm text-[var(--text-3)] py-8 text-center">No sales data for this period.</p>
             {:else}
               <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
-                <table class="tbl w-full">
-                  <thead class="sticky top-0 bg-[var(--surface)]">
-                    <tr>
-                      <th class="text-left text-[10px]">Date</th>
-                      <th class="text-right text-[10px]">Sales</th>
-                      <th class="text-right text-[10px]">Revenue</th>
-                      <th class="text-right text-[10px]">COGS</th>
-                      <th class="text-right text-[10px]">Profit</th>
-                      <th class="text-right text-[10px]">Margin</th>
+                <table class="w-full text-sm">
+                  <thead class="sticky top-0 bg-[var(--bg)]">
+                    <tr class="border-b border-[var(--border)]">
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Date</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Sales</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Revenue</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">COGS</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Profit</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">Margin</th>
                     </tr>
                   </thead>
                   <tbody>
                     {#each pnl.dailyRows as row}
-                      <tr>
-                        <td class="font-medium whitespace-nowrap">{row.label}</td>
-                        <td class="text-right tabular-nums text-[var(--text-2)]">{row.count}</td>
-                        <td class="text-right tabular-nums">{formatCurrencyCompact(row.revenue)}</td>
-                        <td class="text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(row.cogs)}</td>
-                        <td class="text-right font-semibold tabular-nums" style="color:{row.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
+                      <tr class="border-b border-[var(--border)] last:border-0">
+                        <td class="py-3 pr-4 font-medium whitespace-nowrap">{row.label}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{row.count}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums">{formatCurrencyCompact(row.revenue)}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(row.cogs)}</td>
+                        <td class="py-3 pr-4 text-right font-semibold tabular-nums" style="color:{row.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
                           {row.profit >= 0 ? '+' : ''}{formatCurrencyCompact(row.profit)}
                         </td>
-                        <td class="text-right"><MarginBadge value={row.margin} /></td>
+                        <td class="py-3 text-right"><MarginBadge value={row.margin} /></td>
                       </tr>
                     {/each}
                   </tbody>
@@ -876,39 +888,39 @@
           </div>
 
           <!-- Top products by profit -->
-          <div class="col-span-12 surface-card p-4 space-y-3">
-            <h3 class="text-[13px] font-semibold text-[var(--text)]">Top Products by Profit</h3>
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-[var(--text)] mb-4">Top Products by Profit</h2>
             {#if pnl.topProducts.length === 0}
-              <p class="text-xs text-[var(--text-3)] py-4 text-center">No product data.</p>
+              <p class="text-sm text-[var(--text-3)] py-8 text-center">No product data.</p>
             {:else}
               <div class="overflow-x-auto">
-                <table class="tbl w-full">
+                <table class="w-full text-sm">
                   <thead>
-                    <tr>
-                      <th class="w-8 text-left text-[10px]">#</th>
-                      <th class="text-left text-[10px]">Product</th>
-                      <th class="text-right text-[10px]">Units</th>
-                      <th class="text-right text-[10px]">Revenue</th>
-                      <th class="text-right text-[10px]">COGS</th>
-                      <th class="text-right text-[10px]">Profit</th>
-                      <th class="text-right text-[10px]">Margin</th>
+                    <tr class="border-b border-[var(--border)]">
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-2">#</th>
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Product</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Units</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Revenue</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">COGS</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Profit</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">Margin</th>
                     </tr>
                   </thead>
                   <tbody>
                     {#each pnl.topProducts as p, i}
-                      <tr>
-                        <td>
-                          <span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono"
+                      <tr class="border-b border-[var(--border)] last:border-0">
+                        <td class="py-3 pr-2">
+                          <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-semibold"
                                 style="background:{i < 3 ? 'var(--gold-dim)' : 'var(--surface2)'}; color:{i < 3 ? 'var(--gold-fg)' : 'var(--text-3)'}">{i + 1}</span>
                         </td>
-                        <td class="font-medium">{p.name}</td>
-                        <td class="text-right tabular-nums text-[var(--text-2)]">{p.units}</td>
-                        <td class="text-right tabular-nums">{formatCurrencyCompact(p.revenue)}</td>
-                        <td class="text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(p.cogs)}</td>
-                        <td class="text-right font-semibold tabular-nums" style="color:{p.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
+                        <td class="py-3 pr-4 font-medium">{p.name}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{p.units}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums">{formatCurrencyCompact(p.revenue)}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(p.cogs)}</td>
+                        <td class="py-3 pr-4 text-right font-semibold tabular-nums" style="color:{p.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
                           {p.profit >= 0 ? '+' : ''}{formatCurrencyCompact(p.profit)}
                         </td>
-                        <td class="text-right"><MarginBadge value={p.margin} /></td>
+                        <td class="py-3 text-right"><MarginBadge value={p.margin} /></td>
                       </tr>
                     {/each}
                   </tbody>
@@ -920,71 +932,71 @@
 
         <!-- ── P&L BILL-BY-BILL ────────────────────────────────────────── -->
         {#if pnl && pnlTab === 'bills'}
-          <div class="col-span-12 surface-card p-4 space-y-3">
-            <!-- Search bar -->
-            <div class="flex items-center gap-2">
-              <Search size={14} strokeWidth={2} class="text-[var(--text-3)] shrink-0" />
+          <div class="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
+            <!-- Search -->
+            <div class="flex items-center gap-3 mb-4">
+              <Search size={16} class="text-[var(--text-3)] shrink-0" />
               <input
                 type="text" placeholder="Search by sale ref or customer…"
-                class="flex-1 bg-transparent text-[13px] text-[var(--text)] placeholder:text-[var(--text-3)] outline-none"
+                class="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-3)] outline-none"
                 bind:value={billSearch} oninput={() => { billPage = 0; }}
               />
               {#if billSearch}
-                <button class="text-[10px] text-[var(--text-3)] hover:text-[var(--text)]"
+                <button class="text-xs text-[var(--text-3)] hover:text-[var(--text)]"
                         onclick={() => { billSearch = ''; billPage = 0; }}>Clear</button>
               {/if}
             </div>
 
             {#if filteredBills.length === 0}
-              <p class="text-xs text-[var(--text-3)] py-6 text-center">No bills found.</p>
+              <p class="text-sm text-[var(--text-3)] py-12 text-center">No bills found.</p>
             {:else}
               <div class="overflow-x-auto">
-                <table class="tbl w-full">
+                <table class="w-full text-sm">
                   <thead>
-                    <tr>
-                      <th class="text-left text-[10px]">Sale Ref</th>
-                      <th class="text-left text-[10px]">
+                    <tr class="border-b border-[var(--border)]">
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Sale Ref</th>
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">
                         <button class="inline-flex items-center gap-1" onclick={() => toggleSort('date')}>Date <ArrowUpDown size={10} /></button>
                       </th>
-                      <th class="text-left text-[10px]">Customer</th>
-                      <th class="text-right text-[10px]">
+                      <th class="text-left font-medium text-xs text-[var(--text-3)] pb-3 pr-4">Customer</th>
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">
                         <button class="inline-flex items-center gap-1" onclick={() => toggleSort('revenue')}>Revenue <ArrowUpDown size={10} /></button>
                       </th>
-                      <th class="text-right text-[10px]">
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">
                         <button class="inline-flex items-center gap-1" onclick={() => toggleSort('cogs')}>COGS <ArrowUpDown size={10} /></button>
                       </th>
-                      <th class="text-right text-[10px]">
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3 pr-4">
                         <button class="inline-flex items-center gap-1" onclick={() => toggleSort('profit')}>Profit <ArrowUpDown size={10} /></button>
                       </th>
-                      <th class="text-right text-[10px]">
+                      <th class="text-right font-medium text-xs text-[var(--text-3)] pb-3">
                         <button class="inline-flex items-center gap-1" onclick={() => toggleSort('margin')}>Margin <ArrowUpDown size={10} /></button>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {#each pagedBills as bill}
-                      <tr>
-                        <td><a href="/history/{bill.id}" class="font-mono text-[12px] text-[var(--text-2)] hover:text-[var(--primary)]">{bill.ref}</a></td>
-                        <td class="whitespace-nowrap text-[12px]">{formatDateTime(bill.date)}</td>
-                        <td class="text-[12px] text-[var(--text-2)]">{bill.customer ?? '—'}</td>
-                        <td class="text-right tabular-nums">{formatCurrencyCompact(bill.revenue)}</td>
-                        <td class="text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(bill.cogs)}</td>
-                        <td class="text-right font-semibold tabular-nums" style="color:{bill.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
+                      <tr class="border-b border-[var(--border)] last:border-0">
+                        <td class="py-3 pr-4"><a href="/history/{bill.id}" class="font-mono text-[var(--text-2)] hover:text-[var(--primary)]">{bill.ref}</a></td>
+                        <td class="py-3 pr-4 whitespace-nowrap">{formatDateTime(bill.date)}</td>
+                        <td class="py-3 pr-4 text-[var(--text-2)]">{bill.customer ?? '—'}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums">{formatCurrencyCompact(bill.revenue)}</td>
+                        <td class="py-3 pr-4 text-right tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(bill.cogs)}</td>
+                        <td class="py-3 pr-4 text-right font-semibold tabular-nums" style="color:{bill.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
                           {bill.profit >= 0 ? '+' : ''}{formatCurrencyCompact(bill.profit)}
                         </td>
-                        <td class="text-right"><MarginBadge value={bill.margin} /></td>
+                        <td class="py-3 text-right"><MarginBadge value={bill.margin} /></td>
                       </tr>
                     {/each}
                   </tbody>
                   <tfoot>
                     <tr class="border-t-2 border-[var(--border)]">
-                      <td colspan="3" class="font-semibold text-[12px]">Total ({filteredBills.length} bills)</td>
-                      <td class="text-right font-bold tabular-nums">{formatCurrencyCompact(runningTotal.revenue)}</td>
-                      <td class="text-right font-bold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(runningTotal.cogs)}</td>
-                      <td class="text-right font-bold tabular-nums" style="color:{runningTotal.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
+                      <td colspan="3" class="py-3 font-semibold">Total ({filteredBills.length} bills)</td>
+                      <td class="py-3 text-right font-bold tabular-nums">{formatCurrencyCompact(runningTotal.revenue)}</td>
+                      <td class="py-3 text-right font-bold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(runningTotal.cogs)}</td>
+                      <td class="py-3 text-right font-bold tabular-nums" style="color:{runningTotal.profit >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">
                         {runningTotal.profit >= 0 ? '+' : ''}{formatCurrencyCompact(runningTotal.profit)}
                       </td>
-                      <td class="text-right">
+                      <td class="py-3 text-right">
                         <MarginBadge value={runningTotal.revenue > 0 ? Math.round(((runningTotal.profit / runningTotal.revenue) * 100) * 10) / 10 : 0} />
                       </td>
                     </tr>
@@ -993,9 +1005,9 @@
               </div>
 
               {#if billTotalPages > 1}
-                <div class="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border)]">
-                  <span class="text-[11px] text-[var(--text-3)]">Page {billPage + 1} of {billTotalPages}</span>
-                  <div class="flex gap-1.5">
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border)]">
+                  <span class="text-xs text-[var(--text-3)]">Page {billPage + 1} of {billTotalPages}</span>
+                  <div class="flex gap-2">
                     <button class="btn btn-sm btn-secondary" disabled={billPage === 0} onclick={() => { billPage = Math.max(0, billPage - 1); }}>
                       <ChevronLeft size={12} /> Prev
                     </button>
@@ -1012,4 +1024,4 @@
     {/if}
 
   {/if}
-</div>
+{/if}
