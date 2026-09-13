@@ -21,7 +21,7 @@
   } = $props();
 
   let canvas: HTMLCanvasElement;
-  let chart:  ChartType | null = null;
+  let chart: ChartType | null = $state(null);
   let observer: MutationObserver;
   let ChartCtor: typeof ChartType | null = null;
 
@@ -156,9 +156,10 @@
   });
 
   $effect(() => {
-    if (!chart) return;
+    // Read reactive deps BEFORE the guard so Svelte 5 always tracks them
     const _data   = datasets;
     const _labels = labels;
+    if (!chart) return;
     chart.data.labels = _labels;
     chart.data.datasets.forEach((d, i) => {
       if (_data[i]) {

@@ -84,9 +84,11 @@
   });
 
   $effect(() => {
+    // Read reactive deps BEFORE the guard so Svelte 5 always tracks them
+    const _data = data;
     if (!chart) return;
-    chart.data.labels = data.map((_, i) => String(i));
-    chart.data.datasets[0].data = data;
+    chart.data.labels = _data.map((_, i) => String(i));
+    chart.data.datasets[0].data = _data;
     chart.update('active');
   });
 
