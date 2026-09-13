@@ -578,7 +578,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
    * hold firing 30 times — one scan = one cart add.
    */
   async function onScanResult(code: string) {
-    scanOpen = false;
+    // Don't close the scanner — stayOpen keeps it running for multi-scan.
     // Fast path: check local inventory store first (instant, no
     // network).  The layout seeds the store on every page load, so
     // all in-stock products are already in memory.
@@ -1364,4 +1364,5 @@ import { register as regStore } from "$lib/stores/register.svelte";
   open={scanOpen}
   onClose={() => (scanOpen = false)}
   onResult={onScanResult}
+  stayOpen
 />
