@@ -1,8 +1,7 @@
-import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { supplierUpdateSchema } from "$lib/validators/schemas";
-import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
+import { apiError, apiOk, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * PATCH /api/suppliers/[id] — update a supplier. Only whitelisted fields.
@@ -45,7 +44,7 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }
 
 /**
@@ -70,5 +69,5 @@ export async function DELETE({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }

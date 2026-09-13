@@ -14,7 +14,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
 import { ADMIN_ROLES, VALID_DESTINATIONS, DESTINATION } from "$lib/constants";
-import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
+import { apiError, apiOk, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
  cookies,
@@ -54,5 +54,5 @@ export async function POST({
  if (error) return apiError(error.message, 400);
 
  // data is the updated sale row
- return json(data);
+ return apiOk(data);
 }

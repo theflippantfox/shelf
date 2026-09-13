@@ -5,6 +5,7 @@ import { customerUpdateSchema } from "$lib/validators/schemas";
 import {
   apiError,
   apiNotFound,
+  apiOk,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
 
@@ -29,7 +30,7 @@ export async function GET({
 
   if (error) return apiError(error.message);
   if (!data) return apiNotFound("Customer");
-  return json(data);
+  return apiOk(data);
 }
 
 /**
@@ -68,7 +69,7 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }
 
 /**

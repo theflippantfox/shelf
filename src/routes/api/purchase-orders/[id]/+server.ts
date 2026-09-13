@@ -1,6 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError } from "$lib/server/apiResponse";
+import { apiError, apiOk } from "$lib/server/apiResponse";
 import { PO_STATUS } from "$lib/constants";
 
 /**
@@ -31,7 +31,7 @@ export async function GET({
     ]);
 
   if (oErr || iErr || !order) throw error(404, "Purchase order not found");
-  return json({ ...order, items: items ?? [] });
+  return apiOk({ ...order, items: items ?? [] });
 }
 
 /**
@@ -89,7 +89,7 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }
 
 /**

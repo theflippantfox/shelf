@@ -11,6 +11,7 @@ import {
   apiError,
   apiForbidden,
   apiNotFound,
+  apiOk,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
 import { ROLES, MEMBER_STATUS } from "$lib/constants";
@@ -43,7 +44,7 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }
 
 export async function DELETE({
@@ -84,5 +85,5 @@ export async function DELETE({
     .select()
     .single();
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }

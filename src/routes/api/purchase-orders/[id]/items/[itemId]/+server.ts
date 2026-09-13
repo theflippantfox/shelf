@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError, apiCreated } from "$lib/server/apiResponse";
+import { apiError, apiOk, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * POST /api/purchase-orders/[id]/items/[itemId] — duplicate endpoint from the items route.
@@ -47,7 +47,7 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }
 
 /**

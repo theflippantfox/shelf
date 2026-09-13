@@ -7,7 +7,7 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
+import { apiError, apiOk, apiUnauthorized } from "$lib/server/apiResponse";
 import { MEMBER_STATUS } from "$lib/constants";
 
 export async function GET({
@@ -66,5 +66,5 @@ export async function POST({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }

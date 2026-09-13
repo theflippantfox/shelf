@@ -8,6 +8,7 @@ import { userClientFromCtx } from "$lib/server/supabase";
 import {
   apiError,
   apiForbidden,
+  apiOk,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
 import { ROLES } from "$lib/constants";
@@ -57,5 +58,5 @@ export async function PATCH({
     .single();
 
   if (error) return apiError(error.message, 400);
-  return json(data);
+  return apiOk(data);
 }

@@ -1,4 +1,3 @@
-import { json } from "@sveltejs/kit";
 import { adminClient } from "$lib/server/supabase";
 import { shopSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
