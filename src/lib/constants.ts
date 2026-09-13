@@ -119,5 +119,4 @@ export const MEMBER_STATUS = {
  SUSPENDED: "suspended",
 } as const;
 
-export type MemberStatus =
- (typeof MEMBER_STATUS)[keyof typeof MEMBER_STATUS];
+export type MemberStatus = (typeof MEMBER_STATUS)[keyof typeof MEMBER_STATUS];

@@ -51,7 +51,8 @@ export async function POST({
   // restricting new status to 'active' or 'suspended'.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies });
-  const newStatus = action === "accept" ? MEMBER_STATUS.ACTIVE : MEMBER_STATUS.SUSPENDED;
+  const newStatus =
+    action === "accept" ? MEMBER_STATUS.ACTIVE : MEMBER_STATUS.SUSPENDED;
 
   const { data, error } = await supabase
     .from("shop_members")
