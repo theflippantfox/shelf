@@ -192,7 +192,7 @@ let scanOpen    = $state(false);
       price:      String(p.price),
       cost_price: String(p.cost_price),
       qty:        String(p.qty),
-      unit:       p.unit,
+      unit:       p.unit ?? 'piece',
       category:   p.category?.id ?? p.category ?? '',
       description: p.description ?? '',
       track_stock:   p.track_stock   !== false,
