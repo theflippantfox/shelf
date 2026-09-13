@@ -37,9 +37,7 @@ import {
   buildAnalyticsCacheKey,
 } from "./offlineFetch";
 
-// Reactive state. These are module-level so every importer sees
-// the same instance — Svelte 5's $state inside a .svelte.ts module
-// works correctly when the module is a singleton.
+// Reactive state — module-level so every importer sees the same instance.
 let _online = $state(browser ? navigator.onLine : true);
 let _pendingCount = $state(0);
 let _pendingSales = $state(0);
@@ -50,7 +48,7 @@ let _lastError = $state<string | null>(null);
 let _lastFlushAt = $state<number | null>(null);
 let _flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-const FLUSH_INTERVAL_MS = 5_000; // 5s — pick up ops whose retry timer expired
+const FLUSH_INTERVAL_MS = 5_000;
 
 /* ──────────────────────────────────────────────────────────────────
  * State refresh
@@ -68,8 +66,7 @@ async function refreshPendingCount(): Promise<void> {
     _pendingOps = ops;
     _pendingCount = sales + ops;
   } catch {
-    // IndexedDB unavailable (private mode, quota, etc.) — leave
-    // the displayed count at whatever it was.
+    // IndexedDB unavailable — leave count as-is.
   }
 }
 
@@ -80,7 +77,7 @@ async function refreshLastSync(): Promise<void> {
     const row = await db.get("meta", "lastFullSync");
     _lastSyncAt = row?.at ?? null;
   } catch {
-    /* IndexedDB unavailable — leave _lastSyncAt at default */
+    /* IndexedDB unavailable */
   }
 }
 
@@ -90,13 +87,7 @@ async function refreshLastSync(): Promise<void> {
 
 /**
  * Walk the pending_ops queue and replay each one. Stops on the
- * first error so the order is preserved (we don't want a
- * later "delete customer X" to fire before an earlier
- * "create customer X" is still failing).
- *
- * Permanent errors (4xx other than 408/429) are marked and
- * skipped — the page UI can read the failure via `lastError` and
- * the user can decide whether to retry manually.
+ * first error so order is preserved.
  */
 async function flushPendingOps(): Promise<void> {
   if (!browser || !_online || _syncing) return;
@@ -115,13 +106,11 @@ async function flushPendingOps(): Promise<void> {
   }
   if (rows.length === 0) return;
 
-  // Filter to ops that are ready to retry (next_retry_at has passed).
   const now = Date.now();
   const ready = rows
     .filter((r) => !r.permanent && r.next_retry_at <= now)
-    .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99)); // lower = first, undefined = 99 (lowest)
+    .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
   if (ready.length === 0) {
-    // All pending ops are still in backoff — schedule a check.
     scheduleFlush(readyEarliest(rows));
     return;
   }
@@ -129,15 +118,13 @@ async function flushPendingOps(): Promise<void> {
   _syncing = true;
   try {
     for (const row of ready) {
-      if (row.permanent) continue; // skip permanently-failed ops
+      if (row.permanent) continue;
       const result = await replayOp(row);
       if (result === "network-error") {
         // Stop the loop — the next online event will resume.
         break;
       }
       if (result === "recoverable-error") {
-        // Mark with backoff. Don't break — a later op might still
-        // be processable.
         await markOpWithBackoff(
           db,
           row,
@@ -175,8 +162,6 @@ async function replayOp(op: PendingOp): Promise<FlushResult> {
       await db.delete("pending_ops", op.id);
       return "ok";
     }
-    // 4xx = permanent (the server is telling us the request is bad;
-    //       retrying won't help). 408/429 = transient.
     if (
       res.status >= 400 &&
       res.status < 500 &&
@@ -195,7 +180,7 @@ async function replayOp(op: PendingOp): Promise<FlushResult> {
       _lastError = `${op.method} ${op.path}: ${err}`;
       return "permanent-error";
     }
-    // 5xx (and 408/429): transient — apply backoff and try again later.
+    // 5xx / 408 / 429: transient — apply backoff.
     const body = await res.json().catch(() => ({ error: res.statusText }));
     const err = body.error ?? body.message ?? `HTTP ${res.status}`;
     await db.put("pending_ops", {
@@ -208,7 +193,6 @@ async function replayOp(op: PendingOp): Promise<FlushResult> {
     _lastError = `${op.method} ${op.path}: ${err}`;
     return "recoverable-error";
   } catch (e: any) {
-    // Network blip — apply backoff.
     const err = e?.message ?? "Network error";
     await db.put("pending_ops", {
       ...op,
@@ -249,8 +233,7 @@ function readyEarliest(rows: PendingOp[]): number | null {
 }
 
 /**
- * Schedule the next flush to fire when the earliest queued op is
- * ready. Falls back to the regular interval if the queue is empty.
+ * Schedule the next flush when the earliest queued op is ready.
  */
 function scheduleFlush(at: number | null): void {
   if (_flushTimer) clearTimeout(_flushTimer);
@@ -532,20 +515,13 @@ export const offlineSync = {
   syncNow,
 };
 
-// Boot wiring.  Only runs in the browser (the $state defaults are
-// already correct for SSR).
+// Boot wiring — only runs in the browser.
 if (browser) {
-  // Flip online state on the window's online/offline events and
-  // trigger the relevant follow-up.  Centralising this here means
-  // OfflineIndicator.svelte doesn't need its own listener.
   const onOnline = () => {
     _online = true;
     void refreshAllCaches();
     void flushPendingOps();
     void flushPendingSales();
-    // Ask the SW to drain its own queue too (if any rows were
-    // queued by the SW's fetch handler — the page-side store
-    // doesn't see those).
     navigator.serviceWorker?.controller?.postMessage({ type: "flush-sales" });
   };
   const onOffline = () => {
@@ -558,15 +534,11 @@ if (browser) {
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
 
-  // Boot-time priming.  Both calls are no-ops when offline (they
-  // short-circuit on _online).  We don't await — these run in the
-  // background and update the reactive state when done.
+  // Boot-time priming — no-ops when offline.
   void refreshPendingCount();
   void refreshLastSync();
   if (offlineSync.online) {
     void refreshAllCaches();
-    // Also ask the SW to drain anything it queued in a previous
-    // session.
     navigator.serviceWorker?.ready
       ?.then((reg) => {
         reg.active?.postMessage({ type: "flush-sales" });
@@ -576,8 +548,7 @@ if (browser) {
       });
   }
 
-  // Periodic flush so ops whose retry timer has expired get a chance
-  // to fire even if no `online` event arrives.
+  // Periodic flush for ops whose retry timer has expired.
   setInterval(() => {
     if (_online && _pendingOps > 0) void flushPendingOps();
   }, FLUSH_INTERVAL_MS);

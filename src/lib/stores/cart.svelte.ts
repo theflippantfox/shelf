@@ -51,11 +51,9 @@ class CartStore {
   get paymentSplits() {
     return this.#paymentSplits;
   }
-  /** Sum of all split amounts. */
   get splitsTotal() {
     return this.#paymentSplits.reduce((s, sp) => s + sp.amount, 0);
   }
-  /** True when splits are active and sum to the grand total. */
   get hasValidSplits() {
     return (
       this.#paymentSplits.length > 0 &&
@@ -214,8 +212,6 @@ class CartStore {
     this.#paymentMethod = sale.payment_method as PaymentMethod;
     this.#paymentSplits = (sale as any).payment_splits ?? [];
     this.#notes = sale.notes ?? "";
-    // Pre-populate the timestamp override with the sale's existing created_at
-    // so the user can see/edit it from the checkout sheet.
     this.#createdAt = sale.created_at ?? null;
     this.#items = items.map((i) => ({
       productId: i.product_id,
@@ -223,26 +219,11 @@ class CartStore {
       sku: i.product_sku,
       unitPrice: i.unit_price,
       qty: i.qty,
-      maxQty: 9999, // editing past sale, allow qty changes freely
+      maxQty: 9999,
     }));
   }
 
-  // ──────────────────────────────────────────────────────────────
-  // Held / parked carts
-  // ──────────────────────────────────────────────────────────────
-  //
-  // When the cashier is mid-sale and the customer has to step aside
-  // (looking for a wallet, the other customer wants to grab something
-  // quickly, etc.), they can "hold" the current cart. The cart is
-  // persisted to localStorage so a page refresh doesn't lose it, and
-  // the cashier can resume it later from the held-orders sheet.
-  //
-  // We store held carts in a per-shop localStorage key so different
-  // shops (or the same shop on different devices) don't collide.
-  //
-  // Held carts are NOT saved to the server. They are working memory
-  // for the cashier. If the device is wiped before they resume, the
-  // held carts go with it — which is fine because nothing was sold.
+  // ── Held / parked carts ──────────────────────────────────
 
   /**
    * Hold the current cart. Clears the live cart so the cashier can
@@ -311,9 +292,7 @@ class CartStore {
   }
 
   // ── localStorage plumbing ──────────────────────────────────
-  // The cart is per-shop, so we namespace the key. The shop id is
-  // read from the shelf-current-shop cookie; if absent we fall back
-  // to a generic key (singleton mode, only one shop on the device).
+  // Per-shop key via shelf-current-shop cookie.
   #storageKey(): string {
     if (typeof localStorage === "undefined") return "shelf-held-carts";
     const shopMatch = document.cookie.match(
