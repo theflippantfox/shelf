@@ -7,6 +7,7 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * GET /api/sales
@@ -40,7 +41,7 @@ export async function GET({
   if (method) q = q.eq("payment_method", method);
 
   const { data: sales, error } = await q;
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json(sales ?? []);
 }
 
@@ -56,7 +57,7 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user)
-    return json({ error: "No shop" }, { status: 401 });
+    return apiUnauthorized("No shop");
 
   const {
     items,
@@ -80,7 +81,7 @@ export async function POST({
     credit_due_date,
   } = await request.json();
 
-  if (!items?.length) return json({ error: "Cart is empty" }, { status: 400 });
+  if (!items?.length) return apiError("Cart is empty", 400);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -115,7 +116,7 @@ export async function POST({
     p_credit_due_date: credit_due_date ?? null,
   });
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
 
   // After the RPC creates the sale, write the payment_splits JSONB
   // if provided. The RPC doesn't know about this column yet, so we
@@ -132,5 +133,5 @@ export async function POST({
     }
   }
 
-  return json(data, { status: 201 });
+  return apiCreated(data);
 }

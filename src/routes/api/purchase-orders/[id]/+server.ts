@@ -1,5 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError } from "$lib/server/apiResponse";
 
 /**
  * GET /api/purchase-orders/[id] — single PO with items.
@@ -8,7 +9,7 @@ export async function GET({
   cookies,
   params,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!params.id) return apiError("Missing id", 400);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
 
@@ -40,7 +41,7 @@ export async function PATCH({
   params,
   request,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!params.id) return apiError("Missing id", 400);
   const body = await request.json();
 
   const ALLOWED = [
@@ -86,7 +87,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -97,7 +98,7 @@ export async function DELETE({
   cookies,
   params,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!params.id) return apiError("Missing id", 400);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
 
@@ -108,10 +109,7 @@ export async function DELETE({
     .single();
 
   if (!current || !["draft", "ordered"].includes((current as any).status)) {
-    return json(
-      { error: "Only draft or ordered POs can be cancelled" },
-      { status: 400 },
-    );
+    return apiError("Only draft or ordered POs can be cancelled", 400);
   }
 
   const { error } = await supabase
@@ -119,6 +117,6 @@ export async function DELETE({
     .update({ status: "cancelled" })
     .eq("id", params.id);
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ ok: true });
 }

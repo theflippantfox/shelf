@@ -10,6 +10,7 @@ import {
   PUBLIC_SUPABASE_ANON_KEY,
 } from '$env/static/public';
 import { z } from 'zod';
+import { apiError } from '$lib/server/apiResponse';
 
 const body = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters').max(72),
@@ -29,11 +30,11 @@ export async function POST({ request, cookies }: import('@sveltejs/kit').Request
     const r = body.safeParse(await request.json());
     if (!r.success) {
       const msg = r.error.issues[0]?.message ?? 'Invalid input';
-      return json({ error: msg }, { status: 400 });
+      return apiError(msg, 400);
     }
     password = r.data.password;
   } catch {
-    return json({ error: 'Invalid request body' }, { status: 400 });
+    return apiError('Invalid request body', 400);
   }
 
   try {
@@ -49,11 +50,11 @@ export async function POST({ request, cookies }: import('@sveltejs/kit').Request
     });
 
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) return json({ error: error.message }, { status: 400 });
+    if (error) return apiError(error.message, 400);
 
     return json({ ok: true });
   } catch (err) {
     console.error('[reset-password]', err);
-    return json({ error: 'Reset failed — please try again' }, { status: 500 });
+    return apiError('Reset failed — please try again', 500);
   }
 }

@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiNotFound, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * GET /api/products/by-barcode/[code]
@@ -17,9 +18,9 @@ export async function GET({
  params,
  locals,
 }: import("@sveltejs/kit").RequestEvent) {
- if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+ if (!locals.currentShop) return apiUnauthorized("No shop");
  const code = decodeURIComponent(params.code ?? "").trim();
- if (!code) return json({ error: "Empty barcode" }, { status: 400 });
+ if (!code) return apiError("Empty barcode", 400);
 
  const supabase = userClientFromCtx({ cookies } as any);
  const { data, error } = await supabase
@@ -32,7 +33,7 @@ export async function GET({
   .is("archived_at", null)
   .maybeSingle();
 
- if (error) return json({ error: error.message }, { status: 500 });
- if (!data) return json({ error: "Not found" }, { status: 404 });
+ if (error) return apiError(error.message);
+ if (!data) return apiNotFound("Product");
  return json(data);
 }

@@ -7,12 +7,13 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function GET({
   cookies,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.user) return json({ error: "Not signed in" }, { status: 401 });
+  if (!locals.user) return apiUnauthorized("Not signed in");
 
   // The user can see their own row even before accepting (RLS update).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +29,7 @@ export async function GET({
     .eq("status", "invited")
     .order("invited_at", { ascending: false });
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json(data ?? []);
 }
 
@@ -37,18 +38,18 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.user) return json({ error: "Not signed in" }, { status: 401 });
+  if (!locals.user) return apiUnauthorized("Not signed in");
 
   const { shop_member_id, action } = await request.json();
   if (!shop_member_id || !action)
-    return json(
-      { error: "shop_member_id and action are required" },
-      { status: 400 },
+    return apiError(
+      "shop_member_id and action are required",
+      400,
     );
   if (action !== "accept" && action !== "decline")
-    return json(
-      { error: 'action must be "accept" or "decline"' },
-      { status: 400 },
+    return apiError(
+      'action must be "accept" or "decline"',
+      400,
     );
 
   // RLS allows the invitee to update their own row when status='invited',
@@ -69,6 +70,6 @@ export async function POST({
     `)
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }

@@ -10,13 +10,13 @@
  */
 import { json } from '@sveltejs/kit';
 import { uploadFile, paths, type Bucket } from '$lib/server/storage';
+import { apiError, apiUnauthorized } from '$lib/server/apiResponse';
 
 const ALLOWED_BUCKETS = new Set<Bucket>(['product-images', 'avatars', 'bills']);
 
 export async function POST({ request, locals }: import('@sveltejs/kit').RequestEvent) {
-  if (!locals.user) return json({ error: 'Not authenticated' }, { status: 401 });
-  if (!locals.currentShop)
-    return json({ error: 'No shop context' }, { status: 401 });
+  if (!locals.user) return apiUnauthorized('Not authenticated');
+  if (!locals.currentShop) return apiUnauthorized('No shop context');
 
   const form = await request.formData();
   const file  = form.get('file');
@@ -25,9 +25,9 @@ export async function POST({ request, locals }: import('@sveltejs/kit').RequestE
   const metaRaw = form.get('meta');
 
   if (!(file instanceof File))
-    return json({ error: 'file is required' }, { status: 400 });
+    return apiError('file is required', 400);
   if (!ALLOWED_BUCKETS.has(bucket as Bucket))
-    return json({ error: 'Invalid bucket' }, { status: 400 });
+    return apiError('Invalid bucket', 400);
 
   const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
   let path: string;
@@ -41,7 +41,7 @@ export async function POST({ request, locals }: import('@sveltejs/kit').RequestE
     const saleRef = meta.saleRef ?? 'unsorted';
     path = paths.bill(locals.currentShop.id, saleRef, filename);
   } else {
-    return json({ error: 'Invalid kind' }, { status: 400 });
+    return apiError('Invalid kind', 400);
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());

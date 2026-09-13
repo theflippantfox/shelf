@@ -13,6 +13,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
  cookies,
@@ -21,9 +22,9 @@ export async function POST({
  locals,
 }: import("@sveltejs/kit").RequestEvent) {
  if (!locals.currentShop || !locals.user) {
-  return json({ error: "No shop" }, { status: 401 });
+  return apiUnauthorized("No shop");
  }
- if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+ if (!params.id) return apiError("Missing id", 400);
 
  // Owner/manager only
  const deny = requireRole(locals, ["owner", "manager"]);
@@ -33,10 +34,10 @@ export async function POST({
  const { amount, destination, notes } = body ?? {};
 
  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
-  return json({ error: "amount must be a positive number" }, { status: 400 });
+  return apiError("amount must be a positive number", 400);
  }
  if (destination && !["counter", "bank", "other"].includes(destination)) {
-  return json({ error: "Invalid destination" }, { status: 400 });
+  return apiError("Invalid destination", 400);
  }
 
  const { data, error } = await userClientFromCtx({ cookies } as any).rpc(
@@ -49,8 +50,8 @@ export async function POST({
    p_notes: notes ?? null,
   } as any,
  );
- if (error) return json({ error: error.message }, { status: 400 });
+ if (error) return apiError(error.message, 400);
 
  // data is the updated sale row
- return json(data, { status: 200 });
+ return json(data);
 }
