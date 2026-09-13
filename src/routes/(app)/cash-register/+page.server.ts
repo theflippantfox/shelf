@@ -40,11 +40,9 @@ export async function load({
         .order("created_at", { ascending: false })
         .limit(100),
       // Exclude 'credit' destination from the cash-only balance
-      // @ts-expect-error — Supabase RPC TS false positive (never type)
-      supabase.rpc("get_register_balance", { p_shop_id: shopId }),
-      // @ts-expect-error — Supabase RPC TS false positive (never type)
+      supabase.rpc("get_register_balance", { p_shop_id: shopId } as any),
       supabase
-        .rpc("outstanding_receivables_total", { p_shop_id: shopId })
+        .rpc("outstanding_receivables_total", { p_shop_id: shopId } as any)
         .maybeSingle(),
       supabase
         .from("sales")

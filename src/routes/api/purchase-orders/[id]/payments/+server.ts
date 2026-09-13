@@ -13,7 +13,8 @@ export async function GET({
   if (!params.id) throw error(400, "Missing purchase order id");
   if (!locals.currentShop) throw error(401, "No shop");
 
-  const supabase = userClientFromCtx({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies });
   const [{ data: payments }, { data: po }] = await Promise.all([
     supabase
       .from("purchase_order_payments")
@@ -71,7 +72,8 @@ export async function POST({
     ? String(body.client_request_id)
     : null;
 
-  const supabase = userClientFromCtx({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies });
   const shopId = locals.currentShop.id;
   const userId = locals.user.id;
   const poId = params.id;
@@ -91,7 +93,7 @@ export async function POST({
     .select("amount")
     .eq("purchase_order_id", poId);
   const paidSoFar = (prior ?? []).reduce(
-    (s, r: any) => s + Number(r.amount ?? 0),
+    (s: number, r: any) => s + Number(r.amount ?? 0),
     0,
   );
   const remaining = Number((po as any).total_cost ?? 0) - paidSoFar;

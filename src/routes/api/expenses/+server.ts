@@ -29,7 +29,8 @@ export async function GET({
 }: import("@sveltejs/kit").RequestEvent) {
  if (!locals.currentShop) throw error(401, "No shop");
 
- const supabase = userClientFromCtx({ cookies } as any);
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const supabase: any = userClientFromCtx({ cookies } as any);
  const shopId = locals.currentShop.id;
 
  // Default window: last 30 days — use shop timezone
@@ -115,7 +116,7 @@ export async function POST({
  if (description.length > 200)
   throw error(400, "description too long (max 200 chars)");
 
- const supabase = userClientFromCtx({ cookies } as any);
+ const supabase: any = userClientFromCtx({ cookies } as any);
  const shopId = locals.currentShop.id;
  const userId = locals.user.id;
 

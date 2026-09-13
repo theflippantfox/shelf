@@ -1,18 +1,25 @@
-import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { json } from "@sveltejs/kit";
+import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * POST /api/purchase-orders/[id]/items — add a line item to a PO.
  */
-export async function POST({ cookies, params, locals, request  }: import('@sveltejs/kit').RequestEvent) {
-  if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
-  if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
+export async function POST({
+  cookies,
+  params,
+  locals,
+  request,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const { data, error } = await supabase
-    .from('purchase_order_items')
+    .from("purchase_order_items")
     .insert({
       purchase_order_id: params.id,
       product_id: body.product,
@@ -26,6 +33,6 @@ export async function POST({ cookies, params, locals, request  }: import('@svelt
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

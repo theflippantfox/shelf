@@ -1,5 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError } from "$lib/server/apiResponse";
 
 /**
  * POST /api/sales/[id]/returns — process a return / refund.
@@ -79,7 +80,8 @@ export async function POST({
     }
   }
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
   const saleId = params.id;
   const shopId = locals.currentShop.id;
   const userId = locals.user.id;
@@ -298,12 +300,13 @@ export async function GET({
   if (!params.id) throw error(400, "Missing sale id");
   if (!locals.currentShop) return json([]);
 
-  const supabase = userClientFromCtx({ cookies } as any);
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
+  const { data, error: supErr } = await supabase
     .from("sale_returns")
     .select("*, items:sale_return_items(*)")
     .eq("sale_id", params.id)
     .order("created_at", { ascending: false });
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (supErr) return apiError(supErr.message);
   return json(data ?? []);
 }

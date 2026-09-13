@@ -7,6 +7,7 @@ import { userClient, userClientFromCtx } from "$lib/server/supabase";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { apiUnauthorized } from "$lib/server/apiResponse";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -15,7 +16,7 @@ export async function GET({
   locals,
   url,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const shopId = locals.currentShop.id;
 
   const period = url.searchParams.get("period") ?? "30d";

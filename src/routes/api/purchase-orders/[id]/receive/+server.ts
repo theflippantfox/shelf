@@ -10,18 +10,25 @@
  *   - optionally creates product_batches for items with expiry/batch tracking
  *   - recomputes PO subtotal, total_cost, status (received/partial/ordered)
  */
-import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { json } from "@sveltejs/kit";
+import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
-export async function POST({ cookies, params, request, locals  }: import('@sveltejs/kit').RequestEvent) {
-  if (!params.id) return json({ error: 'Missing id' }, { status: 400 });
+export async function POST({
+  cookies,
+  params,
+  request,
+  locals,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!params.id) return apiError("Missing id", 400);
   if (!locals.currentShop || !locals.user)
-    return json({ error: 'Unauthorized' }, { status: 401 });
+    return apiUnauthorized("Unauthorized");
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
-  const { error } = await supabase.rpc('receive_purchase_order', {
+  const { error } = await supabase.rpc("receive_purchase_order", {
     p_purchase_order_id: params.id,
     p_items: (body.items ?? []).map((i: any) => ({
       po_item_id: i.id,
@@ -38,6 +45,6 @@ export async function POST({ cookies, params, request, locals  }: import('@svelt
     p_received_by: locals.user.id,
   });
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json({ success: true });
 }

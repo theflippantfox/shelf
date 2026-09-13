@@ -7,7 +7,7 @@
  * NEVER use these from the browser. The admin client has service-role privileges.
  */
 import type { RequestEvent } from "@sveltejs/kit";
-import { error } from "@sveltejs/kit";
+import { error, json } from "@sveltejs/kit";
 import { adminClient, userClient } from "./supabase";
 import type { Database } from "$lib/types/db";
 
@@ -56,7 +56,8 @@ export async function getActiveMembership(
  userId: string,
  shopIdHint?: string | null,
 ) {
- const admin = adminClient();
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const admin: any = adminClient();
 
  let q = admin
   .from("shop_members")
@@ -98,7 +99,8 @@ export async function inviteTeammate(
  shopId: string,
  redirectTo?: string,
 ): Promise<string> {
- const admin = adminClient();
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const admin: any = adminClient();
 
  const { data, error: err } = await admin.auth.admin.inviteUserByEmail(email, {
   redirectTo,
@@ -141,4 +143,39 @@ export async function requireUser(event: RequestEvent) {
  const user = await getCurrentUser(event);
  if (!user) throw error(401, "Not signed in");
  return user;
+}
+
+// =========================================================================
+// API route helpers — permission checks
+// =========================================================================
+
+export type AllowedRole = "owner" | "manager" | "cashier";
+
+/**
+ * Check that the current user has one of the allowed roles for the current shop.
+ * Uses locals.shopMember from hooks.server.ts (already loaded on every request).
+ *
+ * Returns null on success, or a Response on failure.
+ * Usage:
+ *   const deny = requireRole(locals, ['owner', 'manager']);
+ *   if (deny) return deny;
+ */
+export function requireRole(
+ locals: {
+  shopMember?: { role: string; status: string } | null;
+  currentShop?: unknown;
+  user?: unknown;
+ },
+ allowedRoles: AllowedRole[],
+): Response | null {
+ if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+ if (!locals.user) return json({ error: "Unauthorized" }, { status: 401 });
+ if (!locals.shopMember)
+  return json({ error: "No membership" }, { status: 403 });
+ if (locals.shopMember.status !== "active")
+  return json({ error: "Membership is not active" }, { status: 403 });
+ if (!allowedRoles.includes(locals.shopMember.role as AllowedRole)) {
+  return json({ error: "Insufficient permissions" }, { status: 403 });
+ }
+ return null;
 }

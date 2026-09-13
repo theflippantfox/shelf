@@ -8,7 +8,12 @@
  * a known issue and will be addressed in Stage 6a by moving to a Postgres function.
  */
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
+import {
+  apiError,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/sales/[id]
@@ -18,8 +23,9 @@ export async function GET({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  const supabase = userClientFromCtx({ cookies } as any);
+  if (!params.id) return apiError("Missing id", 400);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const [{ data: sale, error: saleErr }, { data: items, error: itemsErr }] =
     await Promise.all([
@@ -34,10 +40,7 @@ export async function GET({
     ]);
 
   if (saleErr || itemsErr)
-    return json(
-      { error: saleErr?.message ?? itemsErr?.message },
-      { status: 404 },
-    );
+    return apiNotFound(saleErr?.message ?? itemsErr?.message ?? "Sale");
   return json({ ...sale, items });
 }
 
@@ -50,11 +53,12 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.user) return json({ error: "Unauthorized" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.user) return apiUnauthorized("Unauthorized");
 
   const body = await request.json();
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   // ── Void path ──────────────────────────────────────────────────────────────
   // The atomic void_sale() RPC does three things in one transaction:
@@ -70,7 +74,7 @@ export async function PATCH({
       p_actor_id: locals.user.id,
       p_reason: body.void_reason ?? "",
     });
-    if (voidErr) return json({ error: voidErr.message }, { status: 400 });
+    if (voidErr) return apiError(voidErr.message, 400);
 
     const { data: sale } = await supabase
       .from("sales")
@@ -113,7 +117,7 @@ export async function PATCH({
     .select("*, customer:customers(*)")
     .eq("id", params.id)
     .single();
-  if (readErr) return json({ error: readErr.message }, { status: 400 });
+  if (readErr) return apiError(readErr.message, 400);
 
   const oldCustomerId =
     typeof (sale as any).customer_id === "string"

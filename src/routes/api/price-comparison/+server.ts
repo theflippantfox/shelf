@@ -2,11 +2,15 @@
  * /api/price-comparison — for each product, list the latest price from each
  * supplier, mark the cheapest, and return the matrix for the UI.
  */
-import { json } from '@sveltejs/kit';
-import { userClient, userClientFromCtx } from '$lib/server/supabase';
+import { json } from "@sveltejs/kit";
+import { userClientFromCtx } from "$lib/server/supabase";
+import { apiUnauthorized } from "$lib/server/apiResponse";
 
-export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestEvent) {
-  if (!locals.currentShop) return json({ error: 'No shop' }, { status: 401 });
+export async function GET({
+  cookies,
+  locals,
+}: import("@sveltejs/kit").RequestEvent) {
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const supabase = userClientFromCtx({ cookies } as any);
 
   const [
@@ -14,22 +18,38 @@ export async function GET({ cookies, locals  }: import('@sveltejs/kit').RequestE
     { data: suppliers = [] },
     { data: history = [] },
   ] = await Promise.all([
-    supabase.from('products')
-      .select('id, name, sku, cost_price')
-      .eq('shop_id', locals.currentShop.id)
-      .is('archived_at', null),
-    supabase.from('suppliers')
-      .select('id, name')
-      .eq('shop_id', locals.currentShop.id)
-      .eq('is_active', true),
-    supabase.from('supplier_price_history')
-      .select('product_id, supplier_id, unit_cost, recorded_at, purchase_order_id')
-      .eq('shop_id', locals.currentShop.id)
-      .order('recorded_at', { ascending: false }),
+    supabase
+      .from("products")
+      .select("id, name, sku, cost_price")
+      .eq("shop_id", locals.currentShop.id)
+      .is("archived_at", null),
+    supabase
+      .from("suppliers")
+      .select("id, name")
+      .eq("shop_id", locals.currentShop.id)
+      .eq("is_active", true),
+    supabase
+      .from("supplier_price_history")
+      .select(
+        "product_id, supplier_id, unit_cost, recorded_at, purchase_order_id",
+      )
+      .eq("shop_id", locals.currentShop.id)
+      .order("recorded_at", { ascending: false }),
   ]);
 
   // Build matrix: product_id → supplier_id → latest price
-  const matrix: Record<string, Record<string, any>> = {};
+  const matrix: Record<
+    string,
+    Record<
+      string,
+      {
+        unit_cost: number;
+        recorded_at: string;
+        purchase_order_id: string;
+        is_cheapest?: boolean;
+      }
+    >
+  > = {};
   const seen = new Set<string>();
 
   for (const record of history as any[]) {

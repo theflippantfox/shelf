@@ -6,7 +6,8 @@
  *       Delegates to a SQL function `create_sale()` for atomicity.
  */
 import { json } from "@sveltejs/kit";
-import { userClient, userClientFromCtx } from "$lib/server/supabase";
+import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * GET /api/sales
@@ -17,7 +18,8 @@ export async function GET({
   url,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop) return json([]);
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const limit = Math.min(200, parseInt(url.searchParams.get("limit") ?? "50"));
@@ -39,7 +41,7 @@ export async function GET({
   if (method) q = q.eq("payment_method", method);
 
   const { data: sales, error } = await q;
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json(sales ?? []);
 }
 
@@ -54,8 +56,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop || !locals.user)
-    return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop || !locals.user) return apiUnauthorized("No shop");
 
   const {
     items,
@@ -79,9 +80,10 @@ export async function POST({
     credit_due_date,
   } = await request.json();
 
-  if (!items?.length) return json({ error: "Cart is empty" }, { status: 400 });
+  if (!items?.length) return apiError("Cart is empty", 400);
 
-  const supabase = userClientFromCtx({ cookies } as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase: any = userClientFromCtx({ cookies } as any);
 
   // Atomic via create_sale() SECURITY DEFINER function.
   // Uses userClient so auth.uid() is set inside the function (membership check).
@@ -113,7 +115,7 @@ export async function POST({
     p_credit_due_date: credit_due_date ?? null,
   });
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
 
   // After the RPC creates the sale, write the payment_splits JSONB
   // if provided. The RPC doesn't know about this column yet, so we
@@ -130,5 +132,5 @@ export async function POST({
     }
   }
 
-  return json(data, { status: 201 });
+  return apiCreated(data);
 }
