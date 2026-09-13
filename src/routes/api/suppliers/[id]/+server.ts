@@ -20,12 +20,14 @@ export async function PATCH({
 
   const allowed: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) allowed.name = parsed.data.name;
-  if (parsed.data.contact_name !== undefined) allowed.contact_name = parsed.data.contact_name;
+  if (parsed.data.contact_name !== undefined)
+    allowed.contact_name = parsed.data.contact_name;
   if (parsed.data.phone !== undefined) allowed.phone = parsed.data.phone;
   if (parsed.data.email !== undefined) allowed.email = parsed.data.email;
   if (parsed.data.address !== undefined) allowed.address = parsed.data.address;
   if (parsed.data.notes !== undefined) allowed.notes = parsed.data.notes;
-  if (parsed.data.is_active !== undefined) allowed.is_active = parsed.data.is_active;
+  if (parsed.data.is_active !== undefined)
+    allowed.is_active = parsed.data.is_active;
 
   if (Object.keys(allowed).length === 0) {
     return json({ error: "No valid fields to update" }, { status: 400 });

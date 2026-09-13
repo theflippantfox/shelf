@@ -22,7 +22,8 @@ export async function PATCH({
   if (parsed.data.name !== undefined) allowed.name = parsed.data.name;
   if (parsed.data.icon !== undefined) allowed.icon = parsed.data.icon;
   if (parsed.data.color !== undefined) allowed.color = parsed.data.color;
-  if (parsed.data.sort_order !== undefined) allowed.sort_order = parsed.data.sort_order;
+  if (parsed.data.sort_order !== undefined)
+    allowed.sort_order = parsed.data.sort_order;
 
   if (Object.keys(allowed).length === 0) {
     return json({ error: "No valid fields to update" }, { status: 400 });

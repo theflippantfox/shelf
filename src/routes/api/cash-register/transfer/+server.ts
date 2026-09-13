@@ -59,18 +59,15 @@ export async function POST({
     return json({ error: "amount must be a positive number" }, { status: 400 });
   }
 
-  const { error } = await supabase.rpc(
-    "transfer_register",
-    {
-      p_shop_id: locals.currentShop.id,
-      p_from: from,
-      p_to: to,
-      p_amount: amount,
-      p_notes: notes ?? "",
-      p_actor_id: locals.user.id,
-      p_effective_at: effective_at ?? null,
-    },
-  );
+  const { error } = await supabase.rpc("transfer_register", {
+    p_shop_id: locals.currentShop.id,
+    p_from: from,
+    p_to: to,
+    p_amount: amount,
+    p_notes: notes ?? "",
+    p_actor_id: locals.user.id,
+    p_effective_at: effective_at ?? null,
+  });
   if (error) return json({ error: error.message }, { status: 400 });
   return json({ ok: true });
 }

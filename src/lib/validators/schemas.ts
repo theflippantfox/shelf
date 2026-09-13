@@ -131,7 +131,10 @@ export const inviteSchema = z.object({
  email: emailSchema,
  role: z.enum(["owner", "manager", "cashier"]),
  // Optional fields used during onboarding (not normal invite flow)
- password: z.string().min(6, "Password must be at least 6 characters").optional(),
+ password: z
+  .string()
+  .min(6, "Password must be at least 6 characters")
+  .optional(),
  first_name: z.string().trim().max(50).optional(),
 });
 

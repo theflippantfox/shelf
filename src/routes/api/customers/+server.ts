@@ -14,7 +14,10 @@ export async function GET({
   if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
   const search = url.searchParams.get("search") ?? "";
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10)));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10)),
+  );
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 

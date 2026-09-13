@@ -12,12 +12,9 @@ export async function GET({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
-  const { data, error } = await supabase.rpc(
-    "get_register_balance",
-    {
-      p_shop_id: locals.currentShop.id,
-    },
-  );
+  const { data, error } = await supabase.rpc("get_register_balance", {
+    p_shop_id: locals.currentShop.id,
+  });
   if (error) return json({ error: error.message }, { status: 500 });
 
   const destinations = (data ?? []).map((r: any) => ({
