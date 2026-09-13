@@ -13,7 +13,7 @@
   import TrendBadge from '$lib/components/analytics/TrendBadge.svelte';
   import MarginBadge from '$lib/components/analytics/MarginBadge.svelte';
   import {
-    TrendingUp, Users, BarChart3, ShoppingCart,
+    TrendingUp, BarChart3, ShoppingCart,
     Calendar, Package, Banknote, Activity,
     Search, ArrowUpDown, ChevronLeft, ChevronRight,
     FileText, Receipt, Clock, Percent,
@@ -241,44 +241,44 @@
     {#if hasData && activeTab === 'overview'}
       <div class="grid grid-cols-12 gap-3 anim-stagger">
 
-        <!-- ── KPI STRIP (full width, 6 cols) ──────────────────────────── -->
-        <div class="col-span-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div class="surface-card px-4 py-3 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--primary) 12%, transparent)">
-              <TrendingUp size={16} strokeWidth={2} style="color:var(--primary)" />
+        <!-- ── KPI STRIP (full width, 5 cols) ──────────────────────────── -->
+        <div class="col-span-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div class="surface-card px-5 py-4 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                 style="background:color-mix(in srgb, var(--primary) 10%, transparent)">
+              <TrendingUp size={20} strokeWidth={1.5} style="color:var(--primary)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Revenue</p>
-              <p class="text-[17px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(kpis.revenue.current)}</p>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Revenue</p>
+              <p class="text-[20px] font-bold tabular-nums leading-tight truncate">{formatCurrencyCompact(kpis.revenue.current)}</p>
               {#if kpis.revenue.delta?.pct}
                 <TrendBadge direction={kpis.revenue.delta.direction} label={`${Math.abs(kpis.revenue.delta.pct)}%`} />
               {/if}
             </div>
           </div>
 
-          <div class="surface-card px-4 py-3 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--cobalt) 12%, transparent)">
-              <Activity size={16} strokeWidth={2} style="color:var(--cobalt)" />
+          <div class="surface-card px-5 py-4 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                 style="background:color-mix(in srgb, var(--cobalt) 10%, transparent)">
+              <Activity size={20} strokeWidth={1.5} style="color:var(--cobalt)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Transactions</p>
-              <p class="text-[17px] font-bold tabular-nums leading-tight">{kpis.transactions.current.toLocaleString()}</p>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Transactions</p>
+              <p class="text-[20px] font-bold tabular-nums leading-tight">{kpis.transactions.current.toLocaleString()}</p>
               {#if kpis.transactions.delta?.pct}
                 <TrendBadge direction={kpis.transactions.delta.direction} label={`${Math.abs(kpis.transactions.delta.pct)}%`} />
               {/if}
             </div>
           </div>
 
-          <div class="surface-card px-4 py-3 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--teal) 12%, transparent)">
-              <BarChart3 size={16} strokeWidth={2} style="color:var(--teal)" />
+          <div class="surface-card px-5 py-4 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                 style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
+              <BarChart3 size={20} strokeWidth={1.5} style="color:var(--teal)" />
             </div>
             <div class="min-w-0">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Avg Order</p>
-              <p class="text-[17px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Avg Order</p>
+              <p class="text-[20px] font-bold tabular-nums leading-tight">{formatCurrencyCompact(kpis.avgOrder.current)}</p>
               {#if kpis.avgOrder.delta?.pct}
                 <TrendBadge direction={kpis.avgOrder.delta.direction} label={`${Math.abs(kpis.avgOrder.delta.pct)}%`} />
               {/if}
@@ -286,14 +286,14 @@
           </div>
 
           {#if kpis.margin}
-            <div class="surface-card px-4 py-3 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--gold) 12%, transparent)">
-                <Percent size={16} strokeWidth={2} style="color:var(--gold)" />
+            <div class="surface-card px-5 py-4 flex items-center gap-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                   style="background:color-mix(in srgb, var(--gold) 10%, transparent)">
+                <Percent size={20} strokeWidth={1.5} style="color:var(--gold)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Margin</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight">{kpis.margin.current.toFixed(1)}%</p>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Margin</p>
+                <p class="text-[20px] font-bold tabular-nums leading-tight">{kpis.margin.current.toFixed(1)}%</p>
                 {#if kpis.margin.delta?.pp}
                   <TrendBadge direction={kpis.margin.delta.direction} label={`${Math.abs(kpis.margin.delta.pp)}pp`} />
                 {/if}
@@ -302,34 +302,20 @@
           {/if}
 
           {#if grossProfit}
-            <div class="surface-card px-4 py-3 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                   style="background:color-mix(in srgb, var(--teal) 12%, transparent)">
-                <Banknote size={16} strokeWidth={2} style="color:var(--teal)" />
+            <div class="surface-card px-5 py-4 flex items-center gap-4">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                   style="background:color-mix(in srgb, var(--teal) 10%, transparent)">
+                <Banknote size={20} strokeWidth={1.5} style="color:var(--teal)" />
               </div>
               <div class="min-w-0">
-                <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Profit</p>
-                <p class="text-[17px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-0.5">Profit</p>
+                <p class="text-[20px] font-bold tabular-nums leading-tight truncate" style="color:{grossProfit.current >= 0 ? 'var(--teal-fg)' : 'var(--crimson-fg)'}">{formatCurrencyCompact(grossProfit.current)}</p>
                 {#if grossProfit.delta?.pct}
                   <TrendBadge direction={grossProfit.delta.direction} label={`${Math.abs(grossProfit.delta.pct)}%`} />
                 {/if}
               </div>
             </div>
           {/if}
-
-          <div class="surface-card px-4 py-3 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                 style="background:color-mix(in srgb, var(--primary) 12%, transparent)">
-              <Users size={16} strokeWidth={2} style="color:var(--primary)" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-3)]">Buyers</p>
-              <p class="text-[17px] font-bold tabular-nums leading-tight">{uniqueBuyers.toLocaleString()}</p>
-              {#if customerTiers}
-                <span class="text-[9px] text-[var(--text-3)]">{customerTiers.vip} VIP</span>
-              {/if}
-            </div>
-          </div>
         </div>
 
         <!-- ── OUTSTANDING RECEIVABLES (full width, conditional) ───────── -->
