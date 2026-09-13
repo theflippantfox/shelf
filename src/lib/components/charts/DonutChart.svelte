@@ -1,11 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
+  import { formatCurrency } from '$lib/utils/format';
 
-  /**
-   * DonutChart — premium donut for breakdowns (payment methods, etc.).
-   * Center label is rendered as HTML overlay (not on the canvas).
-   */
   let {
     data    = [],
     labels  = [],
@@ -40,6 +37,9 @@
 
   function buildConfig(): ChartConfiguration<'doughnut'> {
     const text2 = css('--text-2');
+    const surface = css('--surface');
+    const border = css('--border');
+
     return {
       type: 'doughnut',
       data: {
@@ -47,37 +47,42 @@
         datasets: [{
           data,
           backgroundColor: colors.map(c => resolveColor(c)),
-          borderColor: css('--surface'),
-          borderWidth: 3,
-          hoverOffset: 6,
-          spacing: 2,
+          borderColor: surface,
+          borderWidth: 4,
+          hoverOffset: 8,
+          spacing: 3,
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
-        animation: { duration: 800, easing: 'easeOutQuart' },
+        cutout: '72%',
+        animation: {
+          animateRotate: true,
+          animateScale: true,
+          duration: 1000,
+          easing: 'easeOutQuart',
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: css('--surface'),
-            borderColor: css('--border'),
+            backgroundColor: surface,
+            borderColor: border,
             borderWidth: 1,
             titleColor: css('--text'),
             bodyColor: text2,
-            padding: { top: 8, bottom: 8, left: 12, right: 12 },
-            cornerRadius: 8,
+            padding: { top: 10, bottom: 10, left: 14, right: 14 },
+            cornerRadius: 10,
             titleFont: { size: 11, weight: 600 },
             bodyFont:  { size: 11, weight: 500 },
             displayColors: true,
-            boxPadding: 4,
+            boxPadding: 6,
             callbacks: {
               label: (ctx) => {
                 const v = ctx.parsed ?? 0;
                 const total = (ctx.dataset.data as number[]).reduce((s, x) => s + (x ?? 0), 0);
                 const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0';
-                return ` ${ctx.label}: ${v.toLocaleString()} (${pct}%)`;
+                return ` ${ctx.label}: ${formatCurrency(v)} (${pct}%)`;
               },
             },
           },
@@ -119,10 +124,10 @@
   {#if centerLabel || centerValue}
     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
       {#if centerValue}
-        <span class="display-sm tabular text-[var(--text)]">{centerValue}</span>
+        <span class="text-lg font-bold tabular-nums text-[var(--text)]">{centerValue}</span>
       {/if}
       {#if centerLabel}
-        <span class="text-[11px] uppercase tracking-wide text-[var(--text-3)] font-semibold mt-0.5">{centerLabel}</span>
+        <span class="text-[10px] uppercase tracking-widest text-[var(--text-3)] font-semibold mt-0.5">{centerLabel}</span>
       {/if}
     </div>
   {/if}

@@ -1,22 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { Chart as ChartType, ChartConfiguration, TooltipItem } from 'chart.js';
+  import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
   import { formatCurrency, formatCurrencyMajor } from '$lib/utils/format';
   import { mountChartTooltip, type ChartTooltipHandle } from '$lib/utils/chartTooltip';
   import { setupTooltipAutoHide } from '$lib/utils/chartTooltipAutoHide';
 
-  /**
-   * BarChart — premium bar chart with custom HTML tooltip.
-   *
-   * Same chart.js engine, but:
-   * - Custom HTML tooltip via the `external` callback (no default JS tooltip)
-   * - Brand-tinted gridlines, axis labels, and bar hover state
-   * - Tabular numbers on every label
-   * - Optional highlightLast: last bar is full color, earlier bars are dim
-   * - Currency formatting aware
-   * - Auto-hides the tooltip on scroll, page nav, and chart leave so it
-   *   never gets stuck on screen.
-   */
   let {
     data           = [],
     labels         = [],
@@ -26,7 +14,6 @@
     yFormat        = 'number',
     showYAxis      = true,
     highlightLast  = false,
-    /** When true, render a soft area gradient under the line. */
     showYAxisLabel = '',
   }: {
     data?:           number[];
@@ -45,8 +32,6 @@
   let observer: MutationObserver;
   let ChartCtor: typeof ChartType | null = null;
   let tooltip: ChartTooltipHandle | null = null;
-  // Disposer returned by setupTooltipAutoHide. Removes the scroll /
-  // mousemove / IntersectionObserver listeners it registered.
   let disposeAutoHide: (() => void) | null = null;
 
   function css(name: string): string {
@@ -61,8 +46,6 @@
   }
   function fmt(n: number): string {
     if (yFormat === 'currency') {
-      // Chart data is in major units (rupees, dollars). Currency-
-      // formatting just needs locale-aware grouping.
       return formatCurrencyMajor(n, { decimals: 1 });
     }
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
@@ -70,20 +53,15 @@
     return String(n);
   }
   function tooltipFmt(n: number): string {
-    if (yFormat === 'currency') {
-      return formatCurrency(n);
-    }
+    if (yFormat === 'currency') return formatCurrency(n);
     return n.toLocaleString();
   }
 
-  // Custom HTML tooltip — styled to match the rest of the app.
-  // Uses viewport-fixed positioning (via chartTooltip util) so it can
-  // never be clipped by an ancestor's overflow: hidden when the bar
-  // sits at the right edge of the chart.
   function hideTooltip() {
     tooltip?.destroy();
     tooltip = null;
   }
+
   function externalTooltip(context: any) {
     const { chart: c, tooltip: t } = context;
     if (!t || t.opacity === 0 || !c || !canvas) {
@@ -96,8 +74,10 @@
     const label = labels[idx] ?? '';
 
     const html = `
-      <div style="color: var(--text-3); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">${label}</div>
-      <div style="color: var(--text); font-weight: 600; font-size: 13px;">${tooltipFmt(value)}</div>
+      <div style="padding: 2px 0 0;">
+        <div style="color: var(--text-3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px;">${label}</div>
+        <div style="color: var(--text); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;">${tooltipFmt(value)}</div>
+      </div>
     `;
 
     if (tooltip) {
@@ -114,16 +94,18 @@
   }
 
   function buildConfig(): ChartConfiguration<'bar'> {
-    const barColor  = resolveColor(color);
-    const text3     = css('--text-3');
-    const text2     = css('--text-2');
-    const border    = css('--border');
-    const surface2  = css('--surface2');
+    const barColor = resolveColor(color);
+    const text3    = css('--text-3');
+    const border   = css('--border');
 
     const colors = data.map((_, i) => {
       if (!highlightLast) return barColor;
-      const isLast = i === data.length - 1;
-      return isLast ? barColor : barColor + '55';
+      return i === data.length - 1 ? barColor : barColor + '40';
+    });
+
+    const hoverColors = data.map((_, i) => {
+      if (!highlightLast) return barColor + 'CC';
+      return i === data.length - 1 ? barColor + 'CC' : barColor + '55';
     });
 
     return {
@@ -133,20 +115,20 @@
         datasets: [{
           data,
           backgroundColor: colors,
-          hoverBackgroundColor: barColor,
+          hoverBackgroundColor: hoverColors,
           borderRadius: { topLeft: borderRadius, topRight: borderRadius, bottomLeft: 0, bottomRight: 0 } as any,
           borderSkipped: false,
-          maxBarThickness: 36,
-          categoryPercentage: 0.7,
-          barPercentage: 0.85,
+          maxBarThickness: 40,
+          categoryPercentage: 0.72,
+          barPercentage: 0.88,
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 700, easing: 'easeOutQuart' },
+        animation: { duration: 800, easing: 'easeOutQuart' },
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { top: 12, right: 4, bottom: 4, left: 0 } },
+        layout: { padding: { top: 14, right: 6, bottom: 6, left: 0 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -160,25 +142,25 @@
           y: {
             display: showYAxis,
             beginAtZero: true,
-            grid:  { color: border + '40', lineWidth: 1 },
+            grid:  { color: border + '25', lineWidth: 1 },
             border: { display: false },
             ticks: {
               color:   text3,
-              font:    { size: 10.5, weight: 500 },
-              padding: 8,
+              font:    { size: 10, weight: 500 },
+              padding: 10,
               maxTicksLimit: 5,
               callback: (v) => fmt(v as number),
             },
           },
           x: {
             grid:  { display: false },
-            border: { color: border, display: false },
+            border: { display: false },
             ticks: {
               color: text3,
-              font:  { size: 10.5, weight: 500 },
-              padding: 4,
+              font:  { size: 10, weight: 500 },
+              padding: 6,
               maxRotation: 0,
-              autoSkipPadding: 12,
+              autoSkipPadding: 14,
             },
           },
         },
@@ -199,12 +181,6 @@
     rebuild();
     observer = new MutationObserver(rebuild);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    // Auto-hide the tooltip on any scroll, when the cursor leaves the
-    // chart's bounding box, when the canvas leaves the viewport, and
-    // when the page hides. chart.js's external tooltip callback only
-    // runs on hover/move, so without this the tooltip stays stuck on
-    // screen the moment the user scrolls.
     disposeAutoHide = setupTooltipAutoHide(canvas, hideTooltip);
   });
 
@@ -217,13 +193,12 @@
     const barColor = resolveColor(_color);
     const colors = _data.map((_, i) => {
       if (!highlightLast) return barColor;
-      return i === _data.length - 1 ? barColor : barColor + '55';
+      return i === _data.length - 1 ? barColor : barColor + '40';
     });
 
     chart.data.labels = _labels;
     chart.data.datasets[0].data               = _data;
     chart.data.datasets[0].backgroundColor    = colors as any;
-    chart.data.datasets[0].hoverBackgroundColor = barColor;
     chart.update('active');
   });
 

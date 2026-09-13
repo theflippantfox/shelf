@@ -2,10 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
 
-  /**
-   * Sparkline — minimal line chart for KPI cards and inline trend.
-   * No axes, no tooltip, just a clean curve with a soft gradient fill.
-   */
   let {
     data     = [],
     color    = 'var(--primary)',
@@ -46,14 +42,14 @@
           backgroundColor: (ctx: any) => {
             const chart = ctx.chart;
             const { ctx: c2d, chartArea } = chart;
-            if (!chartArea) return c + '20';
+            if (!chartArea) return c + '15';
             const grad = c2d.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            grad.addColorStop(0, c + '30');
+            grad.addColorStop(0, c + '25');
             grad.addColorStop(1, c + '00');
             return grad;
           },
           fill,
-          tension: 0.4,
+          tension: 0.45,
           pointRadius: 0,
           borderWidth: 2,
         }],
@@ -61,7 +57,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 700, easing: 'easeOutQuart' },
+        animation: { duration: 800, easing: 'easeOutQuart' },
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
         scales: {
           x: { display: false },

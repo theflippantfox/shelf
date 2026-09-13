@@ -5,12 +5,6 @@
   import { mountChartTooltip, type ChartTooltipHandle } from '$lib/utils/chartTooltip';
   import { setupTooltipAutoHide } from '$lib/utils/chartTooltipAutoHide';
 
-  /**
-   * AreaChart — premium area chart with smooth tension, brand-tinted
-   * gradient fill, and custom HTML tooltip.
-   *
-   * Supports multiple datasets (e.g. current vs previous period).
-   */
   let {
     datasets = [],
     labels   = [],
@@ -43,7 +37,6 @@
   }
   function fmt(n: number): string {
     if (yFormat === 'currency') {
-      // Chart data is in major units.
       const abs = Math.abs(n);
       const sign = n < 0 ? '-' : '';
       if (abs >= 1_000_000) return sign + formatCurrencyMajor(abs / 1_000_000, { decimals: 1 }) + 'M';
@@ -55,9 +48,7 @@
     return String(n);
   }
   function tooltipFmt(n: number): string {
-    if (yFormat === 'currency') {
-      return formatCurrency(n);
-    }
+    if (yFormat === 'currency') return formatCurrency(n);
     return n.toLocaleString();
   }
 
@@ -82,16 +73,18 @@
       const ds = dp.dataset;
       const v  = dp.parsed.y ?? 0;
       body += `
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
           <span style="display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: ${ds.borderColor};"></span>
           <span style="color: var(--text-3); font-size: 11.5px; flex: 1;">${ds.label}</span>
-          <span style="color: var(--text); font-weight: 600; font-size: 12.5px;">${tooltipFmt(v)}</span>
+          <span style="color: var(--text); font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums;">${tooltipFmt(v)}</span>
         </div>`;
     }
 
     const html = `
-      <div style="color: var(--text-3); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;">${label}</div>
-      ${body}
+      <div style="padding: 2px 0 0;">
+        <div style="color: var(--text-3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px;">${label}</div>
+        ${body}
+      </div>
     `;
 
     if (tooltip) {
@@ -117,13 +110,12 @@
         labels,
         datasets: datasets.map((ds, i) => {
           const color = resolveColor(ds.color ?? (i === 0 ? 'var(--primary)' : 'var(--text-3)'));
-          // Build a vertical gradient that fades to transparent at the bottom
           const ctx2d = canvas?.getContext('2d');
-          let bg: string | CanvasGradient = color + '22';
+          let bg: string | CanvasGradient = color + '15';
           if (ctx2d) {
-            const grad = ctx2d.createLinearGradient(0, 0, 0, 220);
-            grad.addColorStop(0, color + '40');
-            grad.addColorStop(0.5, color + '18');
+            const grad = ctx2d.createLinearGradient(0, 0, 0, 260);
+            grad.addColorStop(0, color + '30');
+            grad.addColorStop(0.4, color + '10');
             grad.addColorStop(1, color + '00');
             bg = grad;
           }
@@ -133,23 +125,23 @@
             borderColor: color,
             backgroundColor: bg,
             fill: i === 0 ? 'origin' : false,
-            tension: 0.38,
+            tension: 0.42,
             pointRadius: 0,
-            pointHoverRadius: 5,
-            pointBackgroundColor: color,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            borderWidth: 2.25,
-            borderDash: ds.dashed ? [4, 4] : undefined,
+            pointHoverRadius: 7,
+            pointHoverBackgroundColor: color,
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 3,
+            borderWidth: 2.5,
+            borderDash: ds.dashed ? [5, 5] : undefined,
           };
         }),
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 800, easing: 'easeOutQuart' },
+        animation: { duration: 900, easing: 'easeOutQuart' },
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { top: 16, right: 8, bottom: 4, left: 0 } },
+        layout: { padding: { top: 20, right: 10, bottom: 6, left: 0 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -163,12 +155,12 @@
           y: {
             display: true,
             beginAtZero: true,
-            grid:  { color: border + '40', lineWidth: 1, drawTicks: false },
+            grid:  { color: border + '25', lineWidth: 1, drawTicks: false },
             border: { display: false },
             ticks: {
               color:   text3,
-              font:    { size: 10.5, weight: 500 },
-              padding: 8,
+              font:    { size: 10, weight: 500 },
+              padding: 10,
               maxTicksLimit: 5,
               callback: (v) => fmt(v as number),
             },
@@ -178,10 +170,10 @@
             border: { display: false },
             ticks: {
               color: text3,
-              font:  { size: 10.5, weight: 500 },
-              padding: 4,
+              font:  { size: 10, weight: 500 },
+              padding: 6,
               maxRotation: 0,
-              autoSkipPadding: 14,
+              autoSkipPadding: 16,
             },
           },
         },
