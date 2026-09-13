@@ -2,6 +2,11 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { customerCreateSchema } from "$lib/validators/schemas";
+import {
+  apiError,
+  apiUnauthorized,
+  apiCreated,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/customers — list for current shop, with optional search.
@@ -11,7 +16,7 @@ export async function GET({
   locals,
   url,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const search = url.searchParams.get("search") ?? "";
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
   const limit = Math.min(
@@ -37,7 +42,7 @@ export async function GET({
   }
 
   const { data, error, count } = await q;
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json({
     data: data ?? [],
     meta: {
@@ -58,7 +63,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const parsed = await parseBody(request, customerCreateSchema);
   if (!parsed.ok) return parsed.response;
@@ -77,6 +82,6 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

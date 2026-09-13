@@ -7,6 +7,12 @@
  */
 import { json } from "@sveltejs/kit";
 import { adminClient, userClientFromCtx } from "$lib/server/supabase";
+import {
+  apiError,
+  apiForbidden,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 export async function PATCH({
   cookies,
@@ -14,13 +20,10 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   if (locals.shopMember?.role !== "owner")
-    return json(
-      { error: "Only owners can update team members" },
-      { status: 403 },
-    );
+    return apiForbidden("Only owners can update team members");
 
   const body = await request.json();
   const ALLOWED = ["role", "status", "permissions"];
@@ -38,7 +41,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -46,13 +49,10 @@ export async function DELETE({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   if (locals.shopMember?.role !== "owner")
-    return json(
-      { error: "Only owners can remove team members" },
-      { status: 403 },
-    );
+    return apiForbidden("Only owners can remove team members");
 
   // Look up the row to decide cancel-vs-suspend.
   // Use admin to bypass any RLS quirks (we already owner-gated above).
@@ -63,8 +63,7 @@ export async function DELETE({
     .select("id, status")
     .eq("id", params.id)
     .single();
-  if (lookupErr || !row)
-    return json({ error: "Member not found" }, { status: 404 });
+  if (lookupErr || !row) return apiNotFound("Member");
 
   // Invited: hard-delete (so the email can be re-invited cleanly).
   if ((row as any).status === "invited") {
@@ -72,7 +71,7 @@ export async function DELETE({
       .from("shop_members")
       .delete()
       .eq("id", params.id);
-    if (delErr) return json({ error: delErr.message }, { status: 400 });
+    if (delErr) return apiError(delErr.message, 400);
     return json({ cancelled: true });
   }
 
@@ -83,6 +82,6 @@ export async function DELETE({
     .eq("id", params.id)
     .select()
     .single();
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }

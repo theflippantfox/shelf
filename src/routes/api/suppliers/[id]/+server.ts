@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { supplierUpdateSchema } from "$lib/validators/schemas";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * PATCH /api/suppliers/[id] — update a supplier. Only whitelisted fields.
@@ -12,8 +13,8 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const parsed = await parseBody(request, supplierUpdateSchema);
   if (!parsed.ok) return parsed.response;
@@ -30,7 +31,7 @@ export async function PATCH({
     allowed.is_active = parsed.data.is_active;
 
   if (Object.keys(allowed).length === 0) {
-    return json({ error: "No valid fields to update" }, { status: 400 });
+    return apiError("No valid fields to update", 400);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +44,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -55,8 +56,8 @@ export async function DELETE({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -68,6 +69,6 @@ export async function DELETE({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }

@@ -2,6 +2,11 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { customerUpdateSchema } from "$lib/validators/schemas";
+import {
+  apiError,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/customers/[id] — single customer, scoped to current shop.
@@ -11,8 +16,8 @@ export async function GET({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
@@ -22,8 +27,8 @@ export async function GET({
     .eq("shop_id", locals.currentShop.id)
     .maybeSingle();
 
-  if (error) return json({ error: error.message }, { status: 500 });
-  if (!data) return json({ error: "Not found" }, { status: 404 });
+  if (error) return apiError(error.message);
+  if (!data) return apiNotFound("Customer");
   return json(data);
 }
 
@@ -36,8 +41,8 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const parsed = await parseBody(request, customerUpdateSchema);
   if (!parsed.ok) return parsed.response;
@@ -49,7 +54,7 @@ export async function PATCH({
   if (parsed.data.notes !== undefined) allowed.notes = parsed.data.notes;
 
   if (Object.keys(allowed).length === 0) {
-    return json({ error: "No valid fields to update" }, { status: 400 });
+    return apiError("No valid fields to update", 400);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,7 +67,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -74,8 +79,8 @@ export async function DELETE({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -85,6 +90,6 @@ export async function DELETE({
     .eq("id", params.id)
     .eq("shop_id", locals.currentShop.id);
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ ok: true });
 }

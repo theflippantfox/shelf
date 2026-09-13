@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * POST /api/purchase-orders/[id]/items/[itemId] — duplicate endpoint from the items route.
@@ -10,7 +11,7 @@ export async function POST({
   request,
   params,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
+  if (!params.id) return apiError("Missing id", 400);
   const body = await request.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -21,8 +22,8 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }
 
 /**
@@ -33,7 +34,7 @@ export async function PATCH({
   request,
   params,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.itemId) return json({ error: "Missing itemId" }, { status: 400 });
+  if (!params.itemId) return apiError("Missing itemId", 400);
   const body = await request.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -45,7 +46,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -56,7 +57,7 @@ export async function DELETE({
   cookies,
   params,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.itemId) return json({ error: "Missing itemId" }, { status: 400 });
+  if (!params.itemId) return apiError("Missing itemId", 400);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
 
@@ -65,6 +66,6 @@ export async function DELETE({
     .delete()
     .eq("id", params.itemId);
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ success: true });
 }

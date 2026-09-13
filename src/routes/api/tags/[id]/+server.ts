@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx, adminClient } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { tagUpdateSchema } from "$lib/validators/schemas";
+import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 /**
  * PATCH /api/tags/[id] — update a tag. Only whitelisted fields.
@@ -12,8 +13,8 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const parsed = await parseBody(request, tagUpdateSchema);
   if (!parsed.ok) return parsed.response;
@@ -23,7 +24,7 @@ export async function PATCH({
   if (parsed.data.color !== undefined) allowed.color = parsed.data.color;
 
   if (Object.keys(allowed).length === 0) {
-    return json({ error: "No valid fields to update" }, { status: 400 });
+    return apiError("No valid fields to update", 400);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,7 +37,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -49,8 +50,8 @@ export async function DELETE({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   // Use admin client because RLS doesn't grant delete on tags; the user-level
   // policy only allows updates, not deletes. The admin client still enforces
@@ -63,6 +64,6 @@ export async function DELETE({
     .eq("id", params.id)
     .eq("shop_id", locals.currentShop.id);
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ ok: true });
 }

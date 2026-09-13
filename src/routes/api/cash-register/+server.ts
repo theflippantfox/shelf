@@ -17,6 +17,12 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
+import {
+  apiError,
+  apiForbidden,
+  apiUnauthorized,
+  apiCreated,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/cash-register
@@ -57,7 +63,7 @@ export async function GET({
  if (!includeVoided) q = q.is("voided_at", null);
 
  const { data, error } = await q;
- if (error) return json({ error: error.message }, { status: 500 });
+ if (error) return apiError(error.message);
  return json(data ?? []);
 }
 
@@ -79,7 +85,7 @@ export async function POST({
  locals,
 }: import("@sveltejs/kit").RequestEvent) {
  if (!locals.currentShop || !locals.user) {
-  return json({ error: "No shop" }, { status: 401 });
+  return apiUnauthorized("No shop");
  }
 
  // All entry types require owner or manager
@@ -91,15 +97,15 @@ export async function POST({
   body ?? {};
 
  if (!destination || !["counter", "bank", "other"].includes(destination)) {
-  return json({ error: "Invalid destination" }, { status: 400 });
+  return apiError("Invalid destination", 400);
  }
  if (
   !entry_type ||
   !["expense", "injection", "adjustment"].includes(entry_type)
  ) {
-  return json(
-   { error: "Invalid entry_type (must be expense, injection, or adjustment)" },
-   { status: 400 },
+  return apiError(
+   "Invalid entry_type (must be expense, injection, or adjustment)",
+   400,
   );
  }
  if (
@@ -107,9 +113,9 @@ export async function POST({
   isNaN(amount) ||
   (amount === 0 && entry_type !== "adjustment")
  ) {
-  return json(
-   { error: "Amount must be a non-zero number (unless it is an adjustment)" },
-   { status: 400 },
+  return apiError(
+   "Amount must be a non-zero number (unless it is an adjustment)",
+   400,
   );
  }
 
@@ -120,21 +126,15 @@ export async function POST({
  //   injection → must be positive (money coming in)
  //   adjustment → can be either (sign depends on what it's correcting)
  if (entry_type === "expense" && amount > 0)
-  return json({ error: "Expense amount must be negative" }, { status: 400 });
+  return apiError("Expense amount must be negative", 400);
  if (entry_type === "injection" && amount < 0)
-  return json({ error: "Injection amount must be positive" }, { status: 400 });
+  return apiError("Injection amount must be positive", 400);
 
  if (entry_type === "injection" && locals.shopMember?.role === "cashier") {
-  return json(
-   { error: "Only owners and managers can add injections" },
-   { status: 403 },
-  );
+  return apiForbidden("Only owners and managers can add injections");
  }
  if (entry_type === "adjustment" && locals.shopMember?.role === "cashier") {
-  return json(
-   { error: "Only owners and managers can add adjustments" },
-   { status: 403 },
-  );
+  return apiForbidden("Only owners and managers can add adjustments");
  }
 
  // Call the RPC
@@ -151,6 +151,6 @@ export async function POST({
    p_adjusts_id: adjusts_id ?? null,
   } as any,
  );
- if (error) return json({ error: error.message }, { status: 400 });
- return json(data, { status: 201 });
+ if (error) return apiError(error.message, 400);
+ return apiCreated(data);
 }

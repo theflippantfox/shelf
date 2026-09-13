@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { tagCreateSchema } from "$lib/validators/schemas";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * GET /api/tags — list tags for the current shop.
@@ -18,7 +19,7 @@ export async function GET({
     .eq("shop_id", locals.currentShop.id)
     .order("name");
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json(data ?? []);
 }
 
@@ -31,7 +32,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const parsed = await parseBody(request, tagCreateSchema);
   if (!parsed.ok) return parsed.response;
@@ -48,6 +49,6 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

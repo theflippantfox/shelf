@@ -9,6 +9,11 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import {
+  apiError,
+  apiForbidden,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 export async function POST({
   cookies,
@@ -16,7 +21,7 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user) {
-    return json({ error: "No shop" }, { status: 401 });
+    return apiUnauthorized("No shop");
   }
 
   // Owner/manager only — transfers move real money between drawers
@@ -30,33 +35,25 @@ export async function POST({
     .eq("shop_id", locals.currentShop.id)
     .eq("user_id", locals.user.id)
     .single();
-  if (memberErr || !member)
-    return json({ error: "No membership" }, { status: 403 });
+  if (memberErr || !member) return apiForbidden("No membership");
   if ((member as any).status !== "active")
-    return json({ error: "Membership is not active" }, { status: 403 });
+    return apiForbidden("Membership is not active");
   if ((member as any).role === "cashier")
-    return json(
-      { error: "Only owners and managers can transfer" },
-      { status: 403 },
-    );
+    return apiForbidden("Only owners and managers can transfer");
 
   const body = await request.json();
   const { from, to, amount, notes, effective_at } = body ?? {};
-  if (!from || !to)
-    return json({ error: "from and to are required" }, { status: 400 });
+  if (!from || !to) return apiError("from and to are required", 400);
   if (
     !["counter", "bank", "other"].includes(from) ||
     !["counter", "bank", "other"].includes(to)
   ) {
-    return json({ error: "Invalid destination" }, { status: 400 });
+    return apiError("Invalid destination", 400);
   }
   if (from === to)
-    return json(
-      { error: "Cannot transfer to the same destination" },
-      { status: 400 },
-    );
+    return apiError("Cannot transfer to the same destination", 400);
   if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
-    return json({ error: "amount must be a positive number" }, { status: 400 });
+    return apiError("amount must be a positive number", 400);
   }
 
   const { error } = await supabase.rpc("transfer_register", {
@@ -68,6 +65,6 @@ export async function POST({
     p_actor_id: locals.user.id,
     p_effective_at: effective_at ?? null,
   });
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json({ ok: true });
 }

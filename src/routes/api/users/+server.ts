@@ -12,12 +12,19 @@
  */
 import { json } from "@sveltejs/kit";
 import { adminClient, userClientFromCtx } from "$lib/server/supabase";
+import {
+  apiError,
+  apiForbidden,
+  apiNotFound,
+  apiUnauthorized,
+  apiCreated,
+} from "$lib/server/apiResponse";
 
 export async function GET({
   cookies,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const supabase = userClientFromCtx({ cookies } as any);
   const admin = adminClient();
 
@@ -30,7 +37,7 @@ export async function GET({
     .order("status", { ascending: true }) // 'invited' before 'active' alphabetically
     .order("role");
 
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
 
   // Augment with emails from auth.users. PostgREST doesn't expose
   // auth.users to clients, and admin.auth.admin.listUsers is broken
@@ -84,12 +91,12 @@ export async function POST({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user)
-    return json({ error: "Unauthorized" }, { status: 401 });
+    return apiUnauthorized("Unauthorized");
   if (locals.shopMember?.role !== "owner")
-    return json({ error: "Only owners can invite teammates" }, { status: 403 });
+    return apiForbidden("Only owners can invite teammates");
 
   const { email, role } = await request.json();
-  if (!email) return json({ error: "Email is required" }, { status: 400 });
+  if (!email) return apiError("Email is required", 400);
   const cleanEmail = String(email).trim().toLowerCase();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +110,7 @@ export async function POST({
     { needle: cleanEmail } as any,
   );
 
-  if (lookupErr) return json({ error: lookupErr.message }, { status: 500 });
+  if (lookupErr) return apiError(lookupErr.message);
   if (!userId) {
     return json(
       {
@@ -172,6 +179,6 @@ export async function POST({
       .single());
   }
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

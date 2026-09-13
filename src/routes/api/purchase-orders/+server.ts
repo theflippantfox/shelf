@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,7 +19,7 @@ export async function GET({
   locals,
   url,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const status = url.searchParams.get("status") ?? "";
   const supplier = url.searchParams.get("supplier") ?? "";
@@ -39,7 +40,7 @@ export async function GET({
   if (supplier) q = q.eq("supplier_id", supplier);
 
   const { data, error } = await q;
-  if (error) return json({ error: error.message }, { status: 500 });
+  if (error) return apiError(error.message);
   return json(data ?? []);
 }
 
@@ -51,26 +52,21 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop || !locals.user)
-    return json({ error: "Unauthorized" }, { status: 401 });
+  if (!locals.currentShop || !locals.user) return apiUnauthorized("Unauthorized");
 
   const body = await request.json();
 
-  if (!body.supplier)
-    return json({ error: "supplier is required" }, { status: 400 });
+  if (!body.supplier) return apiError("supplier is required", 400);
   const supplierStr = String(body.supplier).trim();
 
   if (!UUID_RE.test(supplierStr)) {
-    return json(
-      {
-        error: `Invalid supplier value "${supplierStr}". Select a supplier from the dropdown.`,
-      },
-      { status: 400 },
+    return apiError(
+      `Invalid supplier value "${supplierStr}". Select a supplier from the dropdown.`,
+      400,
     );
   }
 
-  if (!body.order_date)
-    return json({ error: "order_date is required" }, { status: 400 });
+  if (!body.order_date) return apiError("order_date is required", 400);
 
   const subtotal = Number(body.subtotal ?? 0);
   const taxAmount = Number(body.tax_amount ?? 0);
@@ -98,6 +94,6 @@ export async function POST({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
-  return json(data, { status: 201 });
+  if (error) return apiError(error.message, 400);
+  return apiCreated(data);
 }

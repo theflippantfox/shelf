@@ -1,5 +1,10 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import {
+  apiError,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/products/[id] — single product with category join, scoped to current shop.
@@ -9,8 +14,8 @@ export async function GET({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   const supabase = userClientFromCtx({ cookies } as any);
   const { data, error } = await supabase
@@ -20,8 +25,8 @@ export async function GET({
     .eq("shop_id", locals.currentShop.id)
     .maybeSingle();
 
-  if (error) return json({ error: error.message }, { status: 500 });
-  if (!data) return json({ error: "Not found" }, { status: 404 });
+  if (error) return apiError(error.message);
+  if (!data) return apiNotFound("Product");
   return json(data);
 }
 
@@ -34,8 +39,8 @@ export async function PATCH({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
   const body = await request.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -76,7 +81,7 @@ export async function PATCH({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
 
@@ -88,8 +93,8 @@ export async function DELETE({
   params,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!params.id) return json({ error: "Missing id" }, { status: 400 });
-  if (!locals.currentShop) return json({ error: "No shop" }, { status: 401 });
+  if (!params.id) return apiError("Missing id", 400);
+  if (!locals.currentShop) return apiUnauthorized("No shop");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies } as any);
@@ -101,6 +106,6 @@ export async function DELETE({
     .select()
     .single();
 
-  if (error) return json({ error: error.message }, { status: 400 });
+  if (error) return apiError(error.message, 400);
   return json(data);
 }
