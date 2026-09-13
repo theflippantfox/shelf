@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
-  import { formatCurrency, formatCurrencyMajor } from '$lib/utils/format';
-  import { mountChartTooltip, type ChartTooltipHandle } from '$lib/utils/chartTooltip';
-  import { setupTooltipAutoHide } from '$lib/utils/chartTooltipAutoHide';
+  import { formatCurrencyMajor } from '$lib/utils/format';
 
   let {
     datasets = [],
@@ -26,8 +24,6 @@
   let chart:  ChartType | null = null;
   let observer: MutationObserver;
   let ChartCtor: typeof ChartType | null = null;
-  let tooltip: ChartTooltipHandle | null = null;
-  let disposeAutoHide: (() => void) | null = null;
 
   function css(name: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -47,62 +43,10 @@
     if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'k';
     return String(n);
   }
-  function tooltipFmt(n: number): string {
-    if (yFormat === 'currency') return formatCurrency(n);
-    return n.toLocaleString();
-  }
-
-  function hideTooltip() {
-    tooltip?.destroy();
-    tooltip = null;
-  }
-
-  function externalTooltip(context: any) {
-    const { chart: c, tooltip: t } = context;
-    if (!t || t.opacity === 0 || !c || !canvas) {
-      hideTooltip();
-      return;
-    }
-
-    const idx = t.dataPoints?.[0]?.dataIndex ?? 0;
-    const label = labels[idx] ?? '';
-    const dps = t.dataPoints ?? [];
-
-    let body = '';
-    for (const dp of dps) {
-      const ds = dp.dataset;
-      const v  = dp.parsed.y ?? 0;
-      body += `
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: ${ds.borderColor};"></span>
-          <span style="color: var(--text-3); font-size: 11.5px; flex: 1;">${ds.label}</span>
-          <span style="color: var(--text); font-weight: 600; font-size: 12.5px; font-variant-numeric: tabular-nums;">${tooltipFmt(v)}</span>
-        </div>`;
-    }
-
-    const html = `
-      <div style="padding: 2px 0 0;">
-        <div style="color: var(--text-3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px;">${label}</div>
-        ${body}
-      </div>
-    `;
-
-    if (tooltip) {
-      tooltip.reposition({ canvas, caretX: t.caretX, caretY: t.caretY, placement: 'auto' });
-      tooltip.el.innerHTML = html;
-    } else {
-      tooltip = mountChartTooltip(html, {
-        canvas,
-        caretX: t.caretX,
-        caretY: t.caretY,
-        placement: 'auto',
-      });
-    }
-  }
-
   function buildConfig(): ChartConfiguration<'line'> {
     const text3  = css('--text-3');
     const border = css('--border');
+    const surface = css('--surface');
 
     return {
       type: 'line',
@@ -145,8 +89,18 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: false,
-            external: externalTooltip as any,
+            enabled: true,
+            backgroundColor: surface,
+            borderColor: border,
+            borderWidth: 1,
+            titleColor: css('--text'),
+            bodyColor: text3,
+            padding: { top: 10, bottom: 10, left: 14, right: 14 },
+            cornerRadius: 10,
+            titleFont: { size: 11, weight: 600 },
+            bodyFont:  { size: 11, weight: 500 },
+            displayColors: true,
+            boxPadding: 6,
             mode: 'index',
             intersect: false,
           },
@@ -199,7 +153,6 @@
     rebuild();
     observer = new MutationObserver(rebuild);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    disposeAutoHide = setupTooltipAutoHide(canvas, hideTooltip);
   });
 
   $effect(() => {
@@ -217,8 +170,6 @@
   });
 
   onDestroy(() => {
-    disposeAutoHide?.();
-    hideTooltip();
     chart?.destroy();
     observer?.disconnect();
   });

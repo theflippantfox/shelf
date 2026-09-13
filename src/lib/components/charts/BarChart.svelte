@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
-  import { formatCurrency, formatCurrencyMajor } from '$lib/utils/format';
-  import { mountChartTooltip, type ChartTooltipHandle } from '$lib/utils/chartTooltip';
-  import { setupTooltipAutoHide } from '$lib/utils/chartTooltipAutoHide';
+  import { formatCurrencyMajor } from '$lib/utils/format';
 
   let {
     data           = [],
@@ -14,7 +12,6 @@
     yFormat        = 'number',
     showYAxis      = true,
     highlightLast  = false,
-    showYAxisLabel = '',
   }: {
     data?:           number[];
     labels?:         string[];
@@ -24,15 +21,12 @@
     yFormat?:        'number' | 'currency' | 'count';
     showYAxis?:      boolean;
     highlightLast?:  boolean;
-    showYAxisLabel?: string;
   } = $props();
 
   let canvas: HTMLCanvasElement;
   let chart:  ChartType | null = null;
   let observer: MutationObserver;
   let ChartCtor: typeof ChartType | null = null;
-  let tooltip: ChartTooltipHandle | null = null;
-  let disposeAutoHide: (() => void) | null = null;
 
   function css(name: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -52,51 +46,12 @@
     if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'k';
     return String(n);
   }
-  function tooltipFmt(n: number): string {
-    if (yFormat === 'currency') return formatCurrency(n);
-    return n.toLocaleString();
-  }
-
-  function hideTooltip() {
-    tooltip?.destroy();
-    tooltip = null;
-  }
-
-  function externalTooltip(context: any) {
-    const { chart: c, tooltip: t } = context;
-    if (!t || t.opacity === 0 || !c || !canvas) {
-      hideTooltip();
-      return;
-    }
-
-    const idx = t.dataPoints?.[0]?.dataIndex ?? 0;
-    const value = data[idx] ?? 0;
-    const label = labels[idx] ?? '';
-
-    const html = `
-      <div style="padding: 2px 0 0;">
-        <div style="color: var(--text-3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px;">${label}</div>
-        <div style="color: var(--text); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;">${tooltipFmt(value)}</div>
-      </div>
-    `;
-
-    if (tooltip) {
-      tooltip.reposition({ canvas, caretX: t.caretX, caretY: t.caretY, placement: 'auto' });
-      tooltip.el.innerHTML = html;
-    } else {
-      tooltip = mountChartTooltip(html, {
-        canvas,
-        caretX: t.caretX,
-        caretY: t.caretY,
-        placement: 'auto',
-      });
-    }
-  }
 
   function buildConfig(): ChartConfiguration<'bar'> {
     const barColor = resolveColor(color);
     const text3    = css('--text-3');
     const border   = css('--border');
+    const surface  = css('--surface');
 
     const colors = data.map((_, i) => {
       if (!highlightLast) return barColor;
@@ -132,8 +87,18 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: false,
-            external: externalTooltip as any,
+            enabled: true,
+            backgroundColor: surface,
+            borderColor: border,
+            borderWidth: 1,
+            titleColor: css('--text'),
+            bodyColor: text3,
+            padding: { top: 10, bottom: 10, left: 14, right: 14 },
+            cornerRadius: 10,
+            titleFont: { size: 11, weight: 600 },
+            bodyFont:  { size: 11, weight: 500 },
+            displayColors: true,
+            boxPadding: 6,
             mode: 'index',
             intersect: false,
           },
@@ -181,7 +146,6 @@
     rebuild();
     observer = new MutationObserver(rebuild);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    disposeAutoHide = setupTooltipAutoHide(canvas, hideTooltip);
   });
 
   $effect(() => {
@@ -203,8 +167,6 @@
   });
 
   onDestroy(() => {
-    disposeAutoHide?.();
-    hideTooltip();
     chart?.destroy();
     observer?.disconnect();
   });
