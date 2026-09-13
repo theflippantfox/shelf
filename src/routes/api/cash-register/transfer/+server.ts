@@ -14,7 +14,7 @@ import {
   apiForbidden,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
-import { ROLES } from "$lib/constants";
+import { ROLES, VALID_DESTINATIONS } from "$lib/constants";
 
 export async function POST({
   cookies,
@@ -46,8 +46,8 @@ export async function POST({
   const { from, to, amount, notes, effective_at } = body ?? {};
   if (!from || !to) return apiError("from and to are required", 400);
   if (
-    !["counter", "bank", "other"].includes(from) ||
-    !["counter", "bank", "other"].includes(to)
+    !VALID_DESTINATIONS.includes(from) ||
+    !VALID_DESTINATIONS.includes(to)
   ) {
     return apiError("Invalid destination", 400);
   }

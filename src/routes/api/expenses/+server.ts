@@ -1,5 +1,6 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
+import { PAYMENT_METHOD, DESTINATION, ENTRY_TYPE } from "$lib/constants";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -110,7 +111,7 @@ export async function POST({
 
  if (!isFinite(amount) || amount <= 0)
   throw error(400, "Amount must be a positive number");
- if (!["cash", "bank"].includes(method))
+ if (![PAYMENT_METHOD.CASH, PAYMENT_METHOD.BANK].includes(method as any))
   throw error(400, "method must be cash or bank");
  if (!description) throw error(400, "description is required");
  if (description.length > 200)
@@ -127,9 +128,9 @@ export async function POST({
   .from("cash_register")
   .insert({
    shop_id: shopId,
-   destination: method === "cash" ? "counter" : "bank",
+   destination: method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK,
    amount: -Math.abs(amount),
-   entry_type: "expense",
+   entry_type: ENTRY_TYPE.EXPENSE,
    source: "manual",
    notes,
    created_by: userId,
