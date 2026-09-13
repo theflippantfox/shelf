@@ -17,7 +17,12 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
-import { ADMIN_ROLES, ROLES, VALID_DESTINATIONS, ENTRY_TYPE } from "$lib/constants";
+import {
+ ADMIN_ROLES,
+ ROLES,
+ VALID_DESTINATIONS,
+ ENTRY_TYPE,
+} from "$lib/constants";
 import {
  apiError,
  apiForbidden,
@@ -102,7 +107,9 @@ export async function POST({
  }
  if (
   !entry_type ||
-  ![ENTRY_TYPE.EXPENSE, ENTRY_TYPE.INJECTION, ENTRY_TYPE.ADJUSTMENT].includes(entry_type)
+  ![ENTRY_TYPE.EXPENSE, ENTRY_TYPE.INJECTION, ENTRY_TYPE.ADJUSTMENT].includes(
+   entry_type,
+  )
  ) {
   return apiError(
    "Invalid entry_type (must be expense, injection, or adjustment)",
@@ -131,10 +138,16 @@ export async function POST({
  if (entry_type === ENTRY_TYPE.INJECTION && amount < 0)
   return apiError("Injection amount must be positive", 400);
 
- if (entry_type === ENTRY_TYPE.INJECTION && locals.shopMember?.role === ROLES.CASHIER) {
+ if (
+  entry_type === ENTRY_TYPE.INJECTION &&
+  locals.shopMember?.role === ROLES.CASHIER
+ ) {
   return apiForbidden("Only owners and managers can add injections");
  }
- if (entry_type === ENTRY_TYPE.ADJUSTMENT && locals.shopMember?.role === ROLES.CASHIER) {
+ if (
+  entry_type === ENTRY_TYPE.ADJUSTMENT &&
+  locals.shopMember?.role === ROLES.CASHIER
+ ) {
   return apiForbidden("Only owners and managers can add adjustments");
  }
 

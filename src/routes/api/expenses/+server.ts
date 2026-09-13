@@ -128,7 +128,8 @@ export async function POST({
   .from("cash_register")
   .insert({
    shop_id: shopId,
-   destination: method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK,
+   destination:
+    method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK,
    amount: -Math.abs(amount),
    entry_type: ENTRY_TYPE.EXPENSE,
    source: "manual",

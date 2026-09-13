@@ -18,7 +18,7 @@ import {
   apiUnauthorized,
   apiCreated,
 } from "$lib/server/apiResponse";
-import { ROLES } from "$lib/constants";
+import { ROLES, MEMBER_STATUS } from "$lib/constants";
 
 export async function GET({
   cookies,
@@ -132,17 +132,17 @@ export async function POST({
 
   if (existing) {
     const status = (existing as any).status;
-    if (status === "active")
+    if (status === MEMBER_STATUS.ACTIVE)
       return json(
         { error: `${cleanEmail} is already on your team.` },
         { status: 409 },
       );
-    if (status === "invited")
+    if (status === MEMBER_STATUS.INVITED)
       return json(
         { error: `${cleanEmail} already has a pending invite.` },
         { status: 409 },
       );
-    if (status === "suspended")
+    if (status === MEMBER_STATUS.SUSPENDED)
       return json(
         {
           error: `${cleanEmail} was removed; cancel and re-invite to restore access.`,
@@ -157,7 +157,7 @@ export async function POST({
     shop_id: locals.currentShop.id,
     user_id: found.id,
     role: role || "cashier",
-    status: "invited",
+    status: MEMBER_STATUS.INVITED,
     invited_by: locals.user.id,
     invited_at: new Date().toISOString(),
   };

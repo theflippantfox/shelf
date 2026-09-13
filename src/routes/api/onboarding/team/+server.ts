@@ -11,6 +11,7 @@ import { adminClient, userClientFromCtx } from "$lib/server/supabase";
 import { teamSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
 import { apiUnauthorized } from "$lib/server/apiResponse";
+import { MEMBER_STATUS } from "$lib/constants";
 
 export async function POST({
   cookies,
@@ -49,7 +50,7 @@ export async function POST({
         shop_id: locals.currentShop.id,
         user_id: created.user.id,
         role: invite.role ?? "cashier",
-        status: "active",
+        status: MEMBER_STATUS.ACTIVE,
       });
 
       if (memberErr) {

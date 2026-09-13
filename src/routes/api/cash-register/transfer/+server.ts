@@ -14,7 +14,7 @@ import {
   apiForbidden,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
-import { ROLES, VALID_DESTINATIONS } from "$lib/constants";
+import { ROLES, VALID_DESTINATIONS, MEMBER_STATUS } from "$lib/constants";
 
 export async function POST({
   cookies,
@@ -37,7 +37,7 @@ export async function POST({
     .eq("user_id", locals.user.id)
     .single();
   if (memberErr || !member) return apiForbidden("No membership");
-  if ((member as any).status !== "active")
+  if ((member as any).status !== MEMBER_STATUS.ACTIVE)
     return apiForbidden("Membership is not active");
   if ((member as any).role === ROLES.CASHIER)
     return apiForbidden("Only owners and managers can transfer");
@@ -45,10 +45,7 @@ export async function POST({
   const body = await request.json();
   const { from, to, amount, notes, effective_at } = body ?? {};
   if (!from || !to) return apiError("from and to are required", 400);
-  if (
-    !VALID_DESTINATIONS.includes(from) ||
-    !VALID_DESTINATIONS.includes(to)
-  ) {
+  if (!VALID_DESTINATIONS.includes(from) || !VALID_DESTINATIONS.includes(to)) {
     return apiError("Invalid destination", 400);
   }
   if (from === to)

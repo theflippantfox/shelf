@@ -1,6 +1,11 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { PAYMENT_METHOD, PO_PAYMENT_METHODS, PO_STATUS, DESTINATION } from "$lib/constants";
+import {
+  PAYMENT_METHOD,
+  PO_PAYMENT_METHODS,
+  PO_STATUS,
+  DESTINATION,
+} from "$lib/constants";
 
 /**
  * GET /api/purchase-orders/[id]/payments — list all payments for a PO.
@@ -111,7 +116,8 @@ export async function POST({
   let registerEntryId: string | null = null;
   if (method === PAYMENT_METHOD.CASH || method === PAYMENT_METHOD.BANK) {
     try {
-      const destination = method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK;
+      const destination =
+        method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK;
       const { data: reg, error: regErr } = await supabase
         .from("cash_register")
         .insert({
@@ -167,7 +173,10 @@ export async function POST({
           .from("cash_register")
           .insert({
             shop_id: shopId,
-            destination: method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK,
+            destination:
+              method === PAYMENT_METHOD.CASH
+                ? DESTINATION.COUNTER
+                : DESTINATION.BANK,
             amount: Math.abs(amount), // positive = reverse the negative
             entry_type: "adjustment",
             source: "manual",

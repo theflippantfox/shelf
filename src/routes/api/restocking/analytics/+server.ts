@@ -100,7 +100,7 @@ export async function GET({
     .from("purchase_orders")
     .select("total_cost")
     .eq("shop_id", shopId)
-    .in("status", ["draft", "ordered"]);
+    .in("status", [PO_STATUS.DRAFT, PO_STATUS.ORDERED]);
 
   const pendingOrdersValue = (pendingOrders as any[]).reduce(
     (sum, o) => sum + (o.total_cost || 0),

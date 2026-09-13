@@ -1,7 +1,12 @@
 import { json, error } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError } from "$lib/server/apiResponse";
-import { PAYMENT_METHOD, REFUND_METHODS, DESTINATION, ENTRY_TYPE } from "$lib/constants";
+import {
+  PAYMENT_METHOD,
+  REFUND_METHODS,
+  DESTINATION,
+  ENTRY_TYPE,
+} from "$lib/constants";
 
 /**
  * POST /api/sales/[id]/returns — process a return / refund.
@@ -217,9 +222,15 @@ export async function POST({
   // Wrapped in try/catch so a register-write failure doesn't roll back
   // the return itself — the customer still gets their money back,
   // and the register can be fixed by a manual entry.
-  if (refund_method === PAYMENT_METHOD.CASH || refund_method === PAYMENT_METHOD.BANK) {
+  if (
+    refund_method === PAYMENT_METHOD.CASH ||
+    refund_method === PAYMENT_METHOD.BANK
+  ) {
     try {
-      const destination = refund_method === PAYMENT_METHOD.CASH ? DESTINATION.COUNTER : DESTINATION.BANK;
+      const destination =
+        refund_method === PAYMENT_METHOD.CASH
+          ? DESTINATION.COUNTER
+          : DESTINATION.BANK;
       const { error: regErr } = await supabase.from("cash_register").insert({
         shop_id: shopId,
         destination,
@@ -284,7 +295,9 @@ export async function POST({
         (i) => i.condition === "resellable" || i.condition === "expired",
       ).length,
       damaged_count: items.filter((i) => i.condition === "damaged").length,
-      cash_refund: refund_method === PAYMENT_METHOD.CASH || refund_method === PAYMENT_METHOD.BANK,
+      cash_refund:
+        refund_method === PAYMENT_METHOD.CASH ||
+        refund_method === PAYMENT_METHOD.BANK,
     },
   });
 }

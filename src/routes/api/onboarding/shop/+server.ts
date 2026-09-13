@@ -3,6 +3,7 @@ import { adminClient } from "$lib/server/supabase";
 import { shopSchema } from "$lib/validators/schemas";
 import { parseBody } from "$lib/validators/parseBody";
 import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
+import { MEMBER_STATUS } from "$lib/constants";
 
 const SHOP_COOKIE = "shelf-current-shop";
 
@@ -72,7 +73,7 @@ export async function POST({
     shop_id: (shop as any).id,
     user_id: locals.user.id,
     role: "owner",
-    status: "active",
+    status: MEMBER_STATUS.ACTIVE,
     invited_at: new Date().toISOString(),
   });
 

@@ -10,6 +10,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { error, json } from "@sveltejs/kit";
 import { adminClient, userClient } from "./supabase";
 import type { Database } from "$lib/types/db";
+import { MEMBER_STATUS } from "$lib/constants";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Shop = Database["public"]["Tables"]["shops"]["Row"];
@@ -63,7 +64,7 @@ export async function getActiveMembership(
   .from("shop_members")
   .select("*")
   .eq("user_id", userId)
-  .eq("status", "active")
+  .eq("status", MEMBER_STATUS.ACTIVE)
   .limit(1);
  if (shopIdHint) q = q.eq("shop_id", shopIdHint);
 
@@ -113,7 +114,7 @@ export async function inviteTeammate(
   shop_id: shopId,
   user_id: userId,
   role,
-  status: "invited",
+  status: MEMBER_STATUS.INVITED,
   invited_at: new Date().toISOString(),
  });
  if (mErr) throw mErr;
@@ -172,7 +173,7 @@ export function requireRole(
  if (!locals.user) return json({ error: "Unauthorized" }, { status: 401 });
  if (!locals.shopMember)
   return json({ error: "No membership" }, { status: 403 });
- if (locals.shopMember.status !== "active")
+ if (locals.shopMember.status !== MEMBER_STATUS.ACTIVE)
   return json({ error: "Membership is not active" }, { status: 403 });
  if (!allowedRoles.includes(locals.shopMember.role as AllowedRole)) {
   return json({ error: "Insufficient permissions" }, { status: 403 });

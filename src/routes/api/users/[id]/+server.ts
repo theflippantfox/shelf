@@ -13,7 +13,7 @@ import {
   apiNotFound,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
-import { ROLES } from "$lib/constants";
+import { ROLES, MEMBER_STATUS } from "$lib/constants";
 
 export async function PATCH({
   cookies,
@@ -67,7 +67,7 @@ export async function DELETE({
   if (lookupErr || !row) return apiNotFound("Member");
 
   // Invited: hard-delete (so the email can be re-invited cleanly).
-  if ((row as any).status === "invited") {
+  if ((row as any).status === MEMBER_STATUS.INVITED) {
     const { error: delErr } = await admin
       .from("shop_members")
       .delete()
@@ -79,7 +79,7 @@ export async function DELETE({
   // Active: soft-suspend.
   const { data, error } = await admin
     .from("shop_members")
-    .update({ status: "suspended" })
+    .update({ status: MEMBER_STATUS.SUSPENDED })
     .eq("id", params.id)
     .select()
     .single();

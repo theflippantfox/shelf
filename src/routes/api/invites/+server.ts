@@ -8,6 +8,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
+import { MEMBER_STATUS } from "$lib/constants";
 
 export async function GET({
   cookies,
@@ -26,7 +27,7 @@ export async function GET({
       inviter:profiles!shop_members_invited_by_fkey(id, first_name, last_name)
     `)
     .eq("user_id", locals.user.id)
-    .eq("status", "invited")
+    .eq("status", MEMBER_STATUS.INVITED)
     .order("invited_at", { ascending: false });
 
   if (error) return apiError(error.message);
@@ -50,14 +51,14 @@ export async function POST({
   // restricting new status to 'active' or 'suspended'.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase: any = userClientFromCtx({ cookies });
-  const newStatus = action === "accept" ? "active" : "suspended";
+  const newStatus = action === "accept" ? MEMBER_STATUS.ACTIVE : MEMBER_STATUS.SUSPENDED;
 
   const { data, error } = await supabase
     .from("shop_members")
     .update({ status: newStatus })
     .eq("id", shop_member_id)
     .eq("user_id", locals.user.id) // belt-and-suspenders: only own row
-    .eq("status", "invited") // can't act on already-accepted
+    .eq("status", MEMBER_STATUS.INVITED) // can't act on already-accepted
     .select(`
       id, role, status, shop_id,
       shop:shops!shop_members_shop_id_fkey(id, name, slug)

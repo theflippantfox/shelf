@@ -27,6 +27,8 @@ export const CASHIER_CAPABLE_ROLES: AllowedRole[] = [
 
 // ── Purchase order statuses ────────────────────────────────────────────
 export const PO_STATUS = {
+ DRAFT: "draft",
+ ORDERED: "ordered",
  PENDING: "pending",
  PARTIAL: "partial",
  RECEIVED: "received",
@@ -109,3 +111,13 @@ export const ENTRY_TYPE = {
 } as const;
 
 export type EntryType = (typeof ENTRY_TYPE)[keyof typeof ENTRY_TYPE];
+
+// ── Membership statuses ────────────────────────────────────────────────
+export const MEMBER_STATUS = {
+ ACTIVE: "active",
+ INVITED: "invited",
+ SUSPENDED: "suspended",
+} as const;
+
+export type MemberStatus =
+ (typeof MEMBER_STATUS)[keyof typeof MEMBER_STATUS];

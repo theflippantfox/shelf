@@ -109,7 +109,7 @@ export async function DELETE({
     .eq("id", params.id)
     .single();
 
-  if (!current || !["draft", "ordered"].includes((current as any).status)) {
+  if (!current || ![PO_STATUS.DRAFT, PO_STATUS.ORDERED].includes((current as any).status)) {
     return apiError("Only draft or ordered POs can be cancelled", 400);
   }
 

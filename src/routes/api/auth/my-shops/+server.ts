@@ -6,6 +6,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
+import { MEMBER_STATUS } from "$lib/constants";
 
 export async function GET({
   cookies,
@@ -21,7 +22,7 @@ export async function GET({
       shop:shops!shop_members_shop_id_fkey(id, name, slug, currency_code, currency_symbol)
     `)
     .eq("user_id", locals.user.id)
-    .neq("status", "suspended")
+    .neq("status", MEMBER_STATUS.SUSPENDED)
     .order("status", { ascending: true }) // invited before active
     .order("role");
 

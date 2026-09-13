@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
+import { PO_STATUS } from "$lib/constants";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -82,7 +83,7 @@ export async function POST({
       shop_id: locals.currentShop.id,
       supplier_id: supplierStr,
       order_ref: body.order_ref?.trim() || genRef(),
-      status: body.status ?? "draft",
+      status: body.status ?? PO_STATUS.DRAFT,
       order_date: body.order_date,
       expected_delivery_date: body.expected_delivery_date || null,
       subtotal,
