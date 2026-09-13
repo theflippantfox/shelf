@@ -421,7 +421,7 @@
                     <p class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-1">Retail</p>
                     <p class="text-xl font-bold tabular-nums text-[var(--text)]">{formatCurrencyCompact(stockValue.retailValue)}</p>
                   </div>
-                  <div>
+                  <div class="text-right">
                     <p class="text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)] mb-1">Cost</p>
                     <p class="text-xl font-bold tabular-nums text-[var(--text-2)]">{formatCurrencyCompact(stockValue.costValue)}</p>
                   </div>
