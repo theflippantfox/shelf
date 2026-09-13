@@ -14,7 +14,6 @@
 
   const PAY_META: Record<string, { icon: any; label: string; color: string }> = {
     cash:     { icon: Banknote,        label: 'Cash',     color: 'var(--teal)'    },
-    // 'credit' is now "customer owes money" (not "card" — that was the old alias)
     credit:   { icon: Clock,           label: 'On credit', color: 'var(--gold)'    },
     transfer: { icon: ArrowLeftRight,  label: 'UPI',      color: 'var(--primary)' },
   };

@@ -42,15 +42,9 @@ export async function POST({
 
   const { shop_member_id, action } = await request.json();
   if (!shop_member_id || !action)
-    return apiError(
-      "shop_member_id and action are required",
-      400,
-    );
+    return apiError("shop_member_id and action are required", 400);
   if (action !== "accept" && action !== "decline")
-    return apiError(
-      'action must be "accept" or "decline"',
-      400,
-    );
+    return apiError('action must be "accept" or "decline"', 400);
 
   // RLS allows the invitee to update their own row when status='invited',
   // restricting new status to 'active' or 'suspended'.

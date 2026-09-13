@@ -56,8 +56,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop || !locals.user)
-    return apiUnauthorized("No shop");
+  if (!locals.currentShop || !locals.user) return apiUnauthorized("No shop");
 
   const {
     items,

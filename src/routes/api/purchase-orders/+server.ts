@@ -52,7 +52,8 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop || !locals.user) return apiUnauthorized("Unauthorized");
+  if (!locals.currentShop || !locals.user)
+    return apiUnauthorized("Unauthorized");
 
   const body = await request.json();
 

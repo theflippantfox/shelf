@@ -17,11 +17,13 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
+import { ADMIN_ROLES } from "$lib/constants";
+import { ROLES } from "$lib/constants";
 import {
-  apiError,
-  apiForbidden,
-  apiUnauthorized,
-  apiCreated,
+ apiError,
+ apiForbidden,
+ apiUnauthorized,
+ apiCreated,
 } from "$lib/server/apiResponse";
 
 /**
@@ -89,7 +91,7 @@ export async function POST({
  }
 
  // All entry types require owner or manager
- const deny = requireRole(locals, ["owner", "manager"]);
+ const deny = requireRole(locals, ADMIN_ROLES);
  if (deny) return deny;
 
  const body = await request.json();
@@ -130,10 +132,10 @@ export async function POST({
  if (entry_type === "injection" && amount < 0)
   return apiError("Injection amount must be positive", 400);
 
- if (entry_type === "injection" && locals.shopMember?.role === "cashier") {
+ if (entry_type === "injection" && locals.shopMember?.role === ROLES.CASHIER) {
   return apiForbidden("Only owners and managers can add injections");
  }
- if (entry_type === "adjustment" && locals.shopMember?.role === "cashier") {
+ if (entry_type === "adjustment" && locals.shopMember?.role === ROLES.CASHIER) {
   return apiForbidden("Only owners and managers can add adjustments");
  }
 

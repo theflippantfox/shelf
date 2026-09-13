@@ -13,6 +13,7 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { requireRole } from "$lib/server/auth";
+import { ADMIN_ROLES } from "$lib/constants";
 import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 
 export async function POST({
@@ -27,7 +28,7 @@ export async function POST({
  if (!params.id) return apiError("Missing id", 400);
 
  // Owner/manager only
- const deny = requireRole(locals, ["owner", "manager"]);
+ const deny = requireRole(locals, ADMIN_ROLES);
  if (deny) return deny;
 
  const body = await request.json();

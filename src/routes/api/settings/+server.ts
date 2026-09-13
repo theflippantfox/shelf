@@ -5,7 +5,12 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError, apiForbidden, apiUnauthorized } from "$lib/server/apiResponse";
+import {
+  apiError,
+  apiForbidden,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
+import { ROLES } from "$lib/constants";
 
 export async function PATCH({
   cookies,
@@ -13,7 +18,7 @@ export async function PATCH({
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop) return apiUnauthorized("No shop");
-  if (locals.shopMember?.role !== "owner")
+  if (locals.shopMember?.role !== ROLES.OWNER)
     return apiForbidden("Only owners can update shop settings");
 
   const body = await request.json();

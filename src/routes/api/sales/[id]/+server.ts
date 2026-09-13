@@ -9,7 +9,11 @@
  */
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError, apiNotFound, apiUnauthorized } from "$lib/server/apiResponse";
+import {
+  apiError,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 /**
  * GET /api/sales/[id]

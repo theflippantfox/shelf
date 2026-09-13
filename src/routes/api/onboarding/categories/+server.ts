@@ -13,8 +13,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop)
-    return apiUnauthorized("No shop context");
+  if (!locals.currentShop) return apiUnauthorized("No shop context");
 
   const parsed = await parseBody(request, categoriesSchema);
   if (!parsed.ok) return parsed.response;

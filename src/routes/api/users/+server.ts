@@ -15,10 +15,10 @@ import { adminClient, userClientFromCtx } from "$lib/server/supabase";
 import {
   apiError,
   apiForbidden,
-  apiNotFound,
   apiUnauthorized,
   apiCreated,
 } from "$lib/server/apiResponse";
+import { ROLES } from "$lib/constants";
 
 export async function GET({
   cookies,
@@ -86,13 +86,12 @@ export async function GET({
  * Owner only. Email must already have a Shëlf account.
  */
 export async function POST({
-  cookies,
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.currentShop || !locals.user)
     return apiUnauthorized("Unauthorized");
-  if (locals.shopMember?.role !== "owner")
+  if (locals.shopMember?.role !== ROLES.OWNER)
     return apiForbidden("Only owners can invite teammates");
 
   const { email, role } = await request.json();

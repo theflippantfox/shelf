@@ -2,11 +2,7 @@ import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
 import { parseBody } from "$lib/validators/parseBody";
 import { customerCreateSchema } from "$lib/validators/schemas";
-import {
-  apiError,
-  apiUnauthorized,
-  apiCreated,
-} from "$lib/server/apiResponse";
+import { apiError, apiUnauthorized, apiCreated } from "$lib/server/apiResponse";
 
 /**
  * GET /api/customers — list for current shop, with optional search.

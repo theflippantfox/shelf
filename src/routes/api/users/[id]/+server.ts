@@ -13,6 +13,7 @@ import {
   apiNotFound,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
+import { ROLES } from "$lib/constants";
 
 export async function PATCH({
   cookies,
@@ -22,7 +23,7 @@ export async function PATCH({
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.id) return apiError("Missing id", 400);
   if (!locals.currentShop) return apiUnauthorized("No shop");
-  if (locals.shopMember?.role !== "owner")
+  if (locals.shopMember?.role !== ROLES.OWNER)
     return apiForbidden("Only owners can update team members");
 
   const body = await request.json();
@@ -51,7 +52,7 @@ export async function DELETE({
 }: import("@sveltejs/kit").RequestEvent) {
   if (!params.id) return apiError("Missing id", 400);
   if (!locals.currentShop) return apiUnauthorized("No shop");
-  if (locals.shopMember?.role !== "owner")
+  if (locals.shopMember?.role !== ROLES.OWNER)
     return apiForbidden("Only owners can remove team members");
 
   // Look up the row to decide cancel-vs-suspend.

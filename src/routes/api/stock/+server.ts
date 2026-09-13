@@ -1,6 +1,10 @@
 import { json } from "@sveltejs/kit";
 import { userClientFromCtx } from "$lib/server/supabase";
-import { apiError, apiNotFound, apiUnauthorized } from "$lib/server/apiResponse";
+import {
+  apiError,
+  apiNotFound,
+  apiUnauthorized,
+} from "$lib/server/apiResponse";
 
 /**
  * POST /api/stock — adjust stock for a product.
@@ -16,8 +20,7 @@ export async function POST({
   request,
   locals,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.currentShop || !locals.user)
-    return apiUnauthorized("No shop");
+  if (!locals.currentShop || !locals.user) return apiUnauthorized("No shop");
 
   const { product_id, delta, reason, reference } = await request.json();
   if (!product_id || !delta || !reason)
@@ -32,8 +35,7 @@ export async function POST({
     .select("id, qty")
     .eq("id", product_id)
     .single();
-  if (readErr || !product)
-    return apiNotFound("Product");
+  if (readErr || !product) return apiNotFound("Product");
 
   const newQty = Math.max(0, product.qty + delta);
 

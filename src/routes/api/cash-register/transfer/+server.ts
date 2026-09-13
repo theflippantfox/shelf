@@ -14,6 +14,7 @@ import {
   apiForbidden,
   apiUnauthorized,
 } from "$lib/server/apiResponse";
+import { ROLES } from "$lib/constants";
 
 export async function POST({
   cookies,
@@ -38,7 +39,7 @@ export async function POST({
   if (memberErr || !member) return apiForbidden("No membership");
   if ((member as any).status !== "active")
     return apiForbidden("Membership is not active");
-  if ((member as any).role === "cashier")
+  if ((member as any).role === ROLES.CASHIER)
     return apiForbidden("Only owners and managers can transfer");
 
   const body = await request.json();

@@ -15,8 +15,7 @@ export async function POST({
   locals,
   cookies,
 }: import("@sveltejs/kit").RequestEvent) {
-  if (!locals.user)
-    return apiUnauthorized("Not authenticated");
+  if (!locals.user) return apiUnauthorized("Not authenticated");
 
   const parsed = await parseBody(request, shopSchema);
   if (!parsed.ok) return parsed.response;
@@ -36,8 +35,7 @@ export async function POST({
     .eq("slug", finalSlug)
     .maybeSingle();
 
-  if (existing)
-    return apiError("That handle is already taken", 409);
+  if (existing) return apiError("That handle is already taken", 409);
 
   const { data: shop, error: shopErr } = await admin
     .from("shops")
@@ -67,10 +65,7 @@ export async function POST({
     .single();
 
   if (shopErr || !shop)
-    return apiError(
-      shopErr?.message ?? "Failed to create shop",
-      500,
-    );
+    return apiError(shopErr?.message ?? "Failed to create shop", 500);
 
   // Add the creator as owner
   const { error: memberErr } = await admin.from("shop_members").insert({
