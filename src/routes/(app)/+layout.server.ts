@@ -12,7 +12,7 @@ const ONBOARDING_STEPS: Record<string, string> = {
   complete:   '/onboarding/complete',
 };
 
-export async function load({ cookies, locals, url }) {
+export async function load({ cookies, locals, url }: import('@sveltejs/kit').RequestEvent) {
   if (!locals.user) {
     throw redirect(302, `/login?next=${encodeURIComponent(url.pathname)}`);
   }
