@@ -22,6 +22,10 @@ import {
 } from "$env/static/public";
 import type { Database } from "$lib/types/db";
 
+// Custom header set by API clients (Flutter app) to select the active shop.
+const SHOP_HEADER = "x-shop-id";
+const SHOP_COOKIE = "shelf-current-shop";
+
 /**
  * Service-role client — bypasses RLS. Use for auth.admin.* only.
  */
@@ -82,5 +86,41 @@ export function userClientFromCtx(ctx: {
             },
          },
       },
+   );
+}
+
+/**
+ * User-scoped client from a Bearer token (for API clients like the Flutter app).
+ *
+ * Creates a Supabase client that uses the provided JWT for auth instead of cookies.
+ * RLS policies work the same way — auth.uid() is extracted from the JWT.
+ */
+export function userClientFromToken(token: string): SupabaseClient<Database> {
+   return createClient<Database>(
+      PUBLIC_SUPABASE_URL,
+      PUBLIC_SUPABASE_ANON_KEY,
+      {
+         global: {
+            headers: {
+               Authorization: `Bearer ${token}`,
+            },
+         },
+         auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+         },
+      },
+   );
+}
+
+/**
+ * Resolve the shop ID from a request event.
+ * Checks the x-shop-id header first (API clients), then the shelf-current-shop cookie (web).
+ */
+export function resolveShopId(event: RequestEvent): string | null {
+   return (
+      event.request.headers.get(SHOP_HEADER) ??
+      event.cookies.get(SHOP_COOKIE) ??
+      null
    );
 }
