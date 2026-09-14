@@ -93,7 +93,8 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
       const res = await fetch('/api/products?limit=20');
       if (res.ok) {
         const d = await res.json();
-        products = d.products ?? d ?? [];
+        // API returns { data: [...], meta: {...} } — extract the array
+        products = d.data ?? d.products ?? (Array.isArray(d) ? d : []);
       }
     } catch { /* offline or auth not yet ready */ }
 

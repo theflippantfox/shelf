@@ -49,7 +49,7 @@
 
   // Dynamic results — products for quick add to a new sale
   const productResults = $derived<CmdAction[]>(
-    (products ?? [])
+    (Array.isArray(products) ? products : [])
       .filter((p: any) => p?.name && p.name.toLowerCase().includes(query.toLowerCase()))
       .slice(0, 6)
       .map((p: any) => ({

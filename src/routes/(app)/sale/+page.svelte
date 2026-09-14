@@ -110,6 +110,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
   // mutations propagate via the shared store).
   const products = $derived.by(() => {
     let list = invStore.all as any[];
+    if (!Array.isArray(list)) list = [];
     if (filterCat) {
       list = list.filter(p => (p.category?.id ?? p.category) === filterCat);
     }
@@ -121,7 +122,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
         ],
       });
     }
-    return list;
+    return list ?? [];
   });
 
   /** Index for quick lookup of cart-quantity by product id (for the +/- steppers) */
@@ -133,7 +134,8 @@ import { register as regStore } from "$lib/stores/register.svelte";
 
   /* ── Derived: filtered customers ───────────────────────────────────────── */
   const filteredCustomers = $derived.by(() => {
-    const list = custStore.all as any[];
+    const raw = custStore.all as any[];
+    const list = Array.isArray(raw) ? raw : [];
     if (!customerSearch.trim()) return list.slice(0, 8);
     return fuzzyFilter(list, customerSearch, {
       fields: [
@@ -613,7 +615,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
       <Package size={11} strokeWidth={2} />
       All
     </button>
-    {#each data.categories as cat}
+    {#each (data.categories ?? []) as cat}
       {@const catId = (cat as any).id}
       {@const active = filterCat === catId}
       <button
@@ -758,7 +760,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
 >
   <!-- Items -->
   <div class="flex flex-col gap-2 -mx-2">
-    {#each cart.items as item (item.productId)}
+    {#each (cart.items ?? []) as item (item.productId)}
       <div class="flex items-center gap-2.5 p-2.5 rounded-lg bg-[var(--surface2)]">
         <div class="flex-1 min-w-0">
           <p class="text-[13px] font-semibold truncate">{item.name}</p>
@@ -1233,7 +1235,7 @@ import { register as regStore } from "$lib/stores/register.svelte";
       </div>
     {:else}
       <ul class="space-y-2">
-        {#each heldList as h (h.id)}
+        {#each (heldList ?? []) as h (h.id)}
           {@const itemsLabel = h.items.length === 1 ? '1 item' : `${h.items.length} items`}
           <li class="rounded-xl p-3 space-y-2"
               style="background:var(--surface2)">

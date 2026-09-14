@@ -14,38 +14,35 @@ export async function load({
   const mode = url.searchParams.get("mode");
   const editId = url.searchParams.get("id");
 
-  const [
-    { data: products = [] },
-    { data: categories = [] },
-    { data: customers = [] },
-  ] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        "id, name, sku, price, qty, image_url, barcode, category_id, category:categories(id, name, color, icon)",
-      )
-      .eq("shop_id", shopId)
-      .is("archived_at", null)
-      .gt("qty", 0)
-      .order("name"),
-    supabase
-      .from("categories")
-      .select("*")
-      .eq("shop_id", shopId)
-      .is("archived_at", null)
-      .order("sort_order")
-      .order("name"),
-    supabase
-      .from("customers")
-      .select("id, name, phone")
-      .eq("shop_id", shopId)
-      .order("name"),
-  ]);
+  const [{ data: products }, { data: categories }, { data: customers }] =
+    await Promise.all([
+      supabase
+        .from("products")
+        .select(
+          "id, name, sku, price, qty, image_url, barcode, category_id, category:categories(id, name, color, icon)",
+        )
+        .eq("shop_id", shopId)
+        .is("archived_at", null)
+        .gt("qty", 0)
+        .order("name"),
+      supabase
+        .from("categories")
+        .select("*")
+        .eq("shop_id", shopId)
+        .is("archived_at", null)
+        .order("sort_order")
+        .order("name"),
+      supabase
+        .from("customers")
+        .select("id, name, phone")
+        .eq("shop_id", shopId)
+        .order("name"),
+    ]);
 
   const base = {
-    products,
-    categories,
-    customers,
+    products: products ?? [],
+    categories: categories ?? [],
+    customers: customers ?? [],
     taxRate: locals.currentShop!.tax_rate,
     taxInclusive: locals.currentShop!.tax_inclusive,
     taxName: locals.currentShop!.tax_name,

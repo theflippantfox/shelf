@@ -4,18 +4,17 @@
  * shop-switcher dropdown.
  */
 import { json } from "@sveltejs/kit";
-import { userClientFromCtx } from "$lib/server/supabase";
+import { adminClient } from "$lib/server/supabase";
 import { apiError, apiUnauthorized } from "$lib/server/apiResponse";
 import { MEMBER_STATUS } from "$lib/constants";
 
-export async function GET({
-  cookies,
-  locals,
-}: import("@sveltejs/kit").RequestEvent) {
+export async function GET({ locals }: import("@sveltejs/kit").RequestEvent) {
   if (!locals.user) return apiUnauthorized("Not signed in");
 
-  const supabase = userClientFromCtx({ cookies } as any);
-  const { data, error } = await supabase
+  // Use admin client — auth is already verified by hooks middleware.
+  // userClientFromCtx needs cookies which don't exist for bearer-token auth.
+  const admin: any = adminClient();
+  const { data, error } = await admin
     .from("shop_members")
     .select(`
       role, status, invited_at,
