@@ -651,7 +651,7 @@
             <div class="col-span-12 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-5">
               <div class="flex items-center gap-2 mb-4">
                 <Clock size={16} strokeWidth={2} style="color:var(--gold)" />
-                <h2 class="text-sm font-semibold text-[var(--text)]">Outstanding Credit</h2>
+                <h2 class="text-sm font-semibold text-[var(--text)]">Payment Due</h2>
                 <span class="ml-auto text-lg font-bold tabular-nums" style="color:var(--gold-fg)">{formatCurrencyCompact(analytics.outstanding.total)}</span>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -674,7 +674,7 @@
                       {/each}
                     </ul>
                   {:else}
-                    <span class="text-sm text-[var(--text-3)]">No outstanding credit</span>
+                    <span class="text-sm text-[var(--text-3)]">No outstanding payments</span>
                   {/if}
                 </div>
               </div>
