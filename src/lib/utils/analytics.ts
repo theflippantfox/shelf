@@ -273,7 +273,7 @@ export function buildPaymentMethods(sales: any[]): PaymentRow[] {
     map[m].count   += 1;
   }
   const total = Object.values(map).reduce((s, r) => s + r.revenue, 0);
-  const LABELS: Record<string, string> = { cash: 'Cash', credit: 'Card / Credit', transfer: 'Bank Transfer' };
+  const LABELS: Record<string, string> = { cash: 'Cash', credit: 'Payment Due', transfer: 'Bank Transfer' };
 
   return Object.entries(map)
     .map(([method, d]) => ({
