@@ -44,9 +44,16 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
 
   // Offline-first hydration: populate stores from IndexedDB before
   // server payload lands, so offline users see data immediately.
+  // Only hydrate once on mount — the $effect.pre above handles
+  // server-fresh data on every navigation, and the polling below
+  // only re-hydrates when a background sync has actually completed.
+  let cacheHydrated = false;
   $effect(() => {
-    void invStore.hydrateFromCache();
-    void custStore.hydrateFromCache();
+    if (!cacheHydrated) {
+      cacheHydrated = true;
+      void invStore.hydrateFromCache();
+      void custStore.hydrateFromCache();
+    }
 
     let lastSync = offlineSync.lastSyncAt;
     const poll = setInterval(() => {
@@ -55,11 +62,15 @@ import { readAnalyticsCache, writeAnalyticsCache, buildAnalyticsCacheKey } from 
         void invStore.hydrateFromCache();
         void custStore.hydrateFromCache();
       }
-    }, 2000);
+    }, 5000);
     return () => clearInterval(poll);
   });
 
+  // Flush pending ops once on mount — not on every render.
+  let flushed = false;
   $effect(() => {
+    if (flushed) return;
+    flushed = true;
     void offlineSync.flushPendingSales();
     void offlineSync.flushPendingOps();
     void offlineSync.refreshAllCaches();

@@ -49,6 +49,15 @@ class CustomersStore {
   }
   replaceAll(items: any[]) {
     const snapshot = Array.isArray(items) ? items : [];
+    const cur = this.#items;
+    if (
+      cur.length === snapshot.length &&
+      cur.length > 0 &&
+      snapshot.length > 0 &&
+      cur[0]?.id === snapshot[0]?.id
+    ) {
+      return;
+    }
     this.#items = snapshot;
     // Write-through: keep IDB in sync so offline reads are fresh.
     // Uses a module-level static import (not dynamic) to avoid

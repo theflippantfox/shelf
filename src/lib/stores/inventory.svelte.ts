@@ -124,6 +124,18 @@ class InventoryStore {
   /** Force-replace the array. Use after a full server refresh. */
   replaceAll(items: any[]) {
     const snapshot = Array.isArray(items) ? items : [];
+    // Skip if the data hasn't actually changed (same length + same first id).
+    // This avoids pointless re-renders and IDB writes when the layout
+    // effect re-runs but the server payload is identical.
+    const cur = this.#items;
+    if (
+      cur.length === snapshot.length &&
+      cur.length > 0 &&
+      snapshot.length > 0 &&
+      cur[0]?.id === snapshot[0]?.id
+    ) {
+      return;
+    }
     this.#items = snapshot;
     // Write-through: keep IDB in sync so offline reads are fresh.
     // Uses a module-level static import (not dynamic) to avoid
