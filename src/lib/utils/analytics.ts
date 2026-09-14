@@ -269,7 +269,15 @@ export function buildPaymentMethods(sales: any[]): PaymentRow[] {
   for (const s of sales) {
     const m = s.payment_method ?? 'cash';
     if (!map[m]) map[m] = { revenue: 0, count: 0 };
-    map[m].revenue += s.total;
+    // For credit sales, only count the unpaid portion as 'Payment Due'
+    // (the paid portion was already received as cash/bank at time of sale)
+    if (m === 'credit') {
+      const paid = Number(s.credit_amount_paid ?? 0);
+      const unpaid = Math.max(0, Number(s.total) - paid);
+      map[m].revenue += unpaid;
+    } else {
+      map[m].revenue += Number(s.total);
+    }
     map[m].count   += 1;
   }
   const total = Object.values(map).reduce((s, r) => s + r.revenue, 0);
