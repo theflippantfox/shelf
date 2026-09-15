@@ -9,7 +9,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
@@ -38,12 +37,8 @@ import {
   Package,
   IndianRupee,
   Users,
-  LayoutGrid,
   TrendingUp,
   BarChart3,
-  History,
-  Calculator,
-  Grid3X3,
 } from 'lucide-react-native';
 
 export function DashboardScreen() {
@@ -134,38 +129,6 @@ export function DashboardScreen() {
     },
   ];
 
-  // Quick actions
-  const quickActions = [
-    {
-      id: 'pos',
-      label: 'POS',
-      icon: ShoppingCart,
-      color: '#14B8A6',
-      onPress: () => navigation.navigate('POS'),
-    },
-    {
-      id: 'inventory',
-      label: 'Inventory',
-      icon: Grid3X3,
-      color: '#8B5CF6',
-      onPress: () => navigation.navigate('Inventory'),
-    },
-    {
-      id: 'history',
-      label: 'History',
-      icon: History,
-      color: '#F59E0B',
-      onPress: () => navigation.navigate('History'),
-    },
-    {
-      id: 'cash',
-      label: 'Cash',
-      icon: Calculator,
-      color: '#EF4444',
-      onPress: () => navigation.navigate('CashRegister'),
-    },
-  ];
-
   // Greeting
   const hour = new Date().getHours();
   const greeting =
@@ -206,56 +169,6 @@ export function DashboardScreen() {
           }}>
           {stats.map(stat => (
             <HeroStatCard key={stat.label} {...stat} style={{width: '47.5%'}} />
-          ))}
-        </View>
-      </View>
-
-      {/* ── Quick Actions ──────────────────────────────── */}
-      <View style={{marginTop: spacing.xxl, paddingHorizontal: spacing.xl}}>
-        <SectionHeader
-          title="Quick actions"
-          icon={<LayoutGrid size={16} color={tokens.text3} strokeWidth={2} />}
-        />
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: spacing.md,
-          }}>
-          {quickActions.map(action => (
-            <TouchableOpacity
-              key={action.id}
-              activeOpacity={0.7}
-              onPress={action.onPress}
-              style={{flex: 1}}>
-              <Card
-                variant="outlined"
-                style={{
-                  alignItems: 'center',
-                  padding: spacing.lg,
-                  borderRadius: radii.lg,
-                  borderWidth: 1,
-                }}>
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: radii.md,
-                    backgroundColor: action.color + '12',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: spacing.sm,
-                  }}>
-                  <action.icon
-                    size={22}
-                    color={action.color}
-                    strokeWidth={1.75}
-                  />
-                </View>
-                <Text style={[typeScale.caption, {color: tokens.text}]}>
-                  {action.label}
-                </Text>
-              </Card>
-            </TouchableOpacity>
           ))}
         </View>
       </View>
