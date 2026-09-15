@@ -444,7 +444,12 @@ export function POSScreen() {
           </Text>
           {cart.length > 0 && (
             <TouchableOpacity onPress={clearCart}>
-              <Text style={{color: '#EF4444', ...typeScale.body, fontWeight: '600'}}>
+              <Text
+                style={{
+                  color: '#EF4444',
+                  ...typeScale.body,
+                  fontWeight: '600',
+                }}>
                 Clear
               </Text>
             </TouchableOpacity>
@@ -452,6 +457,7 @@ export function POSScreen() {
         </View>
 
         <FlatList
+          key="scanner-cart"
           data={cart}
           keyExtractor={c => c.product.id}
           contentContainerStyle={[
@@ -461,7 +467,8 @@ export function POSScreen() {
           ListEmptyComponent={
             <View style={styles.scannerCartEmpty}>
               <ScanLine size={32} color={tokens.text3} strokeWidth={1.5} />
-              <Text style={[styles.scannerCartEmptyText, {color: tokens.text3}]}>
+              <Text
+                style={[styles.scannerCartEmptyText, {color: tokens.text3}]}>
                 Scan a barcode to add items
               </Text>
             </View>
@@ -478,10 +485,7 @@ export function POSScreen() {
             ]}>
             {/* Total */}
             <View
-              style={[
-                styles.scannerTotalRow,
-                {borderTopColor: tokens.border},
-              ]}>
+              style={[styles.scannerTotalRow, {borderTopColor: tokens.border}]}>
               <Text style={[styles.scannerTotalLabel, {color: tokens.text2}]}>
                 Total
               </Text>
@@ -603,6 +607,7 @@ export function POSScreen() {
 
       {/* Product grid */}
       <FlatList
+        key="pos-grid"
         data={filtered}
         renderItem={renderProduct}
         keyExtractor={item => item.id}
@@ -658,8 +663,7 @@ export function POSScreen() {
             <View
               style={[styles.cartHeader, {borderBottomColor: tokens.border}]}>
               <TouchableOpacity onPress={() => setCartVisible(false)}>
-                <Text
-                  style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
+                <Text style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -679,26 +683,21 @@ export function POSScreen() {
               contentContainerStyle={styles.cartItems}
               ListEmptyComponent={
                 <View style={styles.cartEmpty}>
-                  <Text
-                    style={[styles.cartEmptyText, {color: tokens.text3}]}>
+                  <Text style={[styles.cartEmptyText, {color: tokens.text3}]}>
                     Cart is empty
                   </Text>
                 </View>
               }
               renderItem={({item: c}) => (
                 <View
-                  style={[
-                    styles.cartItem,
-                    {borderBottomColor: tokens.border},
-                  ]}>
+                  style={[styles.cartItem, {borderBottomColor: tokens.border}]}>
                   <View style={styles.cartItemInfo}>
                     <Text
                       style={[styles.cartItemName, {color: tokens.text}]}
                       numberOfLines={1}>
                       {c.product.name}
                     </Text>
-                    <Text
-                      style={[styles.cartItemSku, {color: tokens.text3}]}>
+                    <Text style={[styles.cartItemSku, {color: tokens.text3}]}>
                       {c.product.sku}
                     </Text>
                   </View>
@@ -712,11 +711,8 @@ export function POSScreen() {
                           borderColor: tokens.border,
                         },
                       ]}
-                      onPress={() =>
-                        updateCartQty(c.product.id, c.qty - 1)
-                      }>
-                      <Text
-                        style={[styles.qtyBtnText, {color: tokens.text}]}>
+                      onPress={() => updateCartQty(c.product.id, c.qty - 1)}>
+                      <Text style={[styles.qtyBtnText, {color: tokens.text}]}>
                         \u2212
                       </Text>
                     </TouchableOpacity>
@@ -731,21 +727,15 @@ export function POSScreen() {
                           borderColor: tokens.border,
                         },
                       ]}
-                      onPress={() =>
-                        updateCartQty(c.product.id, c.qty + 1)
-                      }>
-                      <Text
-                        style={[styles.qtyBtnText, {color: tokens.text}]}>
+                      onPress={() => updateCartQty(c.product.id, c.qty + 1)}>
+                      <Text style={[styles.qtyBtnText, {color: tokens.text}]}>
                         +
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   <Text
-                    style={[
-                      styles.cartItemTotal,
-                      {color: tokens.navAccent},
-                    ]}>
+                    style={[styles.cartItemTotal, {color: tokens.navAccent}]}>
                     {shop
                       ? formatPrice(c.product.price * c.qty, shop)
                       : `\u20B9${c.product.price * c.qty}`}
@@ -755,11 +745,7 @@ export function POSScreen() {
             />
 
             {/* Discount */}
-            <View
-              style={[
-                styles.discountRow,
-                {borderTopColor: tokens.border},
-              ]}>
+            <View style={[styles.discountRow, {borderTopColor: tokens.border}]}>
               <Text style={[styles.discountLabel, {color: tokens.text2}]}>
                 Discount
               </Text>
@@ -783,8 +769,7 @@ export function POSScreen() {
                     style={[
                       styles.discountTypeText,
                       {
-                        color:
-                          discountType === 'none' ? tokens.text2 : '#fff',
+                        color: discountType === 'none' ? tokens.text2 : '#fff',
                       },
                     ]}>
                     {discountType === 'none'
@@ -812,10 +797,7 @@ export function POSScreen() {
 
             {/* Totals */}
             <View
-              style={[
-                styles.totalsSection,
-                {borderTopColor: tokens.border},
-              ]}>
+              style={[styles.totalsSection, {borderTopColor: tokens.border}]}>
               <View style={styles.totalRow}>
                 <Text style={[styles.totalLabel, {color: tokens.text2}]}>
                   Subtotal
@@ -852,10 +834,7 @@ export function POSScreen() {
                   Total
                 </Text>
                 <Text
-                  style={[
-                    styles.totalValueFinal,
-                    {color: tokens.navAccent},
-                  ]}>
+                  style={[styles.totalValueFinal, {color: tokens.navAccent}]}>
                   {shop ? formatPrice(total, shop) : `\u20B9${total}`}
                 </Text>
               </View>
@@ -896,13 +875,9 @@ export function POSScreen() {
         onRequestClose={() => setCheckoutVisible(false)}>
         <View style={[styles.checkoutContainer, {backgroundColor: tokens.bg}]}>
           <View
-            style={[
-              styles.checkoutHeader,
-              {borderBottomColor: tokens.border},
-            ]}>
+            style={[styles.checkoutHeader, {borderBottomColor: tokens.border}]}>
             <TouchableOpacity onPress={() => setCheckoutVisible(false)}>
-              <Text
-                style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
+              <Text style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
                 Back
               </Text>
             </TouchableOpacity>
@@ -914,12 +889,8 @@ export function POSScreen() {
 
           <View style={styles.checkoutBody}>
             <View
-              style={[
-                styles.totalDisplay,
-                {backgroundColor: tokens.surface2},
-              ]}>
-              <Text
-                style={[styles.totalDisplayLabel, {color: tokens.text3}]}>
+              style={[styles.totalDisplay, {backgroundColor: tokens.surface2}]}>
+              <Text style={[styles.totalDisplayLabel, {color: tokens.text3}]}>
                 Amount Due
               </Text>
               <Text
@@ -953,17 +924,14 @@ export function POSScreen() {
                   onPress={() => setPaymentMethod(pm.id)}>
                   <pm.Icon
                     size={16}
-                    color={
-                      paymentMethod === pm.id ? '#fff' : tokens.text
-                    }
+                    color={paymentMethod === pm.id ? '#fff' : tokens.text}
                     strokeWidth={2}
                   />
                   <Text
                     style={[
                       styles.paymentMethodText,
                       {
-                        color:
-                          paymentMethod === pm.id ? '#fff' : tokens.text,
+                        color: paymentMethod === pm.id ? '#fff' : tokens.text,
                       },
                     ]}>
                     {pm.label}
@@ -983,9 +951,7 @@ export function POSScreen() {
               {submitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmButtonText}>
-                  Confirm Payment
-                </Text>
+                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
               )}
             </TouchableOpacity>
           </View>
