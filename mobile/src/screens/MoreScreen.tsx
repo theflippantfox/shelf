@@ -16,11 +16,8 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {Card, Avatar, SectionHeader, TopBar} from '../components/ui';
 import {spacing, radii, shadows, typeScale} from '../theme';
-import {PALETTES} from '../theme/palettes';
 import {
   Palette,
-  Sun,
-  Moon,
   Store,
   Banknote,
   BarChart3,
@@ -45,7 +42,7 @@ interface SettingItem {
 }
 
 export function MoreScreen() {
-  const {tokens, paletteId, setPaletteId, isDark, setMode, palette} =
+  const {tokens, isDark, palette} =
     useTheme();
   const {shop, user, logout} = useAuth();
   const insets = useSafeAreaInsets();
@@ -58,25 +55,15 @@ export function MoreScreen() {
     ]);
   };
 
-  const toggleTheme = () => {
-    setMode(isDark ? 'light' : 'dark');
-  };
-
   const iconSize = 20;
 
   const settings: SettingItem[] = [
     {
       Icon: Palette,
       iconColor: palette.accent,
-      label: 'Palette',
-      value: palette.name,
-      onPress: () => {},
-    },
-    {
-      Icon: isDark ? Sun : Moon,
-      iconColor: isDark ? '#F59E0B' : '#6366F1',
-      label: isDark ? 'Light Mode' : 'Dark Mode',
-      onPress: toggleTheme,
+      label: 'Appearance',
+      value: `${palette.name} · ${isDark ? 'Dark' : 'Light'}`,
+      onPress: () => navigation.navigate('Appearance'),
     },
   ];
 
@@ -238,60 +225,8 @@ export function MoreScreen() {
         </View>
       )}
 
-      {/* Palette picker */}
-      <View style={styles.section}>
-        <SectionHeader title="Palette" />
-        <Card variant="outlined" padding={0} style={styles.sectionCard}>
-          {PALETTES.map((p, i) => (
-            <TouchableOpacity
-              key={p.id}
-              onPress={() => setPaletteId(p.id)}
-              style={[
-                styles.paletteRow,
-                i < PALETTES.length - 1 && {
-                  borderBottomColor: tokens.border,
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                },
-              ]}
-              activeOpacity={0.6}>
-              <View
-                style={[
-                  styles.paletteDot,
-                  {backgroundColor: p.accent},
-                  paletteId === p.id && {
-                    borderColor: tokens.text,
-                    borderWidth: 2,
-                  },
-                ]}
-              />
-              <View style={{flex: 1}}>
-                <Text
-                  style={[
-                    styles.paletteName,
-                    {
-                      color:
-                        paletteId === p.id ? tokens.text : tokens.text2,
-                    },
-                  ]}>
-                  {p.name}
-                </Text>
-                <Text style={[styles.paletteTagline, {color: tokens.text3}]}>
-                  {p.tagline}
-                </Text>
-              </View>
-              {paletteId === p.id && (
-                <View
-                  style={[styles.checkCircle, {backgroundColor: tokens.navAccent}]}>
-                  <Text style={styles.checkMark}>✓</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </Card>
-      </View>
-
-      {/* Appearance */}
-      {renderSection('Appearance', settings)}
+      {/* Settings */}
+      {renderSection('Settings', settings)}
 
       {/* Shop Settings (read-only — edit on web) */}
       {shopSettings.length > 0 && renderSection('Shop Settings', shopSettings)}
