@@ -174,7 +174,12 @@ export function CustomersScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.6}
-        onPress={() => navigation.navigate('CustomerDetail' as never, {customerId: item.id, customerName: item.name} as never)}
+        onPress={() =>
+          navigation.navigate(
+            'CustomerDetail' as never,
+            {customerId: item.id, customerName: item.name} as never,
+          )
+        }
         style={[
           styles.customerCard,
           {backgroundColor: tokens.surface, borderColor: tokens.border},

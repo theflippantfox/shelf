@@ -24,9 +24,11 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
+import {BarcodeScannerModal} from '../components/BarcodeScannerModal';
 import {
   fetchProducts,
   fetchCategories,
+  fetchProductByBarcode,
   createSale,
   type Product,
   type Category,
@@ -46,6 +48,7 @@ import {
   CreditCard,
   Smartphone,
   FileText,
+  ScanLine,
 } from 'lucide-react-native';
 
 // ── Cart types ────────────────────────────────────────────────────────────
@@ -77,6 +80,9 @@ export function POSScreen() {
   const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [submitting, setSubmitting] = useState(false);
+
+  // Scanner
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   // Discount
   const [discountType, setDiscountType] = useState<string>('none');
@@ -251,6 +257,31 @@ export function POSScreen() {
     }
   };
 
+  // ── Barcode scan handler ───────────────────────────────────────────
+
+  const handleScanResult = useCallback(
+    async (code: string) => {
+      // Check local inventory first
+      const local = products.find(p => p.barcode === code);
+      if (local) {
+        if (local.track_stock && local.qty <= 0) {
+          Alert.alert('Out of stock', `${local.name} is out of stock`);
+          return;
+        }
+        addToCart(local);
+        return;
+      }
+      // Try API lookup
+      try {
+        const product = await fetchProductByBarcode(code);
+        addToCart(product);
+      } catch {
+        Alert.alert('Not found', `No product for barcode: ${code}`);
+      }
+    },
+    [products, addToCart],
+  );
+
   // ── Render product card ───────────────────────────────────────────────
 
   const renderProduct = ({item}: {item: Product}) => {
@@ -339,6 +370,12 @@ export function POSScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+        <TouchableOpacity
+          onPress={() => setScannerVisible(true)}
+          style={[styles.scanBtn, {backgroundColor: tokens.surface2, borderColor: tokens.border}]}
+          activeOpacity={0.7}>
+          <ScanLine size={20} color={tokens.navAccent} strokeWidth={2} />
+        </TouchableOpacity>
       </View>
 
       {/* Category chips */}
@@ -748,6 +785,13 @@ export function POSScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Barcode Scanner */}
+      <BarcodeScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onResult={handleScanResult}
+      />
     </View>
   );
 }
@@ -770,6 +814,15 @@ const styles = StyleSheet.create({
   },
   searchIcon: {fontSize: 14, marginRight: 8},
   searchInput: {flex: 1, ...typeScale.body, paddingVertical: 0},
+  scanBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    borderWidth: 1,
+  },
   clearBtn: {fontSize: 16, paddingLeft: 8},
 
   // Categories

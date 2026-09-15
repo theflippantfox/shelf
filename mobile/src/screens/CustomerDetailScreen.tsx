@@ -18,7 +18,11 @@ import {
   Linking,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {
@@ -124,11 +128,7 @@ export function CustomerDetailScreen() {
       setCustomer(cust);
       // Filter sales to this customer client-side
       // (sales endpoint doesn't support customer_id filter)
-      setSales(
-        allSales.filter(
-          s => (s as any).customer_id === customerId,
-        ),
-      );
+      setSales(allSales.filter(s => (s as any).customer_id === customerId));
     } catch (err) {
       console.error('[CustomerDetail] Failed to load:', err);
       Alert.alert(
@@ -224,7 +224,14 @@ export function CustomerDetailScreen() {
   return (
     <View style={[styles.container, {backgroundColor: tokens.bg}]}>
       {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg, borderBottomColor: tokens.border}]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + spacing.lg,
+            borderBottomColor: tokens.border,
+          },
+        ]}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -232,7 +239,11 @@ export function CustomerDetailScreen() {
             style={styles.backBtn}>
             <ArrowLeft size={22} color={tokens.text} strokeWidth={2} />
           </TouchableOpacity>
-          <Text style={[typeScale.title, {color: tokens.text, flex: 1, textAlign: 'center'}]}>
+          <Text
+            style={[
+              typeScale.title,
+              {color: tokens.text, flex: 1, textAlign: 'center'},
+            ]}>
             Customer
           </Text>
           <View style={styles.headerActions}>
@@ -255,9 +266,12 @@ export function CustomerDetailScreen() {
       <ScrollView
         contentContainerStyle={{paddingBottom: insets.bottom + 40}}
         keyboardShouldPersistTaps="handled">
-
         {/* ── Profile Card ───────────────────────────────── */}
-        <View style={[styles.card, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+        <View
+          style={[
+            styles.card,
+            {backgroundColor: tokens.surface, borderColor: tokens.border},
+          ]}>
           {/* Avatar + Name + Tier */}
           <View style={styles.profileRow}>
             <View style={[styles.avatar, {backgroundColor: color + '20'}]}>
@@ -266,10 +280,16 @@ export function CustomerDetailScreen() {
               </Text>
             </View>
             <View style={{flex: 1}}>
-              <Text style={[styles.profileName, {color: tokens.text}]} numberOfLines={1}>
+              <Text
+                style={[styles.profileName, {color: tokens.text}]}
+                numberOfLines={1}>
                 {customer.name}
               </Text>
-              <View style={[styles.tierBadge, {backgroundColor: TIER_COLORS[tier] + '18'}]}>
+              <View
+                style={[
+                  styles.tierBadge,
+                  {backgroundColor: TIER_COLORS[tier] + '18'},
+                ]}>
                 <Text style={[styles.tierText, {color: TIER_COLORS[tier]}]}>
                   {TIER_LABELS[tier]}
                 </Text>
@@ -283,14 +303,20 @@ export function CustomerDetailScreen() {
               <Text style={[styles.statValue, {color: tokens.text}]}>
                 {shop ? formatPrice(customer.total_spent, shop) : '0'}
               </Text>
-              <Text style={[styles.statLabel, {color: tokens.text3}]}>Total spent</Text>
+              <Text style={[styles.statLabel, {color: tokens.text3}]}>
+                Total spent
+              </Text>
             </View>
-            <View style={[styles.statDivider, {backgroundColor: tokens.border}]} />
+            <View
+              style={[styles.statDivider, {backgroundColor: tokens.border}]}
+            />
             <View style={styles.stat}>
               <Text style={[styles.statValue, {color: tokens.text}]}>
                 {customer.visit_count}
               </Text>
-              <Text style={[styles.statLabel, {color: tokens.text3}]}>Visits</Text>
+              <Text style={[styles.statLabel, {color: tokens.text3}]}>
+                Visits
+              </Text>
             </View>
           </View>
 
@@ -329,9 +355,19 @@ export function CustomerDetailScreen() {
               </View>
             ) : null}
             {customer.notes ? (
-              <View style={[styles.contactRow, {borderTopColor: tokens.border, borderTopWidth: 1, paddingTop: 12, marginTop: 4}]}>
+              <View
+                style={[
+                  styles.contactRow,
+                  {
+                    borderTopColor: tokens.border,
+                    borderTopWidth: 1,
+                    paddingTop: 12,
+                    marginTop: 4,
+                  },
+                ]}>
                 <FileText size={16} color={tokens.text3} strokeWidth={1.75} />
-                <Text style={[styles.contactText, {color: tokens.text2, flex: 1}]}>
+                <Text
+                  style={[styles.contactText, {color: tokens.text2, flex: 1}]}>
                   {customer.notes}
                 </Text>
               </View>
@@ -348,14 +384,23 @@ export function CustomerDetailScreen() {
         </View>
 
         {sales.length === 0 ? (
-          <View style={[styles.emptyCard, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+          <View
+            style={[
+              styles.emptyCard,
+              {backgroundColor: tokens.surface, borderColor: tokens.border},
+            ]}>
             <ShoppingCart size={32} color={tokens.text3} strokeWidth={1.25} />
-            <Text style={[styles.emptyText, {color: tokens.text3, marginTop: 8}]}>
+            <Text
+              style={[styles.emptyText, {color: tokens.text3, marginTop: 8}]}>
               No purchases yet
             </Text>
           </View>
         ) : (
-          <View style={[styles.salesCard, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+          <View
+            style={[
+              styles.salesCard,
+              {backgroundColor: tokens.surface, borderColor: tokens.border},
+            ]}>
             {sales.map((s, i) => (
               <View
                 key={s.id}
@@ -366,8 +411,16 @@ export function CustomerDetailScreen() {
                     borderBottomWidth: i < sales.length - 1 ? 1 : 0,
                   },
                 ]}>
-                <View style={[styles.saleIcon, {backgroundColor: tokens.navAccent + '15'}]}>
-                  <ShoppingCart size={14} color={tokens.navAccent} strokeWidth={1.75} />
+                <View
+                  style={[
+                    styles.saleIcon,
+                    {backgroundColor: tokens.navAccent + '15'},
+                  ]}>
+                  <ShoppingCart
+                    size={14}
+                    color={tokens.navAccent}
+                    strokeWidth={1.75}
+                  />
                 </View>
                 <View style={{flex: 1}}>
                   <Text style={[styles.saleRef, {color: tokens.text}]}>
@@ -396,15 +449,33 @@ export function CustomerDetailScreen() {
           style={{flex: 1}}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[styles.modal, {backgroundColor: tokens.bg}]}>
-            <View style={[styles.modalHeader, {borderBottomColor: tokens.border}]}>
+            <View
+              style={[styles.modalHeader, {borderBottomColor: tokens.border}]}>
               <TouchableOpacity onPress={() => setEditVisible(false)}>
                 <X size={22} color={tokens.text} strokeWidth={2} />
               </TouchableOpacity>
-              <Text style={[typeScale.title, {color: tokens.text, flex: 1, textAlign: 'center', marginHorizontal: 12}]}>
+              <Text
+                style={[
+                  typeScale.title,
+                  {
+                    color: tokens.text,
+                    flex: 1,
+                    textAlign: 'center',
+                    marginHorizontal: 12,
+                  },
+                ]}>
                 Edit customer
               </Text>
               <TouchableOpacity onPress={handleSave} disabled={saving}>
-                <Text style={[typeScale.body, {color: tokens.navAccent, fontWeight: '700', opacity: saving ? 0.5 : 1}]}>
+                <Text
+                  style={[
+                    typeScale.body,
+                    {
+                      color: tokens.navAccent,
+                      fontWeight: '700',
+                      opacity: saving ? 0.5 : 1,
+                    },
+                  ]}>
                   {saving ? 'Saving...' : 'Save'}
                 </Text>
               </TouchableOpacity>
@@ -416,7 +487,14 @@ export function CustomerDetailScreen() {
               keyboardShouldPersistTaps="handled">
               <Text style={styles.fieldLabel}>Name *</Text>
               <TextInput
-                style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Full name"
@@ -425,7 +503,14 @@ export function CustomerDetailScreen() {
 
               <Text style={styles.fieldLabel}>Phone</Text>
               <TextInput
-                style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={editPhone}
                 onChangeText={setEditPhone}
                 placeholder="Phone number"
@@ -435,7 +520,14 @@ export function CustomerDetailScreen() {
 
               <Text style={styles.fieldLabel}>Email</Text>
               <TextInput
-                style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={editEmail}
                 onChangeText={setEditEmail}
                 placeholder="Email address"
@@ -446,7 +538,15 @@ export function CustomerDetailScreen() {
 
               <Text style={styles.fieldLabel}>Notes</Text>
               <TextInput
-                style={[styles.input, styles.textArea, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={editNotes}
                 onChangeText={setEditNotes}
                 placeholder="Optional notes"
@@ -466,24 +566,32 @@ export function CustomerDetailScreen() {
         animationType="fade"
         onRequestClose={() => setDeleteVisible(false)}>
         <View style={styles.overlay}>
-          <View style={[styles.confirmCard, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+          <View
+            style={[
+              styles.confirmCard,
+              {backgroundColor: tokens.surface, borderColor: tokens.border},
+            ]}>
             <Text style={[typeScale.title, {color: tokens.text}]}>
               Delete customer?
             </Text>
             <Text style={[typeScale.body, {color: tokens.text2, marginTop: 8}]}>
-              {customer.name} will be permanently deleted. This cannot be undone.
+              {customer.name} will be permanently deleted. This cannot be
+              undone.
             </Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity
                 style={[styles.cancelBtn, {borderColor: tokens.border}]}
                 onPress={() => setDeleteVisible(false)}>
-                <Text style={[typeScale.body, {color: tokens.text2}]}>Cancel</Text>
+                <Text style={[typeScale.body, {color: tokens.text2}]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteBtn}
                 onPress={handleDelete}
                 disabled={deleting}>
-                <Text style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
+                <Text
+                  style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
                   {deleting ? 'Deleting...' : 'Delete'}
                 </Text>
               </TouchableOpacity>
