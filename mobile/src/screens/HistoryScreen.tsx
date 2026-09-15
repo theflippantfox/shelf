@@ -5,17 +5,14 @@ import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
-  FlatList,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {
   EmptyState,
-  TopBar,
   PageHeadingBlock,
   ListRow,
   QuickActionTileGrid,
@@ -23,7 +20,7 @@ import {
 } from '../components/ui';
 import {fetchSales, type Sale} from '../lib/api';
 import {formatPrice, formatDateTime} from '../lib/format';
-import {spacing, radii, typeScale} from '../theme';
+import {spacing, typeScale} from '../theme';
 import {
   CalendarClock,
   CalendarDays,
@@ -59,11 +56,10 @@ function getDateRange(range: TimeRange): {from: string; to: string} | null {
 export function HistoryScreen() {
   const {tokens} = useTheme();
   const {shop} = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [_refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<TimeRange>('week');
 
   const loadSales = useCallback(async () => {
@@ -135,153 +131,125 @@ export function HistoryScreen() {
     },
   ];
 
-  /* Remove manual renderSale */
-
   return (
-    <View
-      style={[
-        styles.container,
-        {backgroundColor: tokens.bg, paddingTop: insets.top},
-      ]}>
-      <TopBar />
-      <PageHeadingBlock
-        heading="Sales History"
-        eyebrow={`${sales.length} transactions`}
-        style={{marginTop: spacing.xl}}
-      />
-
-      <View style={{marginBottom: spacing.xs}}>
-        <QuickActionTileGrid
-          tiles={rangeTiles}
-          activeId={range}
-          onSelect={id => setRange(id as TimeRange)}
+    <View style={{flex: 1, backgroundColor: tokens.bg}}>
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{
+          paddingTop: spacing.xxl + spacing.lg,
+          paddingBottom: spacing.xxxl,
+        }}>
+        {/* Header */}
+        <PageHeadingBlock
+          heading="Sales History"
+          eyebrow={shop?.name ?? ''}
         />
-      </View>
 
-      {/* Stats bar */}
-      <View
-        style={[
-          styles.statsBar,
-          {backgroundColor: tokens.surface2, borderColor: tokens.border},
-        ]}>
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, {color: tokens.text}]}>
-            {shop ? formatPrice(stats.total, shop) : `₹${stats.total}`}
-          </Text>
-          <Text style={[styles.statLabel, {color: tokens.text3}]}>Total</Text>
+        {/* Time range filters */}
+        <View style={{marginBottom: spacing.lg}}>
+          <QuickActionTileGrid
+            tiles={rangeTiles}
+            activeId={range}
+            onSelect={id => setRange(id as TimeRange)}
+          />
         </View>
-        <View style={[styles.statDivider, {backgroundColor: tokens.border}]} />
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, {color: tokens.text}]}>
-            {stats.count}
-          </Text>
-          <Text style={[styles.statLabel, {color: tokens.text3}]}>Sales</Text>
-        </View>
-        <View style={[styles.statDivider, {backgroundColor: tokens.border}]} />
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, {color: tokens.text}]}>
-            {shop ? formatPrice(stats.avg, shop) : `₹${stats.avg}`}
-          </Text>
-          <Text style={[styles.statLabel, {color: tokens.text3}]}>Avg</Text>
-        </View>
-      </View>
 
-      {/* Sales list */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={tokens.navAccent} />
+        {/* Stats bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: tokens.surface2,
+            borderRadius: 12,
+            marginHorizontal: spacing.xl,
+            padding: spacing.md,
+            marginBottom: spacing.lg,
+          }}>
+          <View style={{flex: 1, alignItems: 'center'}}>
+            <Text
+              style={[
+                typeScale.heading,
+                {color: tokens.text, fontWeight: '700'},
+              ]}>
+              {shop ? formatPrice(stats.total, shop) : `₹${stats.total}`}
+            </Text>
+            <Text style={[typeScale.tiny, {color: tokens.text3, marginTop: 2}]}>
+              Total
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 1,
+              backgroundColor: tokens.border,
+              marginHorizontal: spacing.sm,
+            }}
+          />
+          <View style={{flex: 1, alignItems: 'center'}}>
+            <Text
+              style={[
+                typeScale.heading,
+                {color: tokens.text, fontWeight: '700'},
+              ]}>
+              {stats.count}
+            </Text>
+            <Text style={[typeScale.tiny, {color: tokens.text3, marginTop: 2}]}>
+              Sales
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 1,
+              backgroundColor: tokens.border,
+              marginHorizontal: spacing.sm,
+            }}
+          />
+          <View style={{flex: 1, alignItems: 'center'}}>
+            <Text
+              style={[
+                typeScale.heading,
+                {color: tokens.text, fontWeight: '700'},
+              ]}>
+              {shop ? formatPrice(stats.avg, shop) : `₹${Math.round(stats.avg)}`}
+            </Text>
+            <Text style={[typeScale.tiny, {color: tokens.text3, marginTop: 2}]}>
+              Average
+            </Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={sales}
-          renderItem={({item}) => (
-            <ListRow
-              title={item.sale_ref}
-              subtitle={`${formatDateTime(item.created_at, shop!)}${
-                item.customer?.name ? ` · ${item.customer.name}` : ''
-              }`}
-              value={shop ? formatPrice(item.total, shop) : `₹${item.total}`}
-              icon={<Receipt size={20} color={tokens.text2} />}
-              iconBgColor={tokens.surface2}
-            />
-          )}
-          keyExtractor={item => item.id}
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            loadSales();
-          }}
-          contentContainerStyle={{
-            paddingHorizontal: spacing.xl,
-            paddingBottom: insets.bottom + 20,
-          }}
-          ListEmptyComponent={
+
+        {/* Sales list */}
+        {loading ? (
+          <View
+            style={{
+              paddingVertical: spacing.xxxl,
+              alignItems: 'center',
+            }}>
+            <ActivityIndicator size="large" color={tokens.navAccent} />
+          </View>
+        ) : sales.length === 0 ? (
+          <View style={{paddingHorizontal: spacing.xl}}>
             <EmptyState
               icon={<History size={48} color={tokens.text3} strokeWidth={1} />}
               title="No sales in this period"
               subtitle="Change the time range to see more history"
             />
-          }
-        />
-      )}
+          </View>
+        ) : (
+          <View style={{paddingHorizontal: spacing.xl}}>
+            {sales.map(item => (
+              <ListRow
+                key={item.id}
+                title={item.sale_ref}
+                subtitle={`${formatDateTime(item.created_at, shop!)}${
+                  item.customer?.name ? ` · ${item.customer.name}` : ''
+                }`}
+                value={shop ? formatPrice(item.total, shop) : `₹${item.total}`}
+                icon={<Receipt size={20} color={tokens.text2} />}
+                iconBgColor={tokens.surface2}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  header: {paddingHorizontal: spacing.xl, marginBottom: spacing.sm},
-  tabRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  tab: {flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center'},
-  statsBar: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-  },
-  stat: {flex: 1, alignItems: 'center'},
-  statValue: {...typeScale.title, fontWeight: '700'},
-  statLabel: {...typeScale.tiny, marginTop: 2},
-  statDivider: {width: 1, marginVertical: 4},
-  loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-  saleCard: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  saleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  saleRefRow: {flex: 1},
-  saleRef: {...typeScale.title},
-  saleTime: {...typeScale.tiny, marginTop: 2},
-  saleTotal: {...typeScale.heading},
-  saleFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  paymentBadge: {
-    ...typeScale.caption,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  customerBadge: {
-    ...typeScale.caption,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  emptyContainer: {paddingVertical: 60, alignItems: 'center'},
-  emptyText: {...typeScale.body},
-});

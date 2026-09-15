@@ -4,12 +4,7 @@
  * Data is fetched from the API on mount and synced to SQLite for offline use.
  */
 import React, {useState, useEffect, useCallback} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-} from 'react-native';
+import {View, Text, ScrollView, RefreshControl} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';

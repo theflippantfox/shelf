@@ -218,7 +218,8 @@ export function MoreScreen() {
         <TopBar />
       </View>
       <View style={styles.header}>
-        <Text style={[typeScale.display, {color: tokens.text, fontWeight: '800'}]}>
+        <Text
+          style={[typeScale.display, {color: tokens.text, fontWeight: '800'}]}>
           More
         </Text>
         <Text style={[typeScale.body, {color: tokens.text3, marginTop: 2}]}>
@@ -229,7 +230,9 @@ export function MoreScreen() {
       {/* Profile card */}
       {shop && (
         <View style={styles.profileCardWrapper}>
-          <View style={[styles.profileAccent, {backgroundColor: tokens.navAccent}]} />
+          <View
+            style={[styles.profileAccent, {backgroundColor: tokens.navAccent}]}
+          />
           <Card
             variant="outlined"
             style={styles.profileCard}
@@ -270,7 +273,10 @@ export function MoreScreen() {
           <TouchableOpacity
             style={[
               styles.settingRow,
-              {borderBottomColor: tokens.border, borderBottomWidth: StyleSheet.hairlineWidth},
+              {
+                borderBottomColor: tokens.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+              },
             ]}
             activeOpacity={0.6}>
             <View
@@ -286,7 +292,10 @@ export function MoreScreen() {
           <TouchableOpacity
             style={[
               styles.settingRow,
-              {borderBottomColor: tokens.border, borderBottomWidth: StyleSheet.hairlineWidth},
+              {
+                borderBottomColor: tokens.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+              },
             ]}
             activeOpacity={0.6}>
             <View

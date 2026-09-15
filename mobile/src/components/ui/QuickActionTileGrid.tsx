@@ -46,9 +46,7 @@ export function QuickActionTileGrid({
               style={[
                 styles.chip,
                 {
-                  backgroundColor: isActive
-                    ? tokens.navAccent
-                    : tokens.surface,
+                  backgroundColor: isActive ? tokens.navAccent : tokens.surface,
                   borderColor: isActive ? tokens.navAccent : tokens.border,
                 },
               ]}

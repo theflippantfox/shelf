@@ -5,17 +5,15 @@ import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
-  FlatList,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
   Modal,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
@@ -28,11 +26,10 @@ import {
   Button,
   Avatar,
   EmptyState,
-  TopBar,
   PageHeadingBlock,
 } from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
-import {Users, Plus, User, Phone, Mail, FileText, X} from 'lucide-react-native';
+import {Users, Plus, User, Phone, Mail, X, Search} from 'lucide-react-native';
 
 // Customer tier logic (matches web app config)
 function getTier(c: Customer): 'vip' | 'regular' | 'new' {
@@ -50,12 +47,10 @@ const TIER_LABELS = {vip: 'VIP', regular: 'Regular', new: 'New'};
 export function CustomersScreen() {
   const {tokens} = useTheme();
   const {shop} = useAuth();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -86,18 +81,12 @@ export function CustomersScreen() {
       console.error('[Customers] Failed to load:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [shop]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    load();
-  };
 
   const filtered = search
     ? customers.filter(
@@ -141,10 +130,11 @@ export function CustomersScreen() {
     setFormNotes('');
   };
 
-  const renderCustomer = ({item}: {item: Customer}) => {
+  const renderCustomer = (item: Customer) => {
     const tier = getTier(item);
     return (
       <Card
+        key={item.id}
         onPress={() =>
           navigation.navigate(
             'CustomerDetail' as never,
@@ -152,15 +142,29 @@ export function CustomersScreen() {
           )
         }
         variant="outlined"
-        style={styles.customerCard}>
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: spacing.md,
+          marginBottom: spacing.sm,
+        }}>
         {/* Avatar */}
         <Avatar name={item.name} size={42} />
 
         {/* Info */}
-        <View style={styles.customerInfo}>
-          <View style={styles.nameRow}>
+        <View style={{flex: 1, marginLeft: spacing.md}}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+              marginBottom: 2,
+            }}>
             <Text
-              style={[styles.customerName, {color: tokens.text}]}
+              style={[
+                typeScale.title,
+                {color: tokens.text, fontWeight: '600', flex: 1},
+              ]}
               numberOfLines={1}>
               {item.name}
             </Text>
@@ -173,20 +177,25 @@ export function CustomersScreen() {
                   ? 'info'
                   : 'default'
               }
+              size="sm"
             />
           </View>
-          <Text style={[styles.customerMeta, {color: tokens.text3}]}>
+          <Text style={[typeScale.caption, {color: tokens.text3}]}>
             {item.phone ?? item.email ?? 'No contact'}{' '}
-            {item.visit_count > 0 ? `\u00B7 ${item.visit_count} visits` : ''}
+            {item.visit_count > 0 ? `· ${item.visit_count} visits` : ''}
           </Text>
         </View>
 
         {/* Total spent */}
-        <View style={styles.spentCol}>
-          <Text style={[styles.spentValue, {color: tokens.text}]}>
-            {shop ? formatPrice(item.total_spent, shop) : '0'}
+        <View style={{alignItems: 'flex-end', marginLeft: spacing.sm}}>
+          <Text
+            style={[
+              typeScale.heading,
+              {color: tokens.text, fontWeight: '700'},
+            ]}>
+            {shop ? formatPrice(item.total_spent, shop) : '₹0'}
           </Text>
-          <Text style={[styles.spentLabel, {color: tokens.text3}]}>spent</Text>
+          <Text style={[typeScale.tiny, {color: tokens.text3}]}>spent</Text>
         </View>
       </Card>
     );
@@ -194,155 +203,214 @@ export function CustomersScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, {backgroundColor: tokens.bg}]}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: tokens.bg,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
         <ActivityIndicator size="large" color={tokens.navAccent} />
       </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        {backgroundColor: tokens.bg, paddingTop: insets.top},
-      ]}>
-      {/* Header */}
-      <TopBar
-        onBack={() => navigation.goBack()}
-        trailingIcons={[
-          <Plus
-            key="add"
-            size={24}
-            color={tokens.navAccent}
+    <View style={{flex: 1, backgroundColor: tokens.bg}}>
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{
+          paddingTop: spacing.xxl + spacing.lg,
+          paddingBottom: spacing.xxxl,
+        }}>
+        {/* Header */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: spacing.xl,
+            marginBottom: spacing.md,
+          }}>
+          <PageHeadingBlock heading="Customers" eyebrow={shop?.name ?? ''} />
+          <TouchableOpacity
+            activeOpacity={0.7}
             onPress={() => {
               resetForm();
               setShowAdd(true);
             }}
-          />,
-        ]}
-      />
-
-      <PageHeadingBlock
-        heading="Customers"
-        eyebrow={`${filtered.length} customers`}
-      />
-
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <View
-          style={[
-            styles.searchBar,
-            {backgroundColor: tokens.surface2, borderColor: tokens.border},
-          ]}>
-          <TextInput
-            style={[styles.searchInput, {color: tokens.text}]}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search by name or phone..."
-            placeholderTextColor={tokens.text3}
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{color: tokens.text3, fontSize: 16}}>
-                {'\u2715'}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm + 2,
+              borderRadius: radii.lg,
+              backgroundColor: tokens.navAccent,
+            }}>
+            <Plus size={18} color="#fff" strokeWidth={2.5} />
+            <Text
+              style={{
+                ...typeScale.caption,
+                color: '#fff',
+                fontWeight: '600',
+              }}>
+              Add
+            </Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Customer list */}
-      <FlatList
-        data={filtered}
-        renderItem={renderCustomer}
-        keyExtractor={item => item.id}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.xl,
-          paddingBottom: insets.bottom + 20,
-        }}
-        ListEmptyComponent={
-          <EmptyState
-            icon={<Users size={48} color={tokens.text3} strokeWidth={1.25} />}
-            title="No customers yet"
-            subtitle="Add your first customer to start tracking visits."
-            actionLabel="Add customer"
-            onAction={() => {
-              resetForm();
-              setShowAdd(true);
-            }}
-          />
-        }
-      />
-
-      {/* Add customer modal */}
-      <Modal visible={showAdd} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}>
+        {/* Search */}
+        <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.lg}}>
           <View
-            style={[
-              styles.modalSheet,
-              {backgroundColor: tokens.surface, borderTopColor: tokens.border},
-            ]}>
-            {/* Handle */}
-            <View style={styles.modalHandle} />
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: tokens.surface,
+              borderColor: tokens.border,
+              borderWidth: 1,
+              borderRadius: radii.lg,
+              paddingHorizontal: 14,
+              height: 48,
+              gap: 8,
+            }}>
+            <Search size={16} color={tokens.text3} strokeWidth={1.75} />
+            <TextInput
+              style={{
+                flex: 1,
+                ...typeScale.body,
+                color: tokens.text,
+                paddingVertical: 0,
+              }}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search by name or phone..."
+              placeholderTextColor={tokens.text3}
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={14} color={tokens.text3} strokeWidth={2} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
 
-            <View style={styles.modalHeader}>
-              <Text style={[typeScale.title, {color: tokens.text}]}>
-                New customer
+        {/* Customers list */}
+        {filtered.length === 0 ? (
+          <View style={{paddingHorizontal: spacing.xl}}>
+            <EmptyState
+              icon={<Users size={48} color={tokens.text3} strokeWidth={1} />}
+              title={search ? 'No customers found' : 'No customers yet'}
+              subtitle={
+                search
+                  ? 'Try a different search term'
+                  : 'Add your first customer to get started'
+              }
+            />
+          </View>
+        ) : (
+          <View style={{paddingHorizontal: spacing.xl}}>
+            {filtered.map(item => renderCustomer(item))}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add Customer Modal */}
+      <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet">
+        <KeyboardAvoidingView
+          style={{flex: 1, backgroundColor: tokens.bg}}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={{flex: 1}}>
+            {/* Modal header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: spacing.xl,
+                borderBottomWidth: 1,
+                borderBottomColor: tokens.border,
+              }}>
+              <Text style={[typeScale.heading, {color: tokens.text}]}>
+                Add Customer
               </Text>
               <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <X size={22} color={tokens.text3} strokeWidth={2} />
+                <X size={24} color={tokens.text3} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView
+              style={{flex: 1}}
+              contentContainerStyle={{padding: spacing.xl, gap: spacing.lg}}>
               {/* Name */}
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
-                  Full name
+              <View>
+                <Text
+                  style={[
+                    typeScale.caption,
+                    {color: tokens.text2, marginBottom: 6, fontWeight: '600'},
+                  ]}>
+                  Name *
                 </Text>
                 <View
-                  style={[
-                    styles.inputRow,
-                    {
-                      backgroundColor: tokens.surface2,
-                      borderColor: tokens.border,
-                    },
-                  ]}>
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.border,
+                    borderWidth: 1,
+                    borderRadius: radii.lg,
+                    paddingHorizontal: 14,
+                    height: 48,
+                    gap: 8,
+                  }}>
                   <User size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
-                    style={[styles.input, {color: tokens.text}]}
+                    style={{
+                      flex: 1,
+                      ...typeScale.body,
+                      color: tokens.text,
+                      paddingVertical: 0,
+                    }}
                     value={formName}
                     onChangeText={setFormName}
-                    placeholder="John Doe"
+                    placeholder="Full name"
                     placeholderTextColor={tokens.text3}
-                    autoFocus
                   />
                 </View>
               </View>
 
               {/* Phone */}
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
+              <View>
+                <Text
+                  style={[
+                    typeScale.caption,
+                    {color: tokens.text2, marginBottom: 6, fontWeight: '600'},
+                  ]}>
                   Phone
                 </Text>
                 <View
-                  style={[
-                    styles.inputRow,
-                    {
-                      backgroundColor: tokens.surface2,
-                      borderColor: tokens.border,
-                    },
-                  ]}>
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.border,
+                    borderWidth: 1,
+                    borderRadius: radii.lg,
+                    paddingHorizontal: 14,
+                    height: 48,
+                    gap: 8,
+                  }}>
                   <Phone size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
-                    style={[styles.input, {color: tokens.text}]}
+                    style={{
+                      flex: 1,
+                      ...typeScale.body,
+                      color: tokens.text,
+                      paddingVertical: 0,
+                    }}
                     value={formPhone}
                     onChangeText={setFormPhone}
-                    placeholder="+91 98765 43210"
+                    placeholder="Phone number"
                     placeholderTextColor={tokens.text3}
                     keyboardType="phone-pad"
                   />
@@ -350,24 +418,37 @@ export function CustomersScreen() {
               </View>
 
               {/* Email */}
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
+              <View>
+                <Text
+                  style={[
+                    typeScale.caption,
+                    {color: tokens.text2, marginBottom: 6, fontWeight: '600'},
+                  ]}>
                   Email
                 </Text>
                 <View
-                  style={[
-                    styles.inputRow,
-                    {
-                      backgroundColor: tokens.surface2,
-                      borderColor: tokens.border,
-                    },
-                  ]}>
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.border,
+                    borderWidth: 1,
+                    borderRadius: radii.lg,
+                    paddingHorizontal: 14,
+                    height: 48,
+                    gap: 8,
+                  }}>
                   <Mail size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
-                    style={[styles.input, {color: tokens.text}]}
+                    style={{
+                      flex: 1,
+                      ...typeScale.body,
+                      color: tokens.text,
+                      paddingVertical: 0,
+                    }}
                     value={formEmail}
                     onChangeText={setFormEmail}
-                    placeholder="john@example.com"
+                    placeholder="Email address"
                     placeholderTextColor={tokens.text3}
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -376,56 +457,58 @@ export function CustomersScreen() {
               </View>
 
               {/* Notes */}
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
+              <View>
+                <Text
+                  style={[
+                    typeScale.caption,
+                    {color: tokens.text2, marginBottom: 6, fontWeight: '600'},
+                  ]}>
                   Notes
                 </Text>
                 <View
-                  style={[
-                    styles.inputRow,
-                    styles.textAreaRow,
-                    {
-                      backgroundColor: tokens.surface2,
-                      borderColor: tokens.border,
-                    },
-                  ]}>
-                  <FileText
-                    size={16}
-                    color={tokens.text3}
-                    strokeWidth={1.75}
-                    style={{marginTop: 4}}
-                  />
+                  style={{
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.border,
+                    borderWidth: 1,
+                    borderRadius: radii.lg,
+                    padding: 14,
+                  }}>
                   <TextInput
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                      {color: tokens.text},
-                    ]}
+                    style={{
+                      ...typeScale.body,
+                      color: tokens.text,
+                      minHeight: 80,
+                      textAlignVertical: 'top',
+                    }}
                     value={formNotes}
                     onChangeText={setFormNotes}
-                    placeholder="Any notes..."
+                    placeholder="Optional notes..."
                     placeholderTextColor={tokens.text3}
                     multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
                   />
                 </View>
               </View>
-            </View>
+            </ScrollView>
 
-            {/* Actions */}
-            <View style={styles.modalActions}>
+            {/* Footer */}
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.sm,
+                padding: spacing.xl,
+                borderTopWidth: 1,
+                borderTopColor: tokens.border,
+              }}>
               <Button
                 label="Cancel"
-                variant="secondary"
                 onPress={() => setShowAdd(false)}
+                variant="secondary"
                 style={{flex: 1}}
               />
               <Button
-                label={saving ? 'Saving...' : 'Save'}
-                variant="primary"
+                label={saving ? 'Adding...' : 'Add Customer'}
                 onPress={handleAdd}
-                disabled={saving}
+                disabled={saving || !formName.trim()}
                 style={{flex: 1}}
               />
             </View>
@@ -435,165 +518,3 @@ export function CustomersScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-  header: {paddingHorizontal: spacing.xl, marginBottom: spacing.sm},
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Search
-  searchRow: {paddingHorizontal: spacing.xl, marginBottom: spacing.md},
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    height: 44,
-  },
-  searchInput: {
-    flex: 1,
-    ...typeScale.body,
-    marginLeft: spacing.sm,
-  },
-
-  // Customer card
-  customerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.sm,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  avatarText: {fontSize: 15, fontWeight: '700'},
-  customerInfo: {flex: 1, minWidth: 0},
-  nameRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
-  customerName: {...typeScale.title, flexShrink: 0},
-  tierBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.sm,
-  },
-  tierText: {fontSize: 10, fontWeight: '700', textTransform: 'uppercase'},
-  customerMeta: {...typeScale.caption, marginTop: 2},
-  spentCol: {alignItems: 'flex-end', marginLeft: spacing.sm},
-  spentValue: {...typeScale.title, fontVariant: ['tabular-nums']},
-  spentLabel: {...typeScale.tiny, marginTop: 2},
-
-  // Empty
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    gap: spacing.sm,
-  },
-  emptyTitle: {...typeScale.title, marginTop: spacing.sm},
-  emptySubtitle: {...typeScale.body, textAlign: 'center', maxWidth: 260},
-  emptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    marginTop: spacing.md,
-  },
-  emptyBtnText: {color: '#fff', ...typeScale.body, fontWeight: '600'},
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  modalSheet: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    borderTopWidth: 1,
-    paddingBottom: 40,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#666',
-    alignSelf: 'center',
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  modalBody: {paddingHorizontal: spacing.xl},
-  fieldGroup: {marginBottom: spacing.md},
-  fieldLabel: {...typeScale.caption, marginBottom: 6, fontWeight: '600'},
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    height: 44,
-    gap: spacing.sm,
-  },
-  textAreaRow: {
-    height: undefined,
-    alignItems: 'flex-start',
-    paddingTop: spacing.sm,
-  },
-  input: {flex: 1, ...typeScale.body},
-  textArea: {minHeight: 64, paddingTop: 2},
-  modalActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.lg,
-  },
-  cancelBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelBtnText: {...typeScale.body, fontWeight: '600'},
-  saveBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnDisabled: {opacity: 0.5},
-  saveBtnText: {color: '#fff', ...typeScale.body, fontWeight: '600'},
-});

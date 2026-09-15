@@ -54,20 +54,20 @@ export function BottomTabNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-          tabBarStyle: {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: tokens.surface + 'F2', // 95% opacity
-            borderTopWidth: 1,
-            borderTopColor: tokens.border,
-            elevation: 0,
-            height: 64,
-            paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-            paddingTop: 8,
-            borderRadius: 0,
-          },
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: tokens.surface + 'F2', // 95% opacity
+          borderTopWidth: 1,
+          borderTopColor: tokens.border,
+          elevation: 0,
+          height: 64,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          paddingTop: 8,
+          borderRadius: 0,
+        },
         tabBarActiveTintColor: tokens.navActive,
         tabBarInactiveTintColor: tokens.navMuted,
       }}>

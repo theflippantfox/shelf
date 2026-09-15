@@ -1044,7 +1044,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   productSku: {...typeScale.tiny},
-  productPrice: {...typeScale.heading, marginTop: spacing.xs, fontWeight: '700'},
+  productPrice: {
+    ...typeScale.heading,
+    marginTop: spacing.xs,
+    fontWeight: '700',
+  },
   productStock: {...typeScale.tiny},
   cartBadge: {
     position: 'absolute',
