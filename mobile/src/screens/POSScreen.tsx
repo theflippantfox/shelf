@@ -647,7 +647,11 @@ export function POSScreen() {
             />
           ) : (
             <View style={styles.productGrid}>
-              {filtered.map(item => renderProduct({item}))}
+              {filtered.map(item => (
+                <React.Fragment key={item.id}>
+                  {renderProduct({item})}
+                </React.Fragment>
+              ))}
             </View>
           )}
         </View>
