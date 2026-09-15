@@ -1,0 +1,182 @@
+<script lang="ts">
+  import { invalidateAll } from '$app/navigation';
+  import { toasts } from '$lib/stores/toast.svelte';
+  import { customers as custStore } from '$lib/stores/customers.svelte';
+  import { getCustomerTier, TIER_LABELS, TIER_BADGE_CLASS } from '$lib/utils/tiers';
+  import { formatCurrency } from '$lib/utils/format';
+  import { fuzzyFilter } from '$lib/utils/fuzzy';
+  import PageShell  from '$lib/components/layout/PageShell.svelte';
+  import SearchBar  from '$lib/components/ui/SearchBar.svelte';
+  import Button     from '$lib/components/ui/Button.svelte';
+  import Sheet from '$lib/components/ui/Sheet.svelte';
+  import Input      from '$lib/components/ui/Input.svelte';
+  import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import Avatar     from '$lib/components/ui/Avatar.svelte';
+  import { Plus, Pencil, Trash2 } from 'lucide-svelte';
+
+  let { data } = $props();
+
+  let search  = $state('');
+  let showAdd = $state(false);
+  let editing = $state<any>(null);
+  let saving  = $state(false);
+  let form    = $state({ name: '', phone: '', email: '', notes: '' });
+
+  // Sync the store with the server data on first mount. After this,
+  // all reads come from the store so optimistic updates flow through.
+  $effect(() => { custStore.replaceAll(data.customers as any[]); });
+  $effect(() => { custStore.setSearch(search); });
+
+  const filtered = $derived.by(() => {
+    if (!search) return custStore.all;
+    return fuzzyFilter(custStore.all, search, {
+      fields: [
+        { get: (c: any) => c.name,        weight: 2 },
+        { get: (c: any) => c.phone,       weight: 1.5 },
+        { get: (c: any) => c.email,       weight: 1.5 },
+        { get: (c: any) => c.notes,       weight: 0.4 },
+      ],
+    });
+  });
+
+  function openAdd() {
+    form = { name: '', phone: '', email: '', notes: '' };
+    editing = null; showAdd = true;
+  }
+
+  function openEdit(e: MouseEvent, c: any) {
+    e.preventDefault();  // don't navigate to detail page
+    form    = { name: c.name, phone: c.phone ?? '', email: c.email ?? '', notes: c.notes ?? '' };
+    editing = c; showAdd = true;
+  }
+
+  async function save() {
+    saving = true;
+    const clientId = crypto.randomUUID();
+    const url    = editing ? `/api/customers/${editing.id}` : '/api/customers';
+    const method = editing ? 'PATCH' : 'POST';
+
+    // Optimistic: the new/edited row appears immediately.
+    if (editing) {
+      custStore.update(editing.id, form);
+    } else {
+      custStore.add({
+        id:         clientId,
+        client_id:  clientId,
+        ...form,
+        visit_count: 0,
+        total_spent: 0,
+        outstanding_balance: 0,
+        last_visit:  null,
+      });
+    }
+    showAdd = false;
+    toasts.success(editing ? 'Customer updated' : 'Customer added');
+
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+    });
+    saving = false;
+    if (!res.ok) {
+      toasts.error(editing ? 'Update failed — reverted' : 'Add failed — reverted');
+      if (editing) {
+        await invalidateAll();
+        custStore.replaceAll(data.customers as any[]);
+      } else {
+        custStore.rollback(clientId);
+      }
+      return;
+    }
+    const real = await res.json();
+    if (editing) {
+      custStore.markSynced(editing.id);
+      custStore.update(editing.id, real);
+    } else {
+      custStore.reconcile(clientId, real);
+    }
+  }
+
+  async function remove(e: MouseEvent, c: any) {
+    e.preventDefault();
+    if (!confirm(`Delete ${c.name}?`)) return;
+    const id = c.id;
+    // Optimistic remove.
+    custStore.remove(id);
+    toasts.success('Customer removed');
+    const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toasts.error('Failed to delete — reverted');
+      await invalidateAll();
+      custStore.replaceAll(data.customers as any[]);
+    }
+  }
+</script>
+
+<svelte:head><title>Customers · Shëlf</title></svelte:head>
+
+<header class="flex items-end justify-between gap-3 mb-5">
+  <div class="min-w-0">
+<h1 class="text-[22px] md:text-[26px] font-semibold text-[var(--text)] tracking-tight">Customers</h1>
+  </div>
+  <Button size="sm" onclick={openAdd}><Plus size={14} strokeWidth={2} /> Add</Button>
+</header>
+
+  <SearchBar bind:value={search} placeholder="Search by name or phone…" class="mb-4" />
+
+  {#if filtered.length === 0}
+    <EmptyState icon="Users" title="No customers yet" message="Add your first customer to start tracking visits.">
+      {#snippet action()}
+        <Button size="sm" onclick={openAdd}><Plus size={14} strokeWidth={2} /> Add customer</Button>
+      {/snippet}
+    </EmptyState>
+  {:else}
+    <div class="surface-card overflow-hidden">
+      {#each filtered as c}
+        {@const tier = getCustomerTier(c)}
+        <a
+          href="/customers/{(c as any).id}"
+          class="flex items-center gap-3 px-4 py-3 border-b last:border-0 border-[var(--border)] hover:bg-[var(--surface2)] transition-colors"
+        >
+          <Avatar name={(c as any).name} size={36} />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="text-xs font-semibold truncate">{(c as any).name}</p>
+              <span class="badge {TIER_BADGE_CLASS[tier]} text-[10px]">{TIER_LABELS[tier]}</span>
+            </div>
+            <p class="text-[10px] text-[var(--text-3)]">
+              {(c as any).phone ?? (c as any).email ?? 'No contact'} · {(c as any).visit_count} visit{(c as any).visit_count !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <div class="text-right flex-shrink-0 mr-1">
+            <p class="text-xs font-semibold">{formatCurrency((c as any).total_spent)}</p>
+            <p class="text-[10px] text-[var(--text-3)]">total spent</p>
+          </div>
+          <div class="flex gap-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="group">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick={(e) => openEdit(e, c)} aria-label="Edit customer">
+              <Pencil size={13} strokeWidth={1.75} />
+            </button>
+            <button class="btn btn-ghost btn-icon btn-sm text-[var(--crimson)]" onclick={(e) => remove(e, c)} aria-label="Delete customer">
+              <Trash2 size={13} strokeWidth={1.75} />
+            </button>
+          </div>
+        </a>
+      {/each}
+    </div>
+  {/if}
+<Sheet bind:open={showAdd} title={editing ? 'Edit customer' : 'New customer'} maxWidth="max-w-sm">
+  <form onsubmit={(e) => { e.preventDefault(); save(); }} class="flex flex-col gap-3">
+    <Input label="Full name" bind:value={form.name}  required />
+    <Input label="Phone"     bind:value={form.phone}  type="tel" />
+    <Input label="Email"     bind:value={form.email}  type="email" />
+    <div class="input-group">
+      <label for="customer-notes" class="input-label">Notes</label>
+      <textarea id="customer-notes" bind:value={form.notes} class="input" rows="2"></textarea>
+    </div>
+  </form>
+  {#snippet footer()}
+    <div class="flex justify-end gap-2">
+      <Button variant="secondary" onclick={() => showAdd = false}>Cancel</Button>
+      <Button loading={saving} onclick={save}>Save</Button>
+    </div>
+  {/snippet}
+</Sheet>

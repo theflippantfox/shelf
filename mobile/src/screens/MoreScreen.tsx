@@ -219,7 +219,10 @@ export function MoreScreen() {
 
       {/* Profile card */}
       {shop && (
-        <Card variant="outlined" style={styles.profileCard} padding={spacing.lg}>
+        <Card
+          variant="outlined"
+          style={styles.profileCard}
+          padding={spacing.lg}>
           <Avatar name={shop.name} size={52} />
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, {color: tokens.text}]}>

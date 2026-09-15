@@ -22,32 +22,35 @@ export async function syncProductsDown(shopId: string) {
     const freshParts = await api.fetchProducts({limit: 1000}); // simplified
     await db.transaction(async tx => {
       // Clear existing shop products for simplicity, or upsert
-      await tx.delete(products).where(eq(products.shop_id, shopId));
+      await tx.delete(products).where(eq(products.shop_id, shopId)).run();
 
       for (const p of freshParts) {
-        await tx.insert(products).values({
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-          barcode: p.barcode,
-          price: p.price,
-          cost_price: p.cost_price,
-          qty: p.qty,
-          unit: p.unit,
-          category_id: p.category_id,
-          image_url: p.image_url,
-          track_stock: p.track_stock,
-          track_barcode: p.track_barcode,
-          low_stock_threshold: p.low_stock_threshold,
-          shop_id: p.shop_id,
-          created_at: p.created_at,
-          updated_at: p.updated_at,
-          archived_at: p.archived_at,
-          description: p.description,
-          category_name: p.category?.name,
-          category_color: p.category?.color,
-          category_icon: p.category?.icon,
-        });
+        await tx
+          .insert(products)
+          .values({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            barcode: p.barcode,
+            price: p.price,
+            cost_price: p.cost_price,
+            qty: p.qty ?? 0,
+            unit: p.unit || 'pcs',
+            category_id: p.category_id,
+            image_url: p.image_url,
+            track_stock: p.track_stock ?? false,
+            track_barcode: p.track_barcode ?? false,
+            low_stock_threshold: p.low_stock_threshold ?? 0,
+            shop_id: p.shop_id || shopId,
+            created_at: p.created_at || new Date().toISOString(),
+            updated_at: p.updated_at || new Date().toISOString(),
+            archived_at: p.archived_at,
+            description: p.description,
+            category_name: p.category?.name,
+            category_color: p.category?.color,
+            category_icon: p.category?.icon,
+          })
+          .run();
       }
     });
   } catch (err) {
@@ -59,17 +62,20 @@ export async function syncCategoriesDown(shopId: string) {
   try {
     const cats = await api.fetchCategories();
     await db.transaction(async tx => {
-      await tx.delete(categories).where(eq(categories.shop_id, shopId));
+      await tx.delete(categories).where(eq(categories.shop_id, shopId)).run();
       for (const c of cats) {
-        await tx.insert(categories).values({
-          id: c.id,
-          name: c.name,
-          color: c.color,
-          icon: c.icon,
-          sort_order: c.sort_order,
-          shop_id: c.shop_id,
-          archived_at: c.archived_at,
-        });
+        await tx
+          .insert(categories)
+          .values({
+            id: c.id,
+            name: c.name,
+            color: c.color || '#cccccc',
+            icon: c.icon || 'folder',
+            sort_order: c.sort_order ?? 0,
+            shop_id: c.shop_id || shopId,
+            archived_at: c.archived_at,
+          })
+          .run();
       }
     });
   } catch (err) {
@@ -81,20 +87,23 @@ export async function syncCustomersDown(shopId: string) {
   try {
     const custs = await api.fetchCustomers();
     await db.transaction(async tx => {
-      await tx.delete(customers).where(eq(customers.shop_id, shopId));
+      await tx.delete(customers).where(eq(customers.shop_id, shopId)).run();
       for (const c of custs) {
-        await tx.insert(customers).values({
-          id: c.id,
-          name: c.name,
-          phone: c.phone,
-          email: c.email,
-          notes: c.notes,
-          outstanding_balance: c.outstanding_balance,
-          total_spent: c.total_spent,
-          visit_count: c.visit_count,
-          last_visit: c.last_visit,
-          shop_id: c.shop_id,
-        });
+        await tx
+          .insert(customers)
+          .values({
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            email: c.email,
+            notes: c.notes,
+            outstanding_balance: c.outstanding_balance ?? 0,
+            total_spent: c.total_spent ?? 0,
+            visit_count: c.visit_count ?? 0,
+            last_visit: c.last_visit,
+            shop_id: c.shop_id || shopId,
+          })
+          .run();
       }
     });
   } catch (err) {
@@ -105,12 +114,15 @@ export async function syncCustomersDown(shopId: string) {
 // ── Background Upload (SQLite to Network) ────────────────────────────────
 
 export async function uploadPendingQueue() {
-  if (!(await isOnline())) {return;}
+  if (!(await isOnline())) {
+    return;
+  }
 
   const pending = await db
     .select()
     .from(syncQueue)
-    .where(eq(syncQueue.status, 'PENDING'));
+    .where(eq(syncQueue.status, 'PENDING'))
+    .all();
 
   for (const item of pending) {
     try {
@@ -125,7 +137,7 @@ export async function uploadPendingQueue() {
       }
 
       // Success, remove from queue
-      await db.delete(syncQueue).where(eq(syncQueue.id, item.id));
+      await db.delete(syncQueue).where(eq(syncQueue.id, item.id)).run();
     } catch (err) {
       console.warn('[Sync] Failed to upload queued item', item.id, err);
       // Mark as error
@@ -136,7 +148,8 @@ export async function uploadPendingQueue() {
           error_message: String(err),
           retry_count: item.retry_count + 1,
         })
-        .where(eq(syncQueue.id, item.id));
+        .where(eq(syncQueue.id, item.id))
+        .run();
     }
   }
 }
@@ -144,7 +157,7 @@ export async function uploadPendingQueue() {
 // ── Local Accessors ──────────────────────────────────────────────────────
 
 export async function getLocalProducts(): Promise<api.Product[]> {
-  const prods = await db.select().from(products);
+  const prods = await db.select().from(products).all();
   // SAFETY: SQLite rows match API schema structurally
   return prods.map(p => ({
     ...p,
@@ -159,19 +172,30 @@ export async function getLocalProducts(): Promise<api.Product[]> {
 }
 
 export async function getLocalCategories(): Promise<api.Category[]> {
-  const cats = await db.select().from(categories).orderBy(categories.sort_order);
+  const cats = await db
+    .select()
+    .from(categories)
+    .orderBy(categories.sort_order)
+    .all();
   // SAFETY: SQLite rows match API schema structurally
   return cats as unknown as api.Category[];
 }
 
 export async function getLocalCustomers(): Promise<api.Customer[]> {
-  const custs = await db.select().from(customers);
+  const custs = await db.select().from(customers).all();
   // SAFETY: SQLite rows match API schema structurally
   return custs as unknown as api.Customer[];
 }
 
-export async function getLocalCustomer(id: string): Promise<api.Customer | null> {
-  const res = await db.select().from(customers).where(eq(customers.id, id)).limit(1);
+export async function getLocalCustomer(
+  id: string,
+): Promise<api.Customer | null> {
+  const res = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, id))
+    .limit(1)
+    .all();
   // SAFETY: SQLite row matches API schema structurally
   return res[0] ? (res[0] as unknown as api.Customer) : null;
 }
@@ -180,22 +204,28 @@ export async function getLocalCustomer(id: string): Promise<api.Customer | null>
 
 export async function queueOfflineSale(payload: api.CreateSalePayload) {
   // Store locally for display
-  await db.insert(sales).values({
-    id: uuidv4(),
-    sale_ref: `OFFLINE-${Date.now()}`,
-    total: payload.total,
-    payment_method: payload.payment_method,
-    created_at: new Date().toISOString(),
-  });
+  await db
+    .insert(sales)
+    .values({
+      id: uuidv4(),
+      sale_ref: `OFFLINE-${Date.now()}`,
+      total: payload.total,
+      payment_method: payload.payment_method,
+      created_at: new Date().toISOString(),
+    })
+    .run();
 
   // Add to queue
-  await db.insert(syncQueue).values({
-    id: uuidv4(),
-    action: 'CREATE',
-    entity: 'SALE',
-    payload: JSON.stringify(payload),
-    created_at: new Date().toISOString(),
-  });
+  await db
+    .insert(syncQueue)
+    .values({
+      id: uuidv4(),
+      action: 'CREATE',
+      entity: 'SALE',
+      payload: JSON.stringify(payload),
+      created_at: new Date().toISOString(),
+    })
+    .run();
 
   uploadPendingQueue(); // don't await, let it run
 }

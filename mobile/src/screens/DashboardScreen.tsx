@@ -14,8 +14,8 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {fetchAnalytics, type DailySummary} from '../lib/api';
 import {formatPrice} from '../lib/format';
-import {spacing, radii, typeScale} from '../theme';
-import {Card, SectionHeader} from '../components/ui';
+import {spacing} from '../theme';
+import {SectionHeader, PageHeadingBlock, HeroStatCard, ListRow} from '../components/ui';
 import {
   TrendingUp,
   Receipt,
@@ -136,73 +136,44 @@ export function DashboardScreen() {
         />
       }>
       {/* Greeting */}
-      <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.xl}}>
-        <View
-          style={{flexDirection: 'row', alignItems: 'center', gap: spacing.sm}}>
-          <greeting.Icon size={22} color={tokens.navAccent} strokeWidth={2} />
-          <Text style={[typeScale.body, {color: tokens.text3}]}>
-            {greeting.text}
-          </Text>
-        </View>
-        <Text
-          style={[
-            typeScale.display,
-            {color: tokens.text, marginTop: spacing.xs},
-          ]}>
-          {firstName}
-        </Text>
-        {shop ? (
-          <Text
-            style={[typeScale.caption, {color: tokens.text3, marginTop: 2}]}>
-            {shop.name}
-          </Text>
+      <PageHeadingBlock
+        eyebrow={greeting.text}
+        heading={firstName}
+        inlineBadge={shop ? (
+          <View style={{backgroundColor: tokens.surface2, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}}>
+            <Text style={{color: tokens.text2, fontSize: 10, fontWeight: '600'}}>{shop.name}</Text>
+          </View>
         ) : null}
+      />
+
+      {/* Stat cards - Today's Hero */}
+      <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.md}}>
+        <HeroStatCard
+          label="Today's sales"
+          value={shop ? formatPrice(today?.total_sales ?? 0, shop) : '0'}
+          deltaText={`${today?.total_transactions ?? 0} transactions`}
+          deltaSign="neutral"
+          graphic={<TrendingUp size={64} color={tokens.success} strokeWidth={1} style={{opacity: 0.2, margin: -10}} />}
+        />
       </View>
 
-      {/* Stat cards */}
       <View
         style={{
           flexDirection: 'row',
           flexWrap: 'wrap',
-          paddingHorizontal: spacing.lg,
+          paddingHorizontal: spacing.xl,
           gap: spacing.md,
         }}>
-        {statCards.map((card, i) => (
-          <Card
+        {statCards.slice(1).map((card, i) => (
+          <HeroStatCard
             key={i}
-            variant="outlined"
-            padding={spacing.lg}
+            label={card.label}
+            value={card.value}
             style={{
               width: '47%' as any,
               flexGrow: 1,
-            }}>
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: radii.md,
-                backgroundColor: card.color,
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: spacing.md,
-              }}>
-              {card.icon}
-            </View>
-            <Text
-              style={[
-                typeScale.tiny,
-                {color: tokens.text3, marginBottom: spacing.xs},
-              ]}>
-              {card.label}
-            </Text>
-            <Text
-              style={[
-                typeScale.title,
-                {color: tokens.text, fontVariant: ['tabular-nums']},
-              ]}>
-              {card.value}
-            </Text>
-          </Card>
+            }}
+          />
         ))}
       </View>
 
@@ -220,40 +191,14 @@ export function DashboardScreen() {
               .slice(-7)
               .reverse()
               .map((d, i) => (
-                <View
+                <ListRow
                   key={d.date + i}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: spacing.md,
-                    borderBottomWidth:
-                      i < Math.min(daily.length, 7) - 1 ? 1 : 0,
-                    borderBottomColor: tokens.border,
-                  }}>
-                  <Text style={[typeScale.body, {color: tokens.text, flex: 1}]}>
-                    {d.date}
-                  </Text>
-                  <Text
-                    style={[
-                      typeScale.caption,
-                      {color: tokens.text3, marginRight: spacing.lg},
-                    ]}>
-                    {d.total_transactions} txns
-                  </Text>
-                  <Text
-                    style={[
-                      typeScale.body,
-                      {
-                        color: tokens.text,
-                        fontWeight: '600',
-                        fontVariant: ['tabular-nums'],
-                      },
-                    ]}>
-                    {shop
-                      ? formatPrice(d.total_sales, shop)
-                      : `\u20B9${d.total_sales}`}
-                  </Text>
-                </View>
+                  title={d.date}
+                  subtitle={`${d.total_transactions} txns`}
+                  value={shop ? formatPrice(d.total_sales, shop) : `\u20B9${d.total_sales}`}
+                  icon={<BarChart3 size={20} color={tokens.text2} />}
+                  iconBgColor={tokens.surface2}
+                />
               ))}
           </View>
         </>

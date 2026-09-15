@@ -17,7 +17,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react-native';
 import {useTheme} from '../components/ThemeProvider';
-import {radii, shadows} from '../theme';
+import {shadows} from '../theme';
 
 // Screens
 import {DashboardScreen} from '../screens/DashboardScreen';
@@ -44,6 +44,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const ICON_SIZE = 22;
 
+import {Svg, Defs, LinearGradient, Stop, Rect} from 'react-native-svg';
+
 export function BottomTabNavigator() {
   const {tokens} = useTheme();
 
@@ -51,33 +53,33 @@ export function BottomTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: tokens.navBg,
-          borderTopColor: tokens.border,
-          borderTopWidth: 1,
-          height: 64 + (Platform.OS === 'ios' ? 20 : 0),
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-          paddingTop: 8,
-          ...shadows.sm,
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 24 : 16,
+          left: 20,
+          right: 20,
+          backgroundColor: tokens.surface,
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 64,
+          borderRadius: 32,
+          paddingBottom: 0,
+          paddingTop: 0,
+          ...shadows.glow('#00000040'),
         },
         tabBarActiveTintColor: tokens.navActive,
         tabBarInactiveTintColor: tokens.navMuted,
-        tabBarLabelStyle: {
-          fontSize: 10.5,
-          fontWeight: '500',
-          marginTop: 2,
-        },
       }}>
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({color, focused}) => (
+          tabBarIcon: ({focused}) => (
             <TabIcon
               icon={LayoutDashboard}
-              color={color}
               focused={focused}
-              accentColor={tokens.navAccent}
+              tokens={tokens}
             />
           ),
         }}
@@ -86,12 +88,11 @@ export function BottomTabNavigator() {
         name="Inventory"
         component={InventoryScreen}
         options={{
-          tabBarIcon: ({color, focused}) => (
+          tabBarIcon: ({focused}) => (
             <TabIcon
               icon={Package}
-              color={color}
               focused={focused}
-              accentColor={tokens.navAccent}
+              tokens={tokens}
             />
           ),
         }}
@@ -101,7 +102,6 @@ export function BottomTabNavigator() {
         component={POSScreen}
         options={{
           tabBarIcon: () => null,
-          tabBarLabel: () => null,
           tabBarButton: props => (
             <POSSab
               onPress={props.onPress ?? undefined}
@@ -115,12 +115,11 @@ export function BottomTabNavigator() {
         name="History"
         component={HistoryScreen}
         options={{
-          tabBarIcon: ({color, focused}) => (
+          tabBarIcon: ({focused}) => (
             <TabIcon
               icon={Clock}
-              color={color}
               focused={focused}
-              accentColor={tokens.navAccent}
+              tokens={tokens}
             />
           ),
         }}
@@ -129,12 +128,11 @@ export function BottomTabNavigator() {
         name="More"
         component={MoreScreen}
         options={{
-          tabBarIcon: ({color, focused}) => (
+          tabBarIcon: ({focused}) => (
             <TabIcon
               icon={MoreHorizontal}
-              color={color}
               focused={focused}
-              accentColor={tokens.navAccent}
+              tokens={tokens}
             />
           ),
         }}
@@ -147,31 +145,24 @@ export function BottomTabNavigator() {
 
 function TabIcon({
   icon: Icon,
-  color,
   focused,
-  accentColor,
+  tokens,
 }: {
   icon: React.ComponentType<{
     size: number;
     color: string;
     strokeWidth?: number;
   }>;
-  color: string;
   focused: boolean;
-  accentColor: string;
+  tokens: ReturnType<typeof useTheme>['tokens'];
 }) {
   return (
-    <View style={styles.tabIconContainer}>
+    <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
       <Icon
         size={ICON_SIZE}
-        color={color}
-        strokeWidth={focused ? 2.25 : 1.75}
+        color={focused ? tokens.text : tokens.text2}
+        strokeWidth={focused ? 2.5 : 2}
       />
-      {focused && (
-        <View
-          style={[styles.activeIndicator, {backgroundColor: accentColor}]}
-        />
-      )}
     </View>
   );
 }
@@ -189,29 +180,24 @@ function POSSab({
     <TouchableOpacity
       onPress={onPress}
       style={styles.fabContainer}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel="New sale"
       accessibilityState={{selected: isSelected}}>
-      <View
-        style={[
-          styles.fabButton,
-          {
-            backgroundColor: tokens.primary,
-            ...shadows.glow(tokens.primary),
-          },
-        ]}>
-        <ShoppingCart size={24} color={tokens.primaryFg} strokeWidth={2} />
+      <View style={[styles.fabButton, shadows.glow(tokens.primary)]}>
+        <View style={StyleSheet.absoluteFillObject}>
+          <Svg width="100%" height="100%" style={{borderRadius: 28}}>
+            <Defs>
+              <LinearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="#8B5CF6" stopOpacity="1" />
+                <Stop offset="1" stopColor="#3B82F6" stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#grad)" />
+          </Svg>
+        </View>
+        <ShoppingCart size={24} color={'#FFFFFF'} strokeWidth={2.5} />
       </View>
-      {/* Active indicator dot below the FAB */}
-      <View
-        style={[
-          styles.fabActiveIndicator,
-          {
-            backgroundColor: isSelected ? tokens.navAccent : 'transparent',
-          },
-        ]}
-      />
     </TouchableOpacity>
   );
 }
@@ -220,32 +206,25 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    height: 44,
+    width: 44,
   },
-  activeIndicator: {
-    position: 'absolute',
-    top: -8,
-    width: 32,
-    height: 3,
-    borderRadius: 2,
+  tabIconFocused: {
+    // optional indicator if needed
   },
   fabContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     paddingTop: 0,
-    marginTop: -20,
+    marginTop: -28, 
   },
   fabButton: {
     width: 56,
     height: 56,
-    borderRadius: radii.full,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fabActiveIndicator: {
-    marginTop: 4,
-    width: 32,
-    height: 3,
-    borderRadius: 2,
+    overflow: 'hidden',
   },
 });

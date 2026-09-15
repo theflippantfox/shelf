@@ -37,6 +37,7 @@ import {
 } from '../lib/sync';
 import {formatPrice} from '../lib/format';
 import {spacing, typeScale} from '../theme';
+import {TopBar, PageHeadingBlock, ListRow, QuickActionTileGrid, type ActionTile} from '../components/ui';
 import {
   Package,
   Tag,
@@ -51,8 +52,6 @@ import {
   Heart,
   Baby,
   LayoutGrid,
-  Pencil,
-  Trash2,
   Plus,
   X,
   Search,
@@ -351,94 +350,21 @@ export function InventoryScreen() {
     [products],
   );
 
-  // ── Render product row ──────────────────────────────────────
-
-  const renderProduct = ({item}: {item: Product}) => {
-    const isLowStock = item.track_stock && item.qty <= item.low_stock_threshold;
-    const isOut = item.track_stock && item.qty <= 0;
-    const category = categories.find(c => c.id === item.category_id);
-
-    return (
-      <View
-        style={[
-          styles.productRow,
-          {backgroundColor: tokens.surface, borderBottomColor: tokens.border},
-        ]}>
-        {/* Icon */}
-        <View
-          style={[
-            styles.productIcon,
-            {
-              backgroundColor: category?.color
-                ? category.color + '20'
-                : tokens.surface2,
-            },
-          ]}>
-          {(() => {
-            const IconComp = category?.icon
-              ? CATEGORY_ICON_MAP[category.icon.toLowerCase()]
-              : undefined;
-            return IconComp ? (
-              <IconComp
-                size={22}
-                color={category?.color ?? tokens.text3}
-                strokeWidth={1.75}
-              />
-            ) : (
-              <Package size={22} color={tokens.text3} strokeWidth={1.75} />
-            );
-          })()}
-        </View>
-
-        {/* Info */}
-        <View style={styles.productInfo}>
-          <Text
-            style={[styles.productName, {color: tokens.text}]}
-            numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={[styles.productMeta, {color: tokens.text3}]}>
-            {item.sku} · {getCategoryName(item.category_id)}
-          </Text>
-        </View>
-
-        {/* Price + Stock + Actions */}
-        <View style={styles.productRight}>
-          <Text style={[styles.productPrice, {color: tokens.navAccent}]}>
-            {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
-          </Text>
-          {item.track_stock ? (
-            <Text
-              style={[
-                styles.stockBadge,
-                {
-                  color: isOut
-                    ? '#EF4444'
-                    : isLowStock
-                    ? '#F59E0B'
-                    : tokens.text3,
-                },
-              ]}>
-              {isOut ? 'OUT' : `${item.qty} in stock`}
-            </Text>
-          ) : null}
-          {/* Edit / Archive buttons */}
-          <View style={styles.rowActions}>
-            <TouchableOpacity
-              style={[styles.actionBtn, {backgroundColor: tokens.surface2}]}
-              onPress={() => openEdit(item)}>
-              <Pencil size={13} color={tokens.text2} strokeWidth={1.75} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, {backgroundColor: '#FEE2E220'}]}
-              onPress={() => confirmArchive(item)}>
-              <Trash2 size={13} color="#EF4444" strokeWidth={1.75} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  };
+  const categoryTiles: ActionTile[] = [
+    {
+      id: '',
+      label: 'All',
+      icon: ({color, size}: {color: string; size: number}) => <LayoutGrid color={color} size={size} strokeWidth={1.75} />,
+    },
+    ...categories.map(c => {
+      const IconComp = c.icon ? CATEGORY_ICON_MAP[c.icon.toLowerCase()] : Package;
+      return {
+        id: c.id,
+        label: c.name,
+        icon: ({color, size}: {color: string; size: number}) => IconComp ? <IconComp color={color} size={size} strokeWidth={1.75} /> : <Package color={color} size={size} strokeWidth={1.75} />,
+      };
+    }),
+  ];
 
   // ── Main render ─────────────────────────────────────────────
 
@@ -451,29 +377,33 @@ export function InventoryScreen() {
   }
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg}]}>
+    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
       {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
-        <View style={styles.headerRow}>
-          <Text style={[typeScale.heading, {color: tokens.text}]}>
-            Inventory
-          </Text>
-          <View style={styles.headerRight}>
-            <Text
-              style={[
-                typeScale.caption,
-                {color: tokens.text3, marginRight: 12},
-              ]}>
-              {filtered.length} items
-              {lowStockCount > 0 ? ` · ${lowStockCount} low` : ''}
-            </Text>
-            <TouchableOpacity
-              style={[styles.addBtn, {backgroundColor: tokens.navAccent}]}
-              onPress={openAdd}>
-              <Plus size={16} color="#fff" strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-        </View>
+      <TopBar
+        trailingIcons={[
+          <Search key="search" size={24} color={tokens.text2} />,
+          <Plus key="add" size={24} color={tokens.navAccent} onPress={openAdd} />,
+        ]}
+      />
+      <PageHeadingBlock
+        heading="Inventory"
+        eyebrow={`${filtered.length} items`}
+        inlineBadge={
+          lowStockCount > 0 ? (
+            <View style={{backgroundColor: '#F59E0B20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}}>
+              <Text style={{color: '#F59E0B', fontSize: 10, fontWeight: '600'}}>{lowStockCount} low</Text>
+            </View>
+          ) : null
+        }
+      />
+
+      {/* Category filter */}
+      <View style={{marginBottom: spacing.md}}>
+        <QuickActionTileGrid
+          tiles={categoryTiles}
+          activeId={selectedCategory || ''}
+          onSelect={setSelectedCategory}
+        />
       </View>
 
       {/* Search */}
@@ -497,50 +427,6 @@ export function InventoryScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-      </View>
-
-      {/* Category filter + Sort */}
-      <View style={styles.filterRow}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[
-            {
-              id: '',
-              name: 'All',
-              icon: 'layout-grid',
-              color: '',
-              sort_order: 0,
-              shop_id: '',
-              archived_at: null,
-            } as Category,
-            ...categories,
-          ]}
-          keyExtractor={c => c.id ?? 'all'}
-          contentContainerStyle={styles.filterList}
-          renderItem={({item: cat}) => (
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor:
-                    selectedCategory === cat.id
-                      ? tokens.navAccent
-                      : tokens.surface2,
-                },
-              ]}
-              onPress={() => setSelectedCategory(cat.id)}>
-              <Text
-                style={{
-                  color: selectedCategory === cat.id ? '#fff' : tokens.text2,
-                  ...typeScale.caption,
-                  fontWeight: '600',
-                }}>
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
 
         {/* Sort toggle */}
         <TouchableOpacity
@@ -565,7 +451,25 @@ export function InventoryScreen() {
       {/* Product list */}
       <FlatList
         data={filtered}
-        renderItem={renderProduct}
+        renderItem={({item}) => {
+          const category = categories.find(c => c.id === item.category_id);
+          const IconComp = category?.icon ? CATEGORY_ICON_MAP[category.icon.toLowerCase()] : Package;
+          const isLowStock = item.track_stock && item.qty <= item.low_stock_threshold;
+          const isOut = item.track_stock && item.qty <= 0;
+        return (
+          <View style={{paddingHorizontal: 16}}>
+            <ListRow
+              title={item.name}
+              subtitle={`${item.sku} · ${getCategoryName(item.category_id)} · ${item.track_stock ? (isOut ? 'OUT OF STOCK' : (isLowStock ? `LOW (${item.qty})` : `${item.qty} in stock`)) : '∞'}`}
+              value={shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
+              icon={IconComp ? <IconComp size={22} color={category?.color ?? tokens.text3} strokeWidth={1.75} /> : <Package size={22} color={tokens.text3} strokeWidth={1.75} />}
+              iconBgColor={category?.color ? category.color + '20' : tokens.surface2}
+              onPress={() => openEdit(item)}
+              style={{marginHorizontal: spacing.xl}}
+            />
+          </View>
+        );
+        }}
         keyExtractor={item => item.id}
         refreshing={refreshing}
         onRefresh={() => {
@@ -971,6 +875,15 @@ export function InventoryScreen() {
                 multiline
                 numberOfLines={3}
               />
+              {editId && (
+                <TouchableOpacity onPress={() => {
+                  setFormVisible(false);
+                  const prod = products.find(p => p.id === editId);
+                  if (prod) confirmArchive(prod);
+                }} style={{marginTop: spacing.xl, padding: spacing.md, backgroundColor: '#FEE2E220', borderRadius: 12, alignItems: 'center'}}>
+                  <Text style={{color: '#EF4444', fontWeight: '600'}}>Archive Product</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>

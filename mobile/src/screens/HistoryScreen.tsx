@@ -13,14 +13,13 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {Card, Badge, EmptyState, Chip} from '../components/ui';
+import {Card, Badge, EmptyState, PageHeadingBlock, ListRow, QuickActionTileGrid, type ActionTile} from '../components/ui';
 import {fetchSales, type Sale} from '../lib/api';
 import {formatPrice, formatDateTime} from '../lib/format';
 import {spacing, radii, typeScale} from '../theme';
-import {User} from 'lucide-react-native';
+import {User, CalendarClock, CalendarDays, Calendar as CalendarIcon, History, Receipt} from 'lucide-react-native';
 
 type TimeRange = 'today' | 'week' | 'month' | 'all';
-
 
 function getDateRange(range: TimeRange): {from: string; to: string} | null {
   const now = new Date();
@@ -92,72 +91,45 @@ export function HistoryScreen() {
     return {total, count, avg};
   }, [sales]);
 
-  const renderSale = ({item}: {item: Sale}) => (
-    <Card variant="outlined" style={styles.saleCard} padding={spacing.md}>
-      <View style={styles.saleHeader}>
-        <View style={styles.saleRefRow}>
-          <Text style={[styles.saleRef, {color: tokens.text}]}>
-            {item.sale_ref}
-          </Text>
-          <Text style={[styles.saleTime, {color: tokens.text3}]}>
-            {formatDateTime(item.created_at, shop!)}
-          </Text>
-        </View>
-        <Text style={[styles.saleTotal, {color: tokens.text}]}>
-          {shop ? formatPrice(item.total, shop) : `₹${item.total}`}
-        </Text>
-      </View>
+  const rangeTiles: ActionTile[] = [
+    {
+      id: 'today',
+      label: 'Today',
+      icon: ({color, size}) => <CalendarClock color={color} size={size} strokeWidth={1.75} />,
+    },
+    {
+      id: 'week',
+      label: '7 Days',
+      icon: ({color, size}) => <CalendarDays color={color} size={size} strokeWidth={1.75} />,
+    },
+    {
+      id: 'month',
+      label: '30 Days',
+      icon: ({color, size}) => <CalendarIcon color={color} size={size} strokeWidth={1.75} />,
+    },
+    {
+      id: 'all',
+      label: 'All Time',
+      icon: ({color, size}) => <History color={color} size={size} strokeWidth={1.75} />,
+    },
+  ];
 
-      <View style={styles.saleFooter}>
-        <Badge
-          variant="default"
-          label={item.payment_method}
-        />
-        {item.customer?.name && (
-          <View style={styles.customerBadge}>
-            <User size={14} color={tokens.text3} strokeWidth={2} />
-            <Text
-              style={{
-                color: tokens.text3,
-                marginLeft: 4,
-                ...typeScale.caption,
-              }}>
-              {item.customer.name}
-            </Text>
-          </View>
-        )}
-      </View>
-    </Card>
-  );
+  /* Remove manual renderSale */
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg}]}>
-      {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
-        <Text style={[typeScale.heading, {color: tokens.text}]}>
-          Sales History
-        </Text>
-      </View>
+    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
+      <PageHeadingBlock
+        heading="Sales History"
+        eyebrow={`${sales.length} transactions`}
+        style={{marginTop: spacing.xl}}
+      />
 
-      {/* Time range tabs */}
-      <View style={styles.tabRow}>
-        {(['today', 'week', 'month', 'all'] as TimeRange[]).map(r => (
-          <Chip
-            key={r}
-            label={
-              r === 'today'
-                ? 'Today'
-                : r === 'week'
-                ? '7 Days'
-                : r === 'month'
-                ? '30 Days'
-                : 'All'
-            }
-            selected={range === r}
-            onPress={() => setRange(r)}
-            style={{flex: 1, alignItems: 'center'}}
-          />
-        ))}
+      <View style={{marginBottom: spacing.xs}}>
+        <QuickActionTileGrid
+          tiles={rangeTiles}
+          activeId={range}
+          onSelect={(id) => setRange(id as TimeRange)}
+        />
       </View>
 
       {/* Stats bar */}
@@ -196,7 +168,15 @@ export function HistoryScreen() {
       ) : (
         <FlatList
           data={sales}
-          renderItem={renderSale}
+          renderItem={({item}) => (
+            <ListRow
+              title={item.sale_ref}
+              subtitle={`${formatDateTime(item.created_at, shop!)}${item.customer?.name ? ` · ${item.customer.name}` : ''}`}
+              value={shop ? formatPrice(item.total, shop) : `₹${item.total}`}
+              icon={<Receipt size={20} color={tokens.text2} />}
+              iconBgColor={tokens.surface2}
+            />
+          )}
           keyExtractor={item => item.id}
           refreshing={refreshing}
           onRefresh={() => {
@@ -209,7 +189,7 @@ export function HistoryScreen() {
           }}
           ListEmptyComponent={
             <EmptyState
-              icon={<User size={48} color={tokens.text3} strokeWidth={1} />}
+              icon={<History size={48} color={tokens.text3} strokeWidth={1} />}
               title="No sales in this period"
               subtitle="Change the time range to see more history"
             />

@@ -17,7 +17,6 @@ import {
   FlatList,
   StyleSheet,
   Modal,
-  ScrollView,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -27,9 +26,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {BarcodeScannerView} from '../components/BarcodeScannerView';
-import {Card, Badge, Button, Chip, EmptyState} from '../components/ui';
+import {Card, Badge, Button, QuickActionTileGrid, EmptyState, type ActionTile} from '../components/ui';
 import {
-  fetchProducts,
   fetchCategories,
   fetchProductByBarcode,
   type Product,
@@ -60,6 +58,7 @@ import {
   Smartphone,
   FileText,
   ScanLine,
+  LayoutGrid,
 } from 'lucide-react-native';
 
 // ── Cart types ────────────────────────────────────────────────────────────
@@ -167,7 +166,21 @@ export function POSScreen() {
     return list;
   }, [products, selectedCategory, search]);
 
-  // ── Cart helpers ──────────────────────────────────────────────────────
+  const categoryTiles: ActionTile[] = [
+    {
+      id: '',
+      label: 'All',
+      icon: ({color, size}: {color: string; size: number}) => <LayoutGrid color={color} size={size} strokeWidth={1.75} />,
+    },
+    ...categories.map(c => {
+      // (Simplified: just use Package for dynamically loaded POS categories to avoid huge switch. We could do better but this is fine.)
+      return {
+        id: c.id,
+        label: c.name,
+        icon: ({color, size}: {color: string; size: number}) => <Package color={color} size={size} strokeWidth={1.75} />,
+      };
+    }),
+  ];
 
   const addToCart = useCallback((product: Product) => {
     setCart(prev => {
@@ -588,26 +601,11 @@ export function POSScreen() {
       </View>
 
       {/* Category chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}>
-        <Chip
-          label="All"
-          selected={!selectedCategory}
-          onPress={() => setSelectedCategory(null)}
-        />
-        {categories.map(cat => (
-          <Chip
-            key={cat.id}
-            label={`${cat.icon} ${cat.name}`}
-            selected={selectedCategory === cat.id}
-            onPress={() =>
-              setSelectedCategory(selectedCategory === cat.id ? null : cat.id)
-            }
-          />
-        ))}
-      </ScrollView>
+      <QuickActionTileGrid
+        tiles={categoryTiles}
+        activeId={selectedCategory || ''}
+        onSelect={(id) => setSelectedCategory(id === '' ? null : id)}
+      />
 
       {/* Product grid */}
       <FlatList

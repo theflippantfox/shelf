@@ -20,13 +20,9 @@ import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {createCustomer, type Customer} from '../lib/api';
-import {
-  isOnline,
-  syncCustomersDown,
-  getLocalCustomers,
-} from '../lib/sync';
+import {isOnline, syncCustomersDown, getLocalCustomers} from '../lib/sync';
 import {formatPrice} from '../lib/format';
-import {Card, Badge, Button, Avatar, EmptyState} from '../components/ui';
+import {Card, Badge, Button, Avatar, EmptyState, TopBar, PageHeadingBlock} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
 import {
   Users,
@@ -36,7 +32,6 @@ import {
   Mail,
   FileText,
   X,
-  ArrowLeft,
 } from 'lucide-react-native';
 
 // Customer tier logic (matches web app config)
@@ -81,7 +76,7 @@ export function CustomersScreen() {
       if (local.length > 0) {
         setCustomers(local);
       }
-      
+
       if (await isOnline()) {
         await syncCustomersDown(shop.id);
         const fresh = await getLocalCustomers();
@@ -172,7 +167,11 @@ export function CustomersScreen() {
             <Badge
               label={TIER_LABELS[tier]}
               variant={
-                tier === 'vip' ? 'danger' : tier === 'regular' ? 'info' : 'default'
+                tier === 'vip'
+                  ? 'danger'
+                  : tier === 'regular'
+                  ? 'info'
+                  : 'default'
               }
             />
           </View>
@@ -202,31 +201,22 @@ export function CustomersScreen() {
   }
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg}]}>
+    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
       {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}>
-              <ArrowLeft size={22} color={tokens.text} strokeWidth={2} />
-            </TouchableOpacity>
-            <Text style={[typeScale.heading, {color: tokens.text}]}>
-              Customers
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.addBtn, {backgroundColor: tokens.navAccent}]}
-            onPress={() => {
-              resetForm();
-              setShowAdd(true);
-            }}
-            activeOpacity={0.7}>
-            <Plus size={18} color="#fff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TopBar 
+        onBack={() => navigation.goBack()}
+        trailingIcons={[
+          <Plus key="add" size={24} color={tokens.navAccent} onPress={() => {
+            resetForm();
+            setShowAdd(true);
+          }} />
+        ]}
+      />
+      
+      <PageHeadingBlock
+        heading="Customers"
+        eyebrow={`${filtered.length} customers`}
+      />
 
       {/* Search */}
       <View style={styles.searchRow}>

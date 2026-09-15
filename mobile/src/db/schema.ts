@@ -67,7 +67,9 @@ export const syncQueue = sqliteTable('sync_queue', {
   entity: text('entity', {enum: ['PRODUCT', 'CUSTOMER', 'SALE']}).notNull(),
   payload: text('payload').notNull(), // JSON
   created_at: text('created_at').notNull(),
-  status: text('status', {enum: ['PENDING', 'ERROR']}).notNull().default('PENDING'),
+  status: text('status', {enum: ['PENDING', 'ERROR']})
+    .notNull()
+    .default('PENDING'),
   error_message: text('error_message'),
   retry_count: integer('retry_count').notNull().default(0),
 });

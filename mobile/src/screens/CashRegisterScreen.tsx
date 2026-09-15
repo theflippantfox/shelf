@@ -186,9 +186,7 @@ export function CashRegisterScreen() {
           destination: 'counter',
           amount: discrepancy,
           entry_type: 'adjustment',
-          notes: eodNotes
-            ? `EOD adjustment. ${eodNotes}`
-            : 'EOD adjustment',
+          notes: eodNotes ? `EOD adjustment. ${eodNotes}` : 'EOD adjustment',
         });
         const [bals, hist] = await Promise.all([
           fetchRegisterBalance(),
@@ -233,13 +231,24 @@ export function CashRegisterScreen() {
   };
 
   const entryLabel = (e: CashEntry) => {
-    if (e.entry_type === 'sale') {return 'Sale';}
-    if (e.entry_type === 'expense') {return 'Expense';}
-    if (e.entry_type === 'injection') {return 'Injection';}
-    if (e.entry_type === 'transfer')
-      {return e.notes.includes('(out)') ? 'Transfer out' : 'Transfer in';}
-    if (e.entry_type === 'void') {return 'Sale void';}
-    if (e.entry_type === 'adjustment') {return 'Adjustment';}
+    if (e.entry_type === 'sale') {
+      return 'Sale';
+    }
+    if (e.entry_type === 'expense') {
+      return 'Expense';
+    }
+    if (e.entry_type === 'injection') {
+      return 'Injection';
+    }
+    if (e.entry_type === 'transfer') {
+      return e.notes.includes('(out)') ? 'Transfer out' : 'Transfer in';
+    }
+    if (e.entry_type === 'void') {
+      return 'Sale void';
+    }
+    if (e.entry_type === 'adjustment') {
+      return 'Adjustment';
+    }
     return e.entry_type;
   };
 
@@ -251,7 +260,11 @@ export function CashRegisterScreen() {
     const isNegative = e.amount < 0;
 
     return (
-      <View style={[styles.entryCard, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+      <View
+        style={[
+          styles.entryCard,
+          {backgroundColor: tokens.surface, borderColor: tokens.border},
+        ]}>
         <View style={[styles.entryIconBox, {backgroundColor: tokens.surface2}]}>
           <Icon size={16} color={tokens.text2} strokeWidth={2} />
         </View>
@@ -263,12 +276,18 @@ export function CashRegisterScreen() {
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <DIcon size={10} color={tokens.text3} style={{marginRight: 2}} />
               <Text style={[styles.entryDest, {color: tokens.text3}]}>
-                {e.destination === 'counter' ? 'Counter' : e.destination === 'bank' ? 'Bank' : 'Other'}
+                {e.destination === 'counter'
+                  ? 'Counter'
+                  : e.destination === 'bank'
+                  ? 'Bank'
+                  : 'Other'}
               </Text>
             </View>
           </View>
           {e.notes ? (
-            <Text style={[styles.entryNotes, {color: tokens.text3}]} numberOfLines={2}>
+            <Text
+              style={[styles.entryNotes, {color: tokens.text3}]}
+              numberOfLines={2}>
               {e.notes}
             </Text>
           ) : null}
@@ -286,7 +305,8 @@ export function CashRegisterScreen() {
                   : '#10B981', // teal roughly
               },
             ]}>
-            {isNegative ? '' : '+'}{shop ? formatPrice(e.amount, shop) : e.amount}
+            {isNegative ? '' : '+'}
+            {shop ? formatPrice(e.amount, shop) : e.amount}
           </Text>
         </View>
       </View>
@@ -449,14 +469,17 @@ export function CashRegisterScreen() {
 
             {/* Info text */}
             <Text style={[styles.infoText, {color: tokens.text3}]}>
-              Sales are automatically added to the register. Use actions for manual adjustments.
+              Sales are automatically added to the register. Use actions for
+              manual adjustments.
             </Text>
           </>
         }
         ListEmptyComponent={
           <View style={{marginTop: 40}}>
             <EmptyState
-              icon={<Wallet size={48} color={tokens.text3} strokeWidth={1.25} />}
+              icon={
+                <Wallet size={48} color={tokens.text3} strokeWidth={1.25} />
+              }
               title="No entries yet"
               subtitle="Sales auto-add here. Use the buttons above to log an expense, injection, or transfer."
             />
@@ -666,7 +689,9 @@ export function CashRegisterScreen() {
             ]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={[typeScale.title, {color: tokens.text}]}>Close Register</Text>
+              <Text style={[typeScale.title, {color: tokens.text}]}>
+                Close Register
+              </Text>
               <TouchableOpacity onPress={() => setShowEod(false)}>
                 <X size={22} color={tokens.text3} strokeWidth={2} />
               </TouchableOpacity>
@@ -674,21 +699,41 @@ export function CashRegisterScreen() {
 
             <View style={styles.modalBody}>
               {/* Expected vs Actual */}
-              <View style={[styles.eodCard, {backgroundColor: tokens.surface2}]}>
+              <View
+                style={[styles.eodCard, {backgroundColor: tokens.surface2}]}>
                 <View style={[styles.eodRow, {marginBottom: spacing.md}]}>
-                  <Text style={[typeScale.body, {color: tokens.text2, fontWeight: '600'}]}>Expected in Drawer</Text>
-                  <Text style={[typeScale.title, {color: '#10B981', fontVariant: ['tabular-nums']}]}>
+                  <Text
+                    style={[
+                      typeScale.body,
+                      {color: tokens.text2, fontWeight: '600'},
+                    ]}>
+                    Expected in Drawer
+                  </Text>
+                  <Text
+                    style={[
+                      typeScale.title,
+                      {color: '#10B981', fontVariant: ['tabular-nums']},
+                    ]}>
                     {shop ? formatPrice(counterBal, shop) : '0'}
                   </Text>
                 </View>
 
-                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>Physical Cash Count</Text>
+                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
+                  Physical Cash Count
+                </Text>
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface,
+                      borderColor: tokens.border,
+                    },
                   ]}>
-                  <DollarSign size={16} color={tokens.text3} strokeWidth={1.75} />
+                  <DollarSign
+                    size={16}
+                    color={tokens.text3}
+                    strokeWidth={1.75}
+                  />
                   <TextInput
                     style={[styles.input, {color: tokens.text}]}
                     value={physicalCount}
@@ -704,13 +749,22 @@ export function CashRegisterScreen() {
               {/* Discrepancy block */}
               {physicalCount !== '' && !isNaN(parseFloat(physicalCount)) ? (
                 <View style={{marginTop: spacing.md}}>
-                  <Text style={[styles.fieldLabel, {color: tokens.text3}]}>Note / Explanation (Optional)</Text>
+                  <Text style={[styles.fieldLabel, {color: tokens.text3}]}>
+                    Note / Explanation (Optional)
+                  </Text>
                   <View
                     style={[
                       styles.inputRow,
-                      {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                      {
+                        backgroundColor: tokens.surface2,
+                        borderColor: tokens.border,
+                      },
                     ]}>
-                    <FileText size={16} color={tokens.text3} strokeWidth={1.75} />
+                    <FileText
+                      size={16}
+                      color={tokens.text3}
+                      strokeWidth={1.75}
+                    />
                     <TextInput
                       style={[styles.input, {color: tokens.text}]}
                       value={eodNotes}
@@ -728,18 +782,28 @@ export function CashRegisterScreen() {
                 style={[styles.cancelBtn, {borderColor: tokens.border}]}
                 onPress={() => setShowEod(false)}
                 activeOpacity={0.7}>
-                <Text style={[styles.cancelBtnText, {color: tokens.text2}]}>Cancel</Text>
+                <Text style={[styles.cancelBtnText, {color: tokens.text2}]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.saveBtn,
                   {backgroundColor: tokens.navAccent},
-                  (eodSubmitting || (physicalCount !== '' && isNaN(parseFloat(physicalCount)))) && styles.btnDisabled,
+                  (eodSubmitting ||
+                    (physicalCount !== '' &&
+                      isNaN(parseFloat(physicalCount)))) &&
+                    styles.btnDisabled,
                 ]}
                 onPress={handleEODSubmit}
                 activeOpacity={0.7}
-                disabled={eodSubmitting || (physicalCount !== '' && isNaN(parseFloat(physicalCount)))}>
-                <Text style={styles.saveBtnText}>{eodSubmitting ? 'Saving...' : 'Complete EOD'}</Text>
+                disabled={
+                  eodSubmitting ||
+                  (physicalCount !== '' && isNaN(parseFloat(physicalCount)))
+                }>
+                <Text style={styles.saveBtnText}>
+                  {eodSubmitting ? 'Saving...' : 'Complete EOD'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
