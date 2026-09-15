@@ -14,6 +14,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
+import {Card, Avatar, SectionHeader} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
 import {
   Palette,
@@ -44,7 +45,7 @@ interface SettingItem {
 
 export function MoreScreen() {
   const {tokens, paletteId, setPaletteId, isDark, setMode} = useTheme();
-  const {shop, logout} = useAuth();
+  const {shop, user, logout} = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
 
@@ -165,12 +166,8 @@ export function MoreScreen() {
 
   const renderSection = (title: string, items: SettingItem[]) => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, {color: tokens.text3}]}>{title}</Text>
-      <View
-        style={[
-          styles.sectionCard,
-          {backgroundColor: tokens.surface, borderColor: tokens.border},
-        ]}>
+      <SectionHeader title={title} />
+      <Card variant="outlined" padding={0} style={styles.sectionCard}>
         {items.map((item, i) => (
           <TouchableOpacity
             key={item.label}
@@ -207,7 +204,7 @@ export function MoreScreen() {
             )}
           </TouchableOpacity>
         ))}
-      </View>
+      </Card>
     </View>
   );
 
@@ -222,16 +219,8 @@ export function MoreScreen() {
 
       {/* Profile card */}
       {shop && (
-        <View
-          style={[
-            styles.profileCard,
-            {backgroundColor: tokens.surface, borderColor: tokens.border},
-          ]}>
-          <View style={[styles.avatar, {backgroundColor: tokens.navAccent}]}>
-            <Text style={styles.avatarText}>
-              {shop.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
+        <Card variant="outlined" style={styles.profileCard} padding={spacing.lg}>
+          <Avatar name={shop.name} size={52} />
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, {color: tokens.text}]}>
               {shop.name}
@@ -239,8 +228,13 @@ export function MoreScreen() {
             <Text style={[styles.profileSlug, {color: tokens.text3}]}>
               /{shop.slug}
             </Text>
+            {user?.email && (
+              <Text style={[styles.profileSlug, {color: tokens.text3}]}>
+                {user.email}
+              </Text>
+            )}
           </View>
-        </View>
+        </Card>
       )}
 
       {/* Appearance */}
@@ -254,14 +248,8 @@ export function MoreScreen() {
 
       {/* Account */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, {color: tokens.text3}]}>
-          Account
-        </Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {backgroundColor: tokens.surface, borderColor: tokens.border},
-          ]}>
+        <SectionHeader title="Account" />
+        <Card variant="outlined" padding={0} style={styles.sectionCard}>
           <TouchableOpacity
             style={[
               styles.settingRow,
@@ -308,7 +296,7 @@ export function MoreScreen() {
               Sign Out
             </Text>
           </TouchableOpacity>
-        </View>
+        </Card>
       </View>
 
       {/* App info */}

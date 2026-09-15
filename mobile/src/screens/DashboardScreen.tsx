@@ -14,7 +14,7 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {fetchAnalytics, type DailySummary} from '../lib/api';
 import {formatPrice} from '../lib/format';
-import {spacing, radii, shadows, typeScale} from '../theme';
+import {spacing, radii, typeScale} from '../theme';
 import {Card, SectionHeader} from '../components/ui';
 import {
   TrendingUp,
@@ -39,7 +39,7 @@ function getGreeting(): {text: string; Icon: typeof Sun} {
 
 export function DashboardScreen() {
   const {tokens} = useTheme();
-  const {shop, profile} = useAuth();
+  const {shop, user} = useAuth();
   const insets = useSafeAreaInsets();
   const [daily, setDaily] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export function DashboardScreen() {
   const avgBasket = totalTxns > 0 ? totalSales / totalTxns : 0;
 
   const greeting = getGreeting();
-  const firstName = profile?.first_name ?? 'there';
+  const firstName = user?.email?.split('@')[0] ?? 'there';
 
   if (loading) {
     return (

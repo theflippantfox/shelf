@@ -21,6 +21,7 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {fetchCustomers, createCustomer, type Customer} from '../lib/api';
 import {formatPrice} from '../lib/format';
+import {Card, Badge, Button, Avatar, EmptyState} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
 import {
   Users,
@@ -30,7 +31,6 @@ import {
   Mail,
   FileText,
   X,
-  UserPlus,
   ArrowLeft,
 } from 'lucide-react-native';
 
@@ -46,37 +46,6 @@ function getTier(c: Customer): 'vip' | 'regular' | 'new' {
 }
 
 const TIER_LABELS = {vip: 'VIP', regular: 'Regular', new: 'New'};
-const TIER_COLORS = {vip: '#E11D48', regular: '#6366F1', new: '#06B6D4'};
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
-
-// Hash name to a consistent color
-function nameColor(name: string): string {
-  const colors = [
-    '#6366F1',
-    '#10B981',
-    '#F59E0B',
-    '#EC4899',
-    '#8B5CF6',
-    '#06B6D4',
-    '#EF4444',
-    '#F97316',
-    '#14B8A6',
-    '#3B82F6',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
 
 export function CustomersScreen() {
   const {tokens} = useTheme();
@@ -170,26 +139,18 @@ export function CustomersScreen() {
 
   const renderCustomer = ({item}: {item: Customer}) => {
     const tier = getTier(item);
-    const color = nameColor(item.name);
     return (
-      <TouchableOpacity
-        activeOpacity={0.6}
+      <Card
         onPress={() =>
           navigation.navigate(
             'CustomerDetail' as never,
             {customerId: item.id, customerName: item.name} as never,
           )
         }
-        style={[
-          styles.customerCard,
-          {backgroundColor: tokens.surface, borderColor: tokens.border},
-        ]}>
+        variant="outlined"
+        style={styles.customerCard}>
         {/* Avatar */}
-        <View style={[styles.avatar, {backgroundColor: color + '20'}]}>
-          <Text style={[styles.avatarText, {color}]}>
-            {getInitials(item.name)}
-          </Text>
-        </View>
+        <Avatar name={item.name} size={42} />
 
         {/* Info */}
         <View style={styles.customerInfo}>
@@ -199,15 +160,12 @@ export function CustomersScreen() {
               numberOfLines={1}>
               {item.name}
             </Text>
-            <View
-              style={[
-                styles.tierBadge,
-                {backgroundColor: TIER_COLORS[tier] + '18'},
-              ]}>
-              <Text style={[styles.tierText, {color: TIER_COLORS[tier]}]}>
-                {TIER_LABELS[tier]}
-              </Text>
-            </View>
+            <Badge
+              label={TIER_LABELS[tier]}
+              variant={
+                tier === 'vip' ? 'danger' : tier === 'regular' ? 'info' : 'default'
+              }
+            />
           </View>
           <Text style={[styles.customerMeta, {color: tokens.text3}]}>
             {item.phone ?? item.email ?? 'No contact'}{' '}
@@ -222,7 +180,7 @@ export function CustomersScreen() {
           </Text>
           <Text style={[styles.spentLabel, {color: tokens.text3}]}>spent</Text>
         </View>
-      </TouchableOpacity>
+      </Card>
     );
   };
 
@@ -297,25 +255,16 @@ export function CustomersScreen() {
           paddingBottom: insets.bottom + 20,
         }}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Users size={48} color={tokens.text3} strokeWidth={1.25} />
-            <Text style={[styles.emptyTitle, {color: tokens.text}]}>
-              No customers yet
-            </Text>
-            <Text style={[styles.emptySubtitle, {color: tokens.text3}]}>
-              Add your first customer to start tracking visits.
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyBtn, {backgroundColor: tokens.navAccent}]}
-              onPress={() => {
-                resetForm();
-                setShowAdd(true);
-              }}
-              activeOpacity={0.7}>
-              <UserPlus size={16} color="#fff" strokeWidth={2} />
-              <Text style={styles.emptyBtnText}>Add customer</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon={<Users size={48} color={tokens.text3} strokeWidth={1.25} />}
+            title="No customers yet"
+            subtitle="Add your first customer to start tracking visits."
+            actionLabel="Add customer"
+            onAction={() => {
+              resetForm();
+              setShowAdd(true);
+            }}
+          />
         }
       />
 
@@ -458,27 +407,19 @@ export function CustomersScreen() {
 
             {/* Actions */}
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, {borderColor: tokens.border}]}
+              <Button
+                label="Cancel"
+                variant="secondary"
                 onPress={() => setShowAdd(false)}
-                activeOpacity={0.7}>
-                <Text style={[styles.cancelBtnText, {color: tokens.text2}]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  {backgroundColor: tokens.navAccent},
-                  saving && styles.btnDisabled,
-                ]}
+                style={{flex: 1}}
+              />
+              <Button
+                label={saving ? 'Saving...' : 'Save'}
+                variant="primary"
                 onPress={handleAdd}
-                activeOpacity={0.7}
-                disabled={saving}>
-                <Text style={styles.saveBtnText}>
-                  {saving ? 'Saving...' : 'Save'}
-                </Text>
-              </TouchableOpacity>
+                disabled={saving}
+                style={{flex: 1}}
+              />
             </View>
           </View>
         </KeyboardAvoidingView>

@@ -198,7 +198,7 @@ function POSSab({
           styles.fabButton,
           {
             backgroundColor: tokens.primary,
-            ...shadows.lg,
+            ...shadows.glow(tokens.primary),
           },
         ]}>
         <ShoppingCart size={24} color={tokens.primaryFg} strokeWidth={2} />

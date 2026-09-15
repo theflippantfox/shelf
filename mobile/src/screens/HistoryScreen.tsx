@@ -6,7 +6,6 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -14,28 +13,14 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
+import {Card, Badge, EmptyState, Chip} from '../components/ui';
 import {fetchSales, type Sale} from '../lib/api';
 import {formatPrice, formatDateTime} from '../lib/format';
 import {spacing, radii, typeScale} from '../theme';
-import {
-  Banknote,
-  CreditCard,
-  Smartphone,
-  FileText,
-  User,
-  DollarSign,
-} from 'lucide-react-native';
-import type {ComponentType} from 'react';
+import {User} from 'lucide-react-native';
 
 type TimeRange = 'today' | 'week' | 'month' | 'all';
 
-// Map payment methods to lucide icons
-const PAYMENT_ICON_MAP: Record<string, ComponentType<any>> = {
-  cash: Banknote,
-  card: CreditCard,
-  upi: Smartphone,
-  credit: FileText,
-};
 
 function getDateRange(range: TimeRange): {from: string; to: string} | null {
   const now = new Date();
@@ -98,7 +83,7 @@ export function HistoryScreen() {
   useEffect(() => {
     setLoading(true);
     loadSales();
-  }, [range, shop]);
+  }, [loadSales]);
 
   const stats = useMemo(() => {
     const total = sales.reduce((sum, s) => sum + s.total, 0);
@@ -108,11 +93,7 @@ export function HistoryScreen() {
   }, [sales]);
 
   const renderSale = ({item}: {item: Sale}) => (
-    <View
-      style={[
-        styles.saleCard,
-        {backgroundColor: tokens.surface, borderColor: tokens.border},
-      ]}>
+    <Card variant="outlined" style={styles.saleCard} padding={spacing.md}>
       <View style={styles.saleHeader}>
         <View style={styles.saleRefRow}>
           <Text style={[styles.saleRef, {color: tokens.text}]}>
@@ -122,22 +103,16 @@ export function HistoryScreen() {
             {formatDateTime(item.created_at, shop!)}
           </Text>
         </View>
-        <Text style={[styles.saleTotal, {color: tokens.navAccent}]}>
+        <Text style={[styles.saleTotal, {color: tokens.text}]}>
           {shop ? formatPrice(item.total, shop) : `₹${item.total}`}
         </Text>
       </View>
 
       <View style={styles.saleFooter}>
-        <View style={styles.paymentBadge}>
-          {(() => {
-            const PIcon = PAYMENT_ICON_MAP[item.payment_method] ?? DollarSign;
-            return <PIcon size={14} color={tokens.text2} strokeWidth={2} />;
-          })()}
-          <Text
-            style={{color: tokens.text2, marginLeft: 4, ...typeScale.caption}}>
-            {item.payment_method}
-          </Text>
-        </View>
+        <Badge
+          variant="default"
+          label={item.payment_method}
+        />
         {item.customer?.name && (
           <View style={styles.customerBadge}>
             <User size={14} color={tokens.text3} strokeWidth={2} />
@@ -152,7 +127,7 @@ export function HistoryScreen() {
           </View>
         )}
       </View>
-    </View>
+    </Card>
   );
 
   return (
@@ -167,31 +142,21 @@ export function HistoryScreen() {
       {/* Time range tabs */}
       <View style={styles.tabRow}>
         {(['today', 'week', 'month', 'all'] as TimeRange[]).map(r => (
-          <TouchableOpacity
+          <Chip
             key={r}
-            style={[
-              styles.tab,
-              {
-                backgroundColor:
-                  range === r ? tokens.navAccent : tokens.surface2,
-              },
-            ]}
-            onPress={() => setRange(r)}>
-            <Text
-              style={{
-                color: range === r ? '#fff' : tokens.text2,
-                ...typeScale.caption,
-                fontWeight: '600',
-              }}>
-              {r === 'today'
+            label={
+              r === 'today'
                 ? 'Today'
                 : r === 'week'
                 ? '7 Days'
                 : r === 'month'
                 ? '30 Days'
-                : 'All'}
-            </Text>
-          </TouchableOpacity>
+                : 'All'
+            }
+            selected={range === r}
+            onPress={() => setRange(r)}
+            style={{flex: 1, alignItems: 'center'}}
+          />
         ))}
       </View>
 
@@ -243,11 +208,11 @@ export function HistoryScreen() {
             paddingBottom: insets.bottom + 20,
           }}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, {color: tokens.text3}]}>
-                No sales in this period
-              </Text>
-            </View>
+            <EmptyState
+              icon={<User size={48} color={tokens.text3} strokeWidth={1} />}
+              title="No sales in this period"
+              subtitle="Change the time range to see more history"
+            />
           }
         />
       )}

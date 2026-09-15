@@ -27,6 +27,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {BarcodeScannerView} from '../components/BarcodeScannerView';
+import {Card, Badge, Button, Chip, EmptyState} from '../components/ui';
 import {
   fetchProducts,
   fetchCategories,
@@ -319,18 +320,18 @@ export function POSScreen() {
     const outOfStock = item.track_stock && item.qty <= 0;
 
     return (
-      <TouchableOpacity
+      <Card
+        variant={inCart ? 'default' : 'outlined'}
         style={[
           styles.productCard,
           {
-            backgroundColor: tokens.surface,
             borderColor: inCart ? tokens.navAccent : tokens.border,
+            borderWidth: 1,
             opacity: outOfStock ? 0.5 : 1,
           },
         ]}
         onPress={() => addToCart(item)}
-        disabled={outOfStock}
-        activeOpacity={0.7}>
+        padding={spacing.md}>
         <View style={[styles.productImage, {backgroundColor: tokens.surface2}]}>
           <Package size={28} color={tokens.text3} strokeWidth={1.5} />
         </View>
@@ -346,13 +347,15 @@ export function POSScreen() {
         </Text>
 
         <View style={styles.productFooter}>
-          <Text style={[styles.productPrice, {color: tokens.navAccent}]}>
+          <Text style={[styles.productPrice, {color: tokens.text}]}>
             {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
           </Text>
           {item.track_stock && (
-            <Text style={[styles.productStock, {color: tokens.text3}]}>
-              {item.qty} left
-            </Text>
+            <Badge
+              variant={item.qty < 5 ? 'warning' : 'default'}
+              label={`${item.qty} left`}
+              style={{marginTop: 2}}
+            />
           )}
         </View>
 
@@ -361,7 +364,7 @@ export function POSScreen() {
             <Text style={styles.cartBadgeText}>{inCart.qty}</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Card>
     );
   };
 
@@ -561,47 +564,20 @@ export function POSScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryRow}>
-        <TouchableOpacity
-          style={[
-            styles.categoryChip,
-            {
-              backgroundColor: !selectedCategory
-                ? tokens.navAccent
-                : tokens.surface2,
-              borderColor: tokens.border,
-            },
-          ]}
-          onPress={() => setSelectedCategory(null)}>
-          <Text
-            style={[
-              styles.categoryChipText,
-              {color: !selectedCategory ? '#fff' : tokens.text2},
-            ]}>
-            All
-          </Text>
-        </TouchableOpacity>
+        <Chip
+          label="All"
+          selected={!selectedCategory}
+          onPress={() => setSelectedCategory(null)}
+        />
         {categories.map(cat => (
-          <TouchableOpacity
+          <Chip
             key={cat.id}
-            style={[
-              styles.categoryChip,
-              {
-                backgroundColor:
-                  selectedCategory === cat.id ? cat.color : tokens.surface2,
-                borderColor: tokens.border,
-              },
-            ]}
+            label={`${cat.icon} ${cat.name}`}
+            selected={selectedCategory === cat.id}
             onPress={() =>
               setSelectedCategory(selectedCategory === cat.id ? null : cat.id)
-            }>
-            <Text
-              style={[
-                styles.categoryChipText,
-                {color: selectedCategory === cat.id ? '#fff' : tokens.text2},
-              ]}>
-              {cat.icon} {cat.name}
-            </Text>
-          </TouchableOpacity>
+            }
+          />
         ))}
       </ScrollView>
 
@@ -618,11 +594,11 @@ export function POSScreen() {
           {paddingBottom: insets.bottom + 80},
         ]}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, {color: tokens.text3}]}>
-              No products found
-            </Text>
-          </View>
+          <EmptyState
+            icon={<Package size={32} color={tokens.text3} strokeWidth={1} />}
+            title="No products found"
+            subtitle="Try a different search or category"
+          />
         }
       />
 
@@ -940,20 +916,15 @@ export function POSScreen() {
               ))}
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                {backgroundColor: tokens.navAccent},
-              ]}
+            <Button
+              label="Confirm Payment"
               onPress={handleCheckout}
+              variant="primary"
+              size="lg"
+              loading={submitting}
               disabled={submitting || cart.length === 0}
-              activeOpacity={0.8}>
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
-              )}
-            </TouchableOpacity>
+              style={{marginTop: 'auto'}}
+            />
           </View>
         </View>
       </Modal>

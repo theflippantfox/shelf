@@ -5,7 +5,6 @@ import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
-  FlatList,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -34,6 +33,7 @@ import {
   type Sale,
 } from '../lib/api';
 import {formatPrice, formatDateTime} from '../lib/format';
+import {Card, Badge, Button, Avatar} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
 import {
   ArrowLeft,
@@ -59,36 +59,6 @@ function getTier(c: Customer): 'vip' | 'regular' | 'new' {
 }
 
 const TIER_LABELS = {vip: 'VIP', regular: 'Regular', new: 'New'};
-const TIER_COLORS = {vip: '#E11D48', regular: '#6366F1', new: '#06B6D4'};
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
-
-function nameColor(name: string): string {
-  const colors = [
-    '#6366F1',
-    '#10B981',
-    '#F59E0B',
-    '#EC4899',
-    '#8B5CF6',
-    '#06B6D4',
-    '#EF4444',
-    '#F97316',
-    '#14B8A6',
-    '#3B82F6',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
 
 type ParamList = {
   CustomerDetail: {customerId: string; customerName?: string};
@@ -128,7 +98,7 @@ export function CustomerDetailScreen() {
       setCustomer(cust);
       // Filter sales to this customer client-side
       // (sales endpoint doesn't support customer_id filter)
-      setSales(allSales.filter(s => (s as any).customer_id === customerId));
+      setSales(allSales.filter((s) => (s as any).customer_id === customerId));
     } catch (err) {
       console.error('[CustomerDetail] Failed to load:', err);
       Alert.alert(
@@ -219,7 +189,6 @@ export function CustomerDetailScreen() {
   }
 
   const tier = getTier(customer);
-  const color = nameColor(customer.name);
 
   return (
     <View style={[styles.container, {backgroundColor: tokens.bg}]}>
@@ -267,17 +236,11 @@ export function CustomerDetailScreen() {
         contentContainerStyle={{paddingBottom: insets.bottom + 40}}
         keyboardShouldPersistTaps="handled">
         {/* ── Profile Card ───────────────────────────────── */}
-        <View
-          style={[
-            styles.card,
-            {backgroundColor: tokens.surface, borderColor: tokens.border},
-          ]}>
+        <Card variant="outlined" style={styles.card} padding={spacing.xl}>
           {/* Avatar + Name + Tier */}
           <View style={styles.profileRow}>
-            <View style={[styles.avatar, {backgroundColor: color + '20'}]}>
-              <Text style={[styles.avatarText, {color}]}>
-                {getInitials(customer.name)}
-              </Text>
+            <View style={{marginRight: spacing.md}}>
+              <Avatar name={customer.name} size={56} />
             </View>
             <View style={{flex: 1}}>
               <Text
@@ -285,15 +248,11 @@ export function CustomerDetailScreen() {
                 numberOfLines={1}>
                 {customer.name}
               </Text>
-              <View
-                style={[
-                  styles.tierBadge,
-                  {backgroundColor: TIER_COLORS[tier] + '18'},
-                ]}>
-                <Text style={[styles.tierText, {color: TIER_COLORS[tier]}]}>
-                  {TIER_LABELS[tier]}
-                </Text>
-              </View>
+              <Badge
+                label={TIER_LABELS[tier]}
+                variant={tier === 'vip' ? 'danger' : tier === 'regular' ? 'info' : 'default'}
+                style={{alignSelf: 'flex-start', marginTop: 4}}
+              />
             </View>
           </View>
 
@@ -373,7 +332,7 @@ export function CustomerDetailScreen() {
               </View>
             ) : null}
           </View>
-        </View>
+        </Card>
 
         {/* ── Purchase History ───────────────────────────── */}
         <View style={styles.sectionHeader}>
@@ -579,22 +538,19 @@ export function CustomerDetailScreen() {
               undone.
             </Text>
             <View style={styles.confirmActions}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, {borderColor: tokens.border}]}
-                onPress={() => setDeleteVisible(false)}>
-                <Text style={[typeScale.body, {color: tokens.text2}]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteBtn}
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={() => setDeleteVisible(false)}
+                style={{flex: 1}}
+              />
+              <Button
+                label={deleting ? 'Deleting...' : 'Delete'}
+                variant="danger"
                 onPress={handleDelete}
-                disabled={deleting}>
-                <Text
-                  style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </Text>
-              </TouchableOpacity>
+                disabled={deleting}
+                style={{flex: 1}}
+              />
             </View>
           </View>
         </View>
