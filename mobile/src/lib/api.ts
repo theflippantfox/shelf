@@ -258,12 +258,14 @@ export interface Product {
   category_id: string | null;
   image_url: string | null;
   track_stock: boolean;
+  track_barcode: boolean;
   low_stock_threshold: number;
   shop_id: string;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
   description: string | null;
+  category?: Category | null;
 }
 
 export interface Category {
@@ -315,6 +317,50 @@ export async function fetchProductByBarcode(barcode: string): Promise<Product> {
   return apiFetch<Product>(
     `/api/products/by-barcode/${encodeURIComponent(barcode)}`,
   );
+}
+
+export async function createProduct(data: {
+  name: string;
+  sku: string;
+  price: number;
+  cost_price?: number;
+  qty?: number;
+  unit?: string;
+  category_id?: string | null;
+  description?: string | null;
+  track_stock?: boolean;
+  track_barcode?: boolean;
+  low_stock_threshold?: number | null;
+  barcode?: string | null;
+}): Promise<Product> {
+  return apiFetch<Product>('/api/products', {method: 'POST', body: data});
+}
+
+export async function updateProduct(
+  id: string,
+  data: {
+    name?: string;
+    sku?: string;
+    price?: number;
+    cost_price?: number;
+    qty?: number;
+    unit?: string;
+    category_id?: string | null;
+    description?: string | null;
+    track_stock?: boolean;
+    track_barcode?: boolean;
+    low_stock_threshold?: number | null;
+    barcode?: string | null;
+  },
+): Promise<Product> {
+  return apiFetch<Product>(`/api/products/${id}`, {
+    method: 'PATCH',
+    body: data,
+  });
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await apiFetch(`/api/products/${id}`, {method: 'DELETE'});
 }
 
 // ── Sales API ─────────────────────────────────────────────────────────────
@@ -397,7 +443,8 @@ export interface Customer {
 }
 
 export async function fetchCustomers(): Promise<Customer[]> {
-  return apiFetch<Customer[]>('/api/customers');
+  const res = await apiFetch<{data: Customer[]; meta: Record<string, unknown>}>('/api/customers');
+  return res.data ?? [];
 }
 
 export async function createCustomer(data: {
