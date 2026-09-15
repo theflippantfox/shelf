@@ -22,14 +22,19 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {BarcodeScannerModal} from '../components/BarcodeScannerModal';
 import {
-  fetchProducts,
-  fetchCategories,
   createProduct,
   updateProduct,
   deleteProduct,
   type Product,
   type Category,
 } from '../lib/api';
+import {
+  isOnline,
+  syncProductsDown,
+  syncCategoriesDown,
+  getLocalProducts,
+  getLocalCategories,
+} from '../lib/sync';
 import {formatPrice} from '../lib/format';
 import {spacing, typeScale} from '../theme';
 import {
@@ -144,18 +149,33 @@ export function InventoryScreen() {
       return;
     }
     try {
-      const [prods, cats] = await Promise.all([
-        fetchProducts({limit: 500}),
-        fetchCategories(),
+      // 1. Local first
+      const [localProds, localCats] = await Promise.all([
+        getLocalProducts(),
+        getLocalCategories(),
       ]);
-      setProducts(prods);
-      setCategories(cats.filter(c => !c.archived_at));
+      if (localProds.length > 0) {
+        setProducts(localProds);
+      }
+      if (localCats.length > 0) {
+        setCategories(localCats.filter(c => !c.archived_at));
+      }
+
+      // 2. Network if online
+      if (await isOnline()) {
+        await Promise.all([
+          syncCategoriesDown(shop.id),
+          syncProductsDown(shop.id),
+        ]);
+        const [freshProds, freshCats] = await Promise.all([
+          getLocalProducts(),
+          getLocalCategories(),
+        ]);
+        setProducts(freshProds);
+        setCategories(freshCats.filter(c => !c.archived_at));
+      }
     } catch (err) {
       console.error('[Inventory] Failed to load:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to load inventory',
-      );
     } finally {
       setLoading(false);
       setRefreshing(false);

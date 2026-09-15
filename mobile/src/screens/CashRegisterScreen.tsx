@@ -21,10 +21,12 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {
   fetchRegisterBalance,
+  fetchRegisterEntries,
   createCashEntry,
   type RegisterBalance,
+  type CashEntry,
 } from '../lib/api';
-import {formatPrice} from '../lib/format';
+import {formatPrice, formatDateTime} from '../lib/format';
 import {spacing, radii, typeScale} from '../theme';
 import {
   Wallet,
@@ -37,7 +39,12 @@ import {
   DollarSign,
   FileText,
   ArrowLeft,
+  Clock,
+  ArrowLeftRight,
+  ShoppingCart,
+  Ban,
 } from 'lucide-react-native';
+import {EmptyState} from '../components/ui';
 
 type EntryTab = 'expense' | 'injection';
 
@@ -48,6 +55,7 @@ export function CashRegisterScreen() {
   const navigation = useNavigation();
 
   const [balances, setBalances] = useState<RegisterBalance[]>([]);
+  const [entries, setEntries] = useState<CashEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -61,14 +69,24 @@ export function CashRegisterScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // EOD modal
+  const [showEod, setShowEod] = useState(false);
+  const [physicalCount, setPhysicalCount] = useState('');
+  const [eodNotes, setEodNotes] = useState('');
+  const [eodSubmitting, setEodSubmitting] = useState(false);
+
   const load = useCallback(async () => {
     if (!shop) {
       setLoading(false);
       return;
     }
     try {
-      const data = await fetchRegisterBalance();
-      setBalances(data);
+      const [bals, hist] = await Promise.all([
+        fetchRegisterBalance(),
+        fetchRegisterEntries({limit: 100}),
+      ]);
+      setBalances(bals);
+      setEntries(hist);
     } catch (err) {
       console.error('[CashRegister] Failed to load:', err);
       Alert.alert(
@@ -111,9 +129,13 @@ export function CashRegisterScreen() {
         entry_type: entryTab,
         notes: notes.trim(),
       });
-      // Reload balances
-      const data = await fetchRegisterBalance();
-      setBalances(data);
+      // Reload data
+      const [bals, hist] = await Promise.all([
+        fetchRegisterBalance(),
+        fetchRegisterEntries({limit: 100}),
+      ]);
+      setBalances(bals);
+      setEntries(hist);
       setShowAdd(false);
       resetForm();
       Alert.alert(
@@ -145,6 +167,130 @@ export function CashRegisterScreen() {
       default:
         return Box;
     }
+  };
+
+  const handleEODSubmit = async () => {
+    const actual = parseFloat(physicalCount);
+    if (isNaN(actual) && physicalCount !== '') {
+      Alert.alert('Error', 'Enter a valid count');
+      return;
+    }
+
+    const expected = counterBal;
+    const discrepancy = physicalCount === '' ? 0 : actual - expected;
+
+    if (discrepancy !== 0) {
+      setEodSubmitting(true);
+      try {
+        await createCashEntry({
+          destination: 'counter',
+          amount: discrepancy,
+          entry_type: 'adjustment',
+          notes: eodNotes
+            ? `EOD adjustment. ${eodNotes}`
+            : 'EOD adjustment',
+        });
+        const [bals, hist] = await Promise.all([
+          fetchRegisterBalance(),
+          fetchRegisterEntries({limit: 100}),
+        ]);
+        setBalances(bals);
+        setEntries(hist);
+        Alert.alert('Success', 'EOD adjustment recorded');
+      } catch (err) {
+        Alert.alert(
+          'Error',
+          err instanceof Error ? err.message : 'Failed to record adjustment',
+        );
+      } finally {
+        setEodSubmitting(false);
+      }
+    } else {
+      Alert.alert('Success', 'Register matches perfectly');
+    }
+
+    setShowEod(false);
+    setPhysicalCount('');
+    setEodNotes('');
+  };
+
+  const entryIcon = (t: string) => {
+    switch (t) {
+      case 'sale':
+        return ShoppingCart;
+      case 'expense':
+        return TrendingDown;
+      case 'injection':
+        return TrendingUp;
+      case 'transfer':
+      case 'adjustment':
+        return ArrowLeftRight;
+      case 'void':
+        return Ban;
+      default:
+        return Wallet;
+    }
+  };
+
+  const entryLabel = (e: CashEntry) => {
+    if (e.entry_type === 'sale') {return 'Sale';}
+    if (e.entry_type === 'expense') {return 'Expense';}
+    if (e.entry_type === 'injection') {return 'Injection';}
+    if (e.entry_type === 'transfer')
+      {return e.notes.includes('(out)') ? 'Transfer out' : 'Transfer in';}
+    if (e.entry_type === 'void') {return 'Sale void';}
+    if (e.entry_type === 'adjustment') {return 'Adjustment';}
+    return e.entry_type;
+  };
+
+  const renderEntry = ({item: e}: {item: CashEntry}) => {
+    const Icon = entryIcon(e.entry_type);
+    const DIcon = destIcon(e.destination);
+
+    // Using string interpolation or similar logic to format diffs
+    const isNegative = e.amount < 0;
+
+    return (
+      <View style={[styles.entryCard, {backgroundColor: tokens.surface, borderColor: tokens.border}]}>
+        <View style={[styles.entryIconBox, {backgroundColor: tokens.surface2}]}>
+          <Icon size={16} color={tokens.text2} strokeWidth={2} />
+        </View>
+        <View style={styles.entryInfo}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Text style={[styles.entryTitle, {color: tokens.text}]}>
+              {entryLabel(e)}
+            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <DIcon size={10} color={tokens.text3} style={{marginRight: 2}} />
+              <Text style={[styles.entryDest, {color: tokens.text3}]}>
+                {e.destination === 'counter' ? 'Counter' : e.destination === 'bank' ? 'Bank' : 'Other'}
+              </Text>
+            </View>
+          </View>
+          {e.notes ? (
+            <Text style={[styles.entryNotes, {color: tokens.text3}]} numberOfLines={2}>
+              {e.notes}
+            </Text>
+          ) : null}
+          <Text style={[styles.entryDate, {color: tokens.text3}]}>
+            {formatDateTime(e.effective_at ?? e.created_at, shop!)}
+          </Text>
+        </View>
+        <View style={styles.entryAmountCol}>
+          <Text
+            style={[
+              styles.entryAmount,
+              {
+                color: isNegative
+                  ? '#EF4444' // crimson roughly
+                  : '#10B981', // teal roughly
+              },
+            ]}>
+            {isNegative ? '' : '+'}{shop ? formatPrice(e.amount, shop) : e.amount}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
@@ -181,8 +327,9 @@ export function CashRegisterScreen() {
       </View>
 
       <FlatList
-        data={[]}
-        renderItem={null}
+        data={entries}
+        renderItem={renderEntry}
+        keyExtractor={item => item.id}
         refreshing={refreshing}
         onRefresh={onRefresh}
         contentContainerStyle={{
@@ -256,6 +403,22 @@ export function CashRegisterScreen() {
                   {backgroundColor: tokens.surface, borderColor: tokens.border},
                 ]}
                 onPress={() => {
+                  setPhysicalCount('');
+                  setEodNotes('');
+                  setShowEod(true);
+                }}
+                activeOpacity={0.7}>
+                <Clock size={16} color={tokens.text} strokeWidth={2} />
+                <Text style={[styles.actionLabel, {color: tokens.text}]}>
+                  End of Day
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  {backgroundColor: tokens.surface, borderColor: tokens.border},
+                ]}
+                onPress={() => {
                   setEntryTab('expense');
                   resetForm();
                   setShowAdd(true);
@@ -286,10 +449,18 @@ export function CashRegisterScreen() {
 
             {/* Info text */}
             <Text style={[styles.infoText, {color: tokens.text3}]}>
-              Sales are automatically added to the register. Use Expense and
-              Injection for manual adjustments.
+              Sales are automatically added to the register. Use actions for manual adjustments.
             </Text>
           </>
+        }
+        ListEmptyComponent={
+          <View style={{marginTop: 40}}>
+            <EmptyState
+              icon={<Wallet size={48} color={tokens.text3} strokeWidth={1.25} />}
+              title="No entries yet"
+              subtitle="Sales auto-add here. Use the buttons above to log an expense, injection, or transfer."
+            />
+          </View>
         }
       />
 
@@ -482,6 +653,98 @@ export function CashRegisterScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* End of Day Close Modal */}
+      <Modal visible={showEod} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalSheet,
+              {backgroundColor: tokens.surface, borderTopColor: tokens.border},
+            ]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={[typeScale.title, {color: tokens.text}]}>Close Register</Text>
+              <TouchableOpacity onPress={() => setShowEod(false)}>
+                <X size={22} color={tokens.text3} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              {/* Expected vs Actual */}
+              <View style={[styles.eodCard, {backgroundColor: tokens.surface2}]}>
+                <View style={[styles.eodRow, {marginBottom: spacing.md}]}>
+                  <Text style={[typeScale.body, {color: tokens.text2, fontWeight: '600'}]}>Expected in Drawer</Text>
+                  <Text style={[typeScale.title, {color: '#10B981', fontVariant: ['tabular-nums']}]}>
+                    {shop ? formatPrice(counterBal, shop) : '0'}
+                  </Text>
+                </View>
+
+                <Text style={[styles.fieldLabel, {color: tokens.text3}]}>Physical Cash Count</Text>
+                <View
+                  style={[
+                    styles.inputRow,
+                    {backgroundColor: tokens.surface, borderColor: tokens.border},
+                  ]}>
+                  <DollarSign size={16} color={tokens.text3} strokeWidth={1.75} />
+                  <TextInput
+                    style={[styles.input, {color: tokens.text}]}
+                    value={physicalCount}
+                    onChangeText={setPhysicalCount}
+                    placeholder="Count the money..."
+                    placeholderTextColor={tokens.text3}
+                    keyboardType="decimal-pad"
+                    autoFocus
+                  />
+                </View>
+              </View>
+
+              {/* Discrepancy block */}
+              {physicalCount !== '' && !isNaN(parseFloat(physicalCount)) ? (
+                <View style={{marginTop: spacing.md}}>
+                  <Text style={[styles.fieldLabel, {color: tokens.text3}]}>Note / Explanation (Optional)</Text>
+                  <View
+                    style={[
+                      styles.inputRow,
+                      {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    ]}>
+                    <FileText size={16} color={tokens.text3} strokeWidth={1.75} />
+                    <TextInput
+                      style={[styles.input, {color: tokens.text}]}
+                      value={eodNotes}
+                      onChangeText={setEodNotes}
+                      placeholder="e.g. Missing 50 Rs"
+                      placeholderTextColor={tokens.text3}
+                    />
+                  </View>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, {borderColor: tokens.border}]}
+                onPress={() => setShowEod(false)}
+                activeOpacity={0.7}>
+                <Text style={[styles.cancelBtnText, {color: tokens.text2}]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  {backgroundColor: tokens.navAccent},
+                  (eodSubmitting || (physicalCount !== '' && isNaN(parseFloat(physicalCount)))) && styles.btnDisabled,
+                ]}
+                onPress={handleEODSubmit}
+                activeOpacity={0.7}
+                disabled={eodSubmitting || (physicalCount !== '' && isNaN(parseFloat(physicalCount)))}>
+                <Text style={styles.saveBtnText}>{eodSubmitting ? 'Saving...' : 'Complete EOD'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -669,4 +932,59 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {opacity: 0.5},
   saveBtnText: {color: '#fff', ...typeScale.body, fontWeight: '600'},
+  // EOD
+  eodCard: {
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+  },
+  eodRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  // Entries
+  entryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  entryIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  entryInfo: {
+    flex: 1,
+  },
+  entryTitle: {
+    ...typeScale.body,
+    fontWeight: '600',
+  },
+  entryDest: {
+    ...typeScale.tiny,
+    textTransform: 'uppercase',
+  },
+  entryNotes: {
+    ...typeScale.caption,
+    marginTop: 2,
+  },
+  entryDate: {
+    ...typeScale.tiny,
+    marginTop: 4,
+  },
+  entryAmountCol: {
+    alignItems: 'flex-end',
+  },
+  entryAmount: {
+    ...typeScale.body,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
 });

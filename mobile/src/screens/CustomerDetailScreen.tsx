@@ -32,6 +32,10 @@ import {
   type Customer,
   type Sale,
 } from '../lib/api';
+import {
+  getLocalCustomer,
+  isOnline,
+} from '../lib/sync';
 import {formatPrice, formatDateTime} from '../lib/format';
 import {Card, Badge, Button, Avatar} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
@@ -91,24 +95,33 @@ export function CustomerDetailScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [cust, allSales] = await Promise.all([
-        fetchCustomerById(customerId),
-        fetchSales({limit: 200}),
-      ]);
-      setCustomer(cust);
-      // Filter sales to this customer client-side
-      // (sales endpoint doesn't support customer_id filter)
-      setSales(allSales.filter((s) => (s as any).customer_id === customerId));
+      // Fast path: load customer from local DB
+      const localCust = await getLocalCustomer(customerId);
+      if (localCust) {
+        setCustomer(localCust);
+      }
+
+      let allSales: Sale[] = [];
+      try {
+        allSales = await fetchSales({limit: 200});
+        setSales(allSales.filter((s) => (s as any).customer_id === customerId));
+      } catch (err) {
+        console.warn('Could not fetch sales:', err);
+      }
+
+      // Sync customer if online and we had no local data or just for freshness
+      if (await isOnline() && shop) {
+        // We do not just update one customer's local DB manually here, syncCustomersDown
+        // would sync all, which might be too heavy. So we just refresh it.
+        const freshCust = await fetchCustomerById(customerId);
+        setCustomer(freshCust);
+      }
     } catch (err) {
       console.error('[CustomerDetail] Failed to load:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to load customer',
-      );
     } finally {
       setLoading(false);
     }
-  }, [customerId]);
+  }, [customerId, shop]);
 
   useEffect(() => {
     load();

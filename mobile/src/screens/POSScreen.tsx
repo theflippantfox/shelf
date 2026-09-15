@@ -32,11 +32,19 @@ import {
   fetchProducts,
   fetchCategories,
   fetchProductByBarcode,
-  createSale,
   type Product,
   type Category,
   type SaleItem,
 } from '../lib/api';
+import {
+  isOnline,
+  syncProductsDown,
+  syncCategoriesDown,
+  getLocalProducts,
+  getLocalCategories,
+  queueOfflineSale,
+  uploadPendingQueue,
+} from '../lib/sync';
 import {
   formatPrice,
   calculateTax,
@@ -102,18 +110,38 @@ export function POSScreen() {
     }
     (async () => {
       try {
-        const [prods, cats] = await Promise.all([
-          fetchProducts({limit: 200}),
-          fetchCategories(),
+        // 1. Try local initially for speed
+        const [localProds, localCats] = await Promise.all([
+          getLocalProducts(),
+          getLocalCategories(),
         ]);
-        setProducts(prods.filter(p => !p.archived_at));
-        setCategories(cats.filter(c => !c.archived_at));
+        if (localProds.length > 0) {
+          setProducts(localProds.filter(p => !p.archived_at));
+        }
+        if (localCats.length > 0) {
+          setCategories(localCats.filter(c => !c.archived_at));
+        }
+
+        // 2. Fetch network if online
+        if (await isOnline()) {
+          // Sync DB in background
+          await Promise.all([
+            syncCategoriesDown(shop.id),
+            syncProductsDown(shop.id),
+          ]);
+          // Re-fetch from DB
+          const [freshProds, freshCats] = await Promise.all([
+            getLocalProducts(),
+            getLocalCategories(),
+          ]);
+          setProducts(freshProds.filter(p => !p.archived_at));
+          setCategories(freshCats.filter(c => !c.archived_at));
+
+          // Also flush queue
+          uploadPendingQueue();
+        }
       } catch (err) {
         console.error('[POS] Failed to load:', err);
-        Alert.alert(
-          'Error',
-          err instanceof Error ? err.message : 'Failed to load products',
-        );
       } finally {
         setLoading(false);
       }
@@ -232,7 +260,7 @@ export function POSScreen() {
         unitPrice: c.product.price,
       }));
 
-      await createSale({
+      await queueOfflineSale({
         items,
         subtotal,
         tax_amount: tax,

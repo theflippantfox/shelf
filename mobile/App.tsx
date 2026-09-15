@@ -5,7 +5,7 @@
  * and renders auth flow or main app depending on login state.
  */
 
-import React from 'react';
+import React, {useEffect} from 'react';
 import {StatusBar, View, ActivityIndicator, StyleSheet} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -124,7 +124,13 @@ function RootNavigator() {
   );
 }
 
+import {initDb} from './src/db';
+
 export default function App() {
+  useEffect(() => {
+    initDb();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <SafeAreaProvider>

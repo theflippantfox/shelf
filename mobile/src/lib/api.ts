@@ -484,6 +484,13 @@ export interface RegisterBalance {
   total_balance: number;
 }
 
+export async function fetchRegisterEntries(params?: {
+  limit?: number;
+}): Promise<CashEntry[]> {
+  const qs = params?.limit ? `?limit=${params.limit}` : '';
+  return apiFetch<CashEntry[]>(`/api/cash-register${qs}`);
+}
+
 export async function fetchRegisterBalance(): Promise<RegisterBalance[]> {
   const res = await apiFetch<{destinations: RegisterBalance[]; total: number}>(
     '/api/cash-register/balance',

@@ -19,7 +19,12 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {fetchCustomers, createCustomer, type Customer} from '../lib/api';
+import {createCustomer, type Customer} from '../lib/api';
+import {
+  isOnline,
+  syncCustomersDown,
+  getLocalCustomers,
+} from '../lib/sync';
 import {formatPrice} from '../lib/format';
 import {Card, Badge, Button, Avatar, EmptyState} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
@@ -72,14 +77,18 @@ export function CustomersScreen() {
       return;
     }
     try {
-      const data = await fetchCustomers();
-      setCustomers(data);
+      const local = await getLocalCustomers();
+      if (local.length > 0) {
+        setCustomers(local);
+      }
+      
+      if (await isOnline()) {
+        await syncCustomersDown(shop.id);
+        const fresh = await getLocalCustomers();
+        setCustomers(fresh);
+      }
     } catch (err) {
       console.error('[Customers] Failed to load:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to load customers',
-      );
     } finally {
       setLoading(false);
       setRefreshing(false);
