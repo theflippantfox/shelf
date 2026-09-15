@@ -1,5 +1,5 @@
 /**
- * LoginScreen — email + password authentication.
+ * LoginScreen — modern card-based login with accent branding.
  */
 import React, {useState} from 'react';
 import {
@@ -7,222 +7,218 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../components/ThemeProvider';
-import {typeScale} from '../../theme';
 import {useAuth} from '../../components/AuthProvider';
+import {spacing, radii, shadows, typeScale} from '../../theme';
+import {Mail, Lock, LogIn, Eye, EyeOff} from 'lucide-react-native';
 
-export default function LoginScreen({navigation}: {navigation: any}) {
+export default function LoginScreen() {
   const {tokens} = useTheme();
-  const {login, error, clearError} = useAuth();
-
+  const {login} = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Required', 'Enter email and password');
       return;
     }
-
     setLoading(true);
-    clearError();
     try {
-      await login(email.trim().toLowerCase(), password);
-    } catch {
-      // Error is set in AuthProvider
+      await login(email.trim(), password);
+    } catch (err) {
+      Alert.alert(
+        'Login failed',
+        err instanceof Error ? err.message : 'Invalid credentials',
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: tokens.bg,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      padding: 24,
-    },
-    header: {
-      alignItems: 'center',
-      marginBottom: 48,
-    },
-    logo: {
-      fontSize: 42,
-      fontWeight: '800' as const,
-      color: tokens.navAccent,
-      letterSpacing: -1,
-    },
-    subtitle: {
-      ...typeScale.body,
-      color: tokens.text3,
-      marginTop: 8,
-    },
-    form: {
-      gap: 16,
-    },
-    inputGroup: {
-      gap: 6,
-    },
-    label: {
-      ...typeScale.caption,
-      fontWeight: '600' as const,
-      color: tokens.text3,
-      textTransform: 'uppercase' as const,
-      letterSpacing: 0.5,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: tokens.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: tokens.border,
-    },
-    input: {
-      flex: 1,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      ...typeScale.body,
-      color: tokens.text,
-    },
-    eyeButton: {
-      paddingHorizontal: 16,
-    },
-    eyeText: {
-      fontSize: 16,
-      color: tokens.text3,
-    },
-    errorText: {
-      ...typeScale.caption,
-      color: '#EF4444',
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    loginButton: {
-      backgroundColor: tokens.navAccent,
-      borderRadius: 12,
-      paddingVertical: 16,
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    loginButtonDisabled: {
-      opacity: 0.6,
-    },
-    loginButtonText: {
-      ...typeScale.body,
-      fontWeight: '700' as const,
-      color: '#fff',
-    },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: 24,
-    },
-    footerText: {
-      ...typeScale.body,
-      color: tokens.text3,
-    },
-    linkText: {
-      ...typeScale.body,
-      color: tokens.navAccent,
-      fontWeight: '600' as const,
-    },
-  });
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>Shëlf</Text>
-          <Text style={styles.subtitle}>Point of Sale</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@shop.com"
-                placeholderTextColor={tokens.text3}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                editable={!loading}
-              />
+    <View style={{flex: 1, backgroundColor: tokens.bg}}>
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: spacing.xxl,
+            paddingTop: insets.top + spacing.xxxl,
+            paddingBottom: insets.bottom + spacing.xxxl,
+          }}
+          keyboardShouldPersistTaps="handled">
+          {/* Branding */}
+          <View style={{alignItems: 'center', marginBottom: spacing.xxxl}}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                backgroundColor: tokens.accentGlow,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: spacing.lg,
+              }}>
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: '800',
+                  color: tokens.navAccent,
+                }}>
+                S
+              </Text>
             </View>
+            <Text style={[typeScale.display, {color: tokens.text}]}>Shelf</Text>
+            <Text style={[typeScale.body, {color: tokens.text3, marginTop: 4}]}>
+              Point of Sale
+            </Text>
           </View>
 
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor={tokens.text3}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}>
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
-              </TouchableOpacity>
+          {/* Form card */}
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 380,
+              backgroundColor: tokens.surface,
+              borderRadius: radii['2xl'],
+              padding: spacing.xxl,
+              borderWidth: 1,
+              borderColor: tokens.border,
+              ...shadows.md,
+            }}>
+            <Text
+              style={[
+                typeScale.heading,
+                {color: tokens.text, marginBottom: spacing.xl},
+              ]}>
+              Sign in
+            </Text>
+
+            {/* Email */}
+            <View style={{marginBottom: spacing.md}}>
+              <Text
+                style={[
+                  typeScale.caption,
+                  {color: tokens.text3, marginBottom: 6, fontWeight: '600'},
+                ]}>
+                Email
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: tokens.surface2,
+                  borderRadius: radii.md,
+                  borderWidth: 1,
+                  borderColor: tokens.border,
+                  paddingHorizontal: spacing.md,
+                  height: 48,
+                  gap: spacing.sm,
+                }}>
+                <Mail size={18} color={tokens.text3} strokeWidth={1.75} />
+                <TextInput
+                  style={{flex: 1, ...typeScale.body, color: tokens.text}}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="you@example.com"
+                  placeholderTextColor={tokens.text3}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+              </View>
             </View>
+
+            {/* Password */}
+            <View style={{marginBottom: spacing.xl}}>
+              <Text
+                style={[
+                  typeScale.caption,
+                  {color: tokens.text3, marginBottom: 6, fontWeight: '600'},
+                ]}>
+                Password
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: tokens.surface2,
+                  borderRadius: radii.md,
+                  borderWidth: 1,
+                  borderColor: tokens.border,
+                  paddingHorizontal: spacing.md,
+                  height: 48,
+                  gap: spacing.sm,
+                }}>
+                <Lock size={18} color={tokens.text3} strokeWidth={1.75} />
+                <TextInput
+                  style={{flex: 1, ...typeScale.body, color: tokens.text}}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Your password"
+                  placeholderTextColor={tokens.text3}
+                  secureTextEntry={!showPw}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPw(!showPw)}
+                  activeOpacity={0.7}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  {showPw ? (
+                    <EyeOff size={18} color={tokens.text3} strokeWidth={1.75} />
+                  ) : (
+                    <Eye size={18} color={tokens.text3} strokeWidth={1.75} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Sign in button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleLogin}
+              disabled={loading}
+              style={{
+                height: 48,
+                backgroundColor: tokens.navAccent,
+                borderRadius: radii.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                opacity: loading ? 0.7 : 1,
+                ...shadows.sm,
+              }}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <LogIn size={18} color="#fff" strokeWidth={2} />
+              )}
+              <Text
+                style={{
+                  color: '#fff',
+                  ...typeScale.body,
+                  fontWeight: '700',
+                }}>
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Error */}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.8}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>New here? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.linkText}>Create account</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

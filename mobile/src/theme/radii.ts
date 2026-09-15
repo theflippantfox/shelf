@@ -9,8 +9,10 @@ export const radii = {
   md: 10,
   /** Bottom sheets, modals */
   lg: 14,
-  /** Large sheets */
+  /** Large sheets, hero cards */
   xl: 20,
+  /** Extra large panels */
+  '2xl': 24,
   /** Pill buttons/tabs */
   pill: 999,
   /** Circular (avatars, FAB) */

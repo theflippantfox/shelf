@@ -21,7 +21,13 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Camera, CameraType} from 'react-native-camera-kit';
 import {useTheme} from './ThemeProvider';
 import {spacing, typeScale} from '../theme';
-import {X, ScanLine, Flashlight, FlashlightOff, Check} from 'lucide-react-native';
+import {
+  X,
+  ScanLine,
+  Flashlight,
+  FlashlightOff,
+  Check,
+} from 'lucide-react-native';
 
 interface Props {
   visible: boolean;
@@ -265,9 +271,7 @@ export function BarcodeScannerModal({
 
               {/* Last scanned code */}
               {stayOpen && lastScannedCode ? (
-                <Text style={styles.lastCode}>
-                  Last: {lastScannedCode}
-                </Text>
+                <Text style={styles.lastCode}>Last: {lastScannedCode}</Text>
               ) : null}
             </View>
           )}
@@ -286,7 +290,8 @@ export function BarcodeScannerModal({
           )}
 
           {/* Bottom area */}
-          <View style={[styles.bottomArea, {paddingBottom: insets.bottom + 16}]}>
+          <View
+            style={[styles.bottomArea, {paddingBottom: insets.bottom + 16}]}>
             {/* Manual entry row */}
             <View style={styles.manualRow}>
               <TextInput

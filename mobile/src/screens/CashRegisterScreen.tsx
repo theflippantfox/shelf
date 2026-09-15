@@ -55,7 +55,9 @@ export function CashRegisterScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [entryTab, setEntryTab] = useState<EntryTab>('expense');
   const [amount, setAmount] = useState('');
-  const [destination, setDestination] = useState<'counter' | 'bank' | 'other'>('counter');
+  const [destination, setDestination] = useState<'counter' | 'bank' | 'other'>(
+    'counter',
+  );
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -116,9 +118,7 @@ export function CashRegisterScreen() {
       resetForm();
       Alert.alert(
         'Success',
-        entryTab === 'expense'
-          ? 'Expense recorded'
-          : 'Injection recorded',
+        entryTab === 'expense' ? 'Expense recorded' : 'Injection recorded',
       );
     } catch (err) {
       Alert.alert(
@@ -160,7 +160,9 @@ export function CashRegisterScreen() {
       {/* Header */}
       <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}>
             <ArrowLeft size={22} color={tokens.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={[typeScale.heading, {color: tokens.text}]}>
@@ -205,10 +207,22 @@ export function CashRegisterScreen() {
               {/* Destination splits */}
               <View style={styles.destRow}>
                 {[
-                  {dest: 'counter', bal: counterBal, Icon: Wallet, label: 'Counter'},
+                  {
+                    dest: 'counter',
+                    bal: counterBal,
+                    Icon: Wallet,
+                    label: 'Counter',
+                  },
                   {dest: 'bank', bal: bankBal, Icon: Building2, label: 'Bank'},
                   ...(otherBal !== 0
-                    ? [{dest: 'other', bal: otherBal, Icon: Box, label: 'Other'}]
+                    ? [
+                        {
+                          dest: 'other',
+                          bal: otherBal,
+                          Icon: Box,
+                          label: 'Other',
+                        },
+                      ]
                     : []),
                 ].map(item => (
                   <View key={item.dest} style={styles.destItem}>
@@ -237,7 +251,10 @@ export function CashRegisterScreen() {
             {/* Quick actions */}
             <View style={styles.quickActions}>
               <TouchableOpacity
-                style={[styles.actionBtn, {backgroundColor: tokens.surface, borderColor: tokens.border}]}
+                style={[
+                  styles.actionBtn,
+                  {backgroundColor: tokens.surface, borderColor: tokens.border},
+                ]}
                 onPress={() => {
                   setEntryTab('expense');
                   resetForm();
@@ -250,7 +267,10 @@ export function CashRegisterScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionBtn, {backgroundColor: tokens.surface, borderColor: tokens.border}]}
+                style={[
+                  styles.actionBtn,
+                  {backgroundColor: tokens.surface, borderColor: tokens.border},
+                ]}
                 onPress={() => {
                   setEntryTab('injection');
                   resetForm();
@@ -312,8 +332,7 @@ export function CashRegisterScreen() {
                     style={[
                       styles.tabText,
                       {
-                        color:
-                          entryTab === tab ? tokens.text : tokens.text3,
+                        color: entryTab === tab ? tokens.text : tokens.text3,
                       },
                     ]}>
                     {tab === 'expense' ? 'Expense' : 'Injection'}
@@ -382,9 +401,16 @@ export function CashRegisterScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
-                  <DollarSign size={16} color={tokens.text3} strokeWidth={1.75} />
+                  <DollarSign
+                    size={16}
+                    color={tokens.text3}
+                    strokeWidth={1.75}
+                  />
                   <TextInput
                     style={[styles.input, {color: tokens.text}]}
                     value={amount}
@@ -405,7 +431,10 @@ export function CashRegisterScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
                   <FileText size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
@@ -490,7 +519,11 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  balanceLabel: {...typeScale.tiny, textTransform: 'uppercase', letterSpacing: 0.5},
+  balanceLabel: {
+    ...typeScale.tiny,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   balanceValue: {
     fontSize: 32,
     fontWeight: '700',
@@ -512,7 +545,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   destLabel: {...typeScale.tiny},
-  destValue: {...typeScale.body, fontWeight: '600', fontVariant: ['tabular-nums']},
+  destValue: {
+    ...typeScale.body,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
 
   // Quick actions
   quickActions: {
@@ -533,7 +570,11 @@ const styles = StyleSheet.create({
   actionLabel: {...typeScale.body, fontWeight: '600'},
 
   // Info
-  infoText: {...typeScale.caption, textAlign: 'center', marginBottom: spacing.xl},
+  infoText: {
+    ...typeScale.caption,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
 
   // Modal
   modalOverlay: {

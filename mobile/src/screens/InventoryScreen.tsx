@@ -840,7 +840,12 @@ export function InventoryScreen() {
               {form.track_barcode && (
                 <>
                   <FieldLabel text="Barcode" />
-                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}>
                     <TextInput
                       style={[
                         styles.input,
@@ -861,10 +866,17 @@ export function InventoryScreen() {
                       onPress={() => setScannerVisible(true)}
                       style={[
                         styles.scanBtn,
-                        {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                        {
+                          backgroundColor: tokens.surface2,
+                          borderColor: tokens.border,
+                        },
                       ]}
                       activeOpacity={0.7}>
-                      <ScanLine size={20} color={tokens.navAccent} strokeWidth={2} />
+                      <ScanLine
+                        size={20}
+                        color={tokens.navAccent}
+                        strokeWidth={2}
+                      />
                     </TouchableOpacity>
                   </View>
                 </>

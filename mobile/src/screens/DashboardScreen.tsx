@@ -1,208 +1,263 @@
 /**
- * DashboardScreen — KPIs and quick actions.
- * Fetches real analytics data from the web app's /api/analytics endpoint.
+ * DashboardScreen — polished analytics dashboard with stat cards.
  */
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
+  RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
+import {fetchAnalytics, type DailySummary} from '../lib/api';
+import {formatPrice} from '../lib/format';
+import {spacing, radii, shadows, typeScale} from '../theme';
+import {Card, SectionHeader} from '../components/ui';
 import {
-  DollarSign,
+  TrendingUp,
   Receipt,
   BarChart3,
-  Landmark,
+  ShoppingCart,
   Sun,
   Sunset,
   Moon,
 } from 'lucide-react-native';
-import {
-  fetchAnalytics,
-  fetchRegisterBalance,
-  type DailySummary,
-} from '../lib/api';
-import {formatPrice} from '../lib/format';
-import {spacing, radii, typeScale} from '../theme';
+
+function getGreeting(): {text: string; Icon: typeof Sun} {
+  const h = new Date().getHours();
+  if (h < 12) {
+    return {text: 'Good morning', Icon: Sun};
+  }
+  if (h < 17) {
+    return {text: 'Good afternoon', Icon: Sunset};
+  }
+  return {text: 'Good evening', Icon: Moon};
+}
 
 export function DashboardScreen() {
   const {tokens} = useTheme();
-  const {shop} = useAuth();
+  const {shop, profile} = useAuth();
   const insets = useSafeAreaInsets();
-
-  const [loading, setLoading] = useState(true);
   const [daily, setDaily] = useState<DailySummary[]>([]);
-  const [cashTotal, setCashTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!shop) {
+      setLoading(false);
       return;
     }
-    (async () => {
-      try {
-        const [analytics, register] = await Promise.all([
-          fetchAnalytics(),
-          fetchRegisterBalance(),
-        ]);
-        setDaily(Array.isArray(analytics) ? analytics : []);
-        const total = register.reduce(
-          (
-            sum: number,
-            r: {destination: string; balance: number; total_balance: number},
-          ) => sum + (r.balance ?? 0),
-          0,
-        );
-        setCashTotal(total);
-      } catch {
-        // Silently fail — show placeholder data
-      } finally {
-        setLoading(false);
-      }
-    })();
+    try {
+      const data = await fetchAnalytics();
+      setDaily(data);
+    } catch (err) {
+      console.error('[Dashboard] Failed to load analytics:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [shop]);
 
-  // Aggregate KPIs from daily analytics
-  const totalRevenue = daily.reduce((s, d) => s + (d.total_sales ?? 0), 0);
-  const totalTransactions = daily.reduce(
-    (s, d) => s + (d.total_transactions ?? 0),
-    0,
-  );
-  const avgSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const kpiIconSize = 20;
-  const kpis = shop
-    ? [
-        {
-          label: 'Revenue',
-          value: formatPrice(totalRevenue, shop),
-          Icon: DollarSign,
-          color: '#10B981',
-        },
-        {
-          label: 'Sales',
-          value: String(totalTransactions),
-          Icon: Receipt,
-          color: '#6366F1',
-        },
-        {
-          label: 'Avg Sale',
-          value: formatPrice(avgSale, shop),
-          Icon: BarChart3,
-          color: '#F59E0B',
-        },
-        {
-          label: 'Cash Drawer',
-          value: formatPrice(cashTotal, shop),
-          Icon: Landmark,
-          color: '#EC4899',
-        },
-      ]
-    : [
-        {label: 'Revenue', value: '—', Icon: DollarSign, color: '#10B981'},
-        {label: 'Sales', value: '—', Icon: Receipt, color: '#6366F1'},
-        {label: 'Avg Sale', value: '—', Icon: BarChart3, color: '#F59E0B'},
-        {label: 'Cash Drawer', value: '—', Icon: Landmark, color: '#EC4899'},
-      ];
+  const onRefresh = () => {
+    setRefreshing(true);
+    load();
+  };
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting =
-    hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
-  const GreetingIcon = hour < 12 ? Sun : hour < 18 ? Sunset : Moon;
-  const greetingColor =
-    hour < 12 ? '#F59E0B' : hour < 18 ? '#F97316' : '#8B5CF6';
+  // Compute totals
+  const today = daily[daily.length - 1];
+  const totalSales = daily.reduce((s, d) => s + d.total_sales, 0);
+  const totalTxns = daily.reduce((s, d) => s + d.total_transactions, 0);
+  const avgBasket = totalTxns > 0 ? totalSales / totalTxns : 0;
+
+  const greeting = getGreeting();
+  const firstName = profile?.first_name ?? 'there';
+
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: tokens.bg,
+        }}>
+        <ActivityIndicator size="large" color={tokens.navAccent} />
+      </View>
+    );
+  }
+
+  const statCards = [
+    {
+      label: "Today's sales",
+      value: shop ? formatPrice(today?.total_sales ?? 0, shop) : '0',
+      icon: <TrendingUp size={20} color={tokens.success} strokeWidth={2} />,
+      color: tokens.successDim,
+    },
+    {
+      label: 'Transactions',
+      value: String(today?.total_transactions ?? 0),
+      icon: <Receipt size={20} color={tokens.info} strokeWidth={2} />,
+      color: tokens.infoDim,
+    },
+    {
+      label: 'Avg basket',
+      value: shop ? formatPrice(avgBasket, shop) : '0',
+      icon: <ShoppingCart size={20} color={tokens.warning} strokeWidth={2} />,
+      color: tokens.warningDim,
+    },
+    {
+      label: 'Total sales',
+      value: shop ? formatPrice(totalSales, shop) : '0',
+      icon: <BarChart3 size={20} color={tokens.navAccent} strokeWidth={2} />,
+      color: tokens.accentGlow,
+    },
+  ];
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: tokens.bg}]}
-      contentContainerStyle={{paddingBottom: insets.bottom + 20}}
-      contentInsetAdjustmentBehavior="automatic">
-      {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
-        <View style={styles.greetingRow}>
-          <Text style={[typeScale.display, {color: tokens.text}]}>
-            {greeting}
+      style={{flex: 1, backgroundColor: tokens.bg}}
+      contentContainerStyle={{
+        paddingTop: insets.top + spacing.xl,
+        paddingBottom: insets.bottom + spacing.xxxl,
+      }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={tokens.navAccent}
+          colors={[tokens.navAccent]}
+        />
+      }>
+      {/* Greeting */}
+      <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.xl}}>
+        <View
+          style={{flexDirection: 'row', alignItems: 'center', gap: spacing.sm}}>
+          <greeting.Icon size={22} color={tokens.navAccent} strokeWidth={2} />
+          <Text style={[typeScale.body, {color: tokens.text3}]}>
+            {greeting.text}
           </Text>
-          <GreetingIcon size={28} color={greetingColor} strokeWidth={1.75} />
         </View>
-        <Text style={[typeScale.caption, {color: tokens.text3, marginTop: 4}]}>
-          {shop?.name ?? 'Shëlf'} — Here's what's happening today
+        <Text
+          style={[
+            typeScale.display,
+            {color: tokens.text, marginTop: spacing.xs},
+          ]}>
+          {firstName}
         </Text>
+        {shop ? (
+          <Text
+            style={[typeScale.caption, {color: tokens.text3, marginTop: 2}]}>
+            {shop.name}
+          </Text>
+        ) : null}
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={tokens.navAccent} />
-        </View>
-      ) : (
-        <View style={styles.kpiGrid}>
-          {kpis.map(kpi => (
+      {/* Stat cards */}
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          paddingHorizontal: spacing.lg,
+          gap: spacing.md,
+        }}>
+        {statCards.map((card, i) => (
+          <Card
+            key={i}
+            variant="outlined"
+            padding={spacing.lg}
+            style={{
+              width: '47%' as any,
+              flexGrow: 1,
+            }}>
             <View
-              key={kpi.label}
-              style={[
-                styles.kpiCard,
-                {backgroundColor: tokens.surface, borderColor: tokens.border},
-              ]}>
-              <View
-                style={[
-                  styles.kpiIconWrap,
-                  {backgroundColor: kpi.color + '18'},
-                ]}>
-                <kpi.Icon
-                  size={kpiIconSize}
-                  color={kpi.color}
-                  strokeWidth={2}
-                />
-              </View>
-              <Text style={[styles.kpiLabel, {color: tokens.text3}]}>
-                {kpi.label}
-              </Text>
-              <Text style={[styles.kpiValue, {color: tokens.text}]}>
-                {kpi.value}
-              </Text>
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: radii.md,
+                backgroundColor: card.color,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: spacing.md,
+              }}>
+              {card.icon}
             </View>
-          ))}
-        </View>
+            <Text
+              style={[
+                typeScale.tiny,
+                {color: tokens.text3, marginBottom: spacing.xs},
+              ]}>
+              {card.label}
+            </Text>
+            <Text
+              style={[
+                typeScale.title,
+                {color: tokens.text, fontVariant: ['tabular-nums']},
+              ]}>
+              {card.value}
+            </Text>
+          </Card>
+        ))}
+      </View>
+
+      {/* Recent daily breakdown */}
+      {daily.length > 1 && (
+        <>
+          <SectionHeader
+            title="Daily breakdown"
+            icon={
+              <BarChart3 size={14} color={tokens.text3} strokeWidth={1.75} />
+            }
+          />
+          <View style={{paddingHorizontal: spacing.xl}}>
+            {daily
+              .slice(-7)
+              .reverse()
+              .map((d, i) => (
+                <View
+                  key={d.date + i}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: spacing.md,
+                    borderBottomWidth:
+                      i < Math.min(daily.length, 7) - 1 ? 1 : 0,
+                    borderBottomColor: tokens.border,
+                  }}>
+                  <Text style={[typeScale.body, {color: tokens.text, flex: 1}]}>
+                    {d.date}
+                  </Text>
+                  <Text
+                    style={[
+                      typeScale.caption,
+                      {color: tokens.text3, marginRight: spacing.lg},
+                    ]}>
+                    {d.total_transactions} txns
+                  </Text>
+                  <Text
+                    style={[
+                      typeScale.body,
+                      {
+                        color: tokens.text,
+                        fontWeight: '600',
+                        fontVariant: ['tabular-nums'],
+                      },
+                    ]}>
+                    {shop
+                      ? formatPrice(d.total_sales, shop)
+                      : `\u20B9${d.total_sales}`}
+                  </Text>
+                </View>
+              ))}
+          </View>
+        </>
       )}
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  header: {paddingHorizontal: spacing.xl, marginBottom: spacing.lg},
-  loadingContainer: {paddingVertical: 40, alignItems: 'center'},
-  kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.sm,
-  },
-  kpiCard: {
-    width: '47%',
-    flexGrow: 1,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  kpiIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  kpiLabel: {...typeScale.tiny, marginBottom: spacing.xs},
-  kpiValue: {...typeScale.heading},
-});

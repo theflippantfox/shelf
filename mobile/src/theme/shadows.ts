@@ -1,5 +1,5 @@
 /**
- * Shadow tokens — three-tier elevation system.
+ * Shadow tokens — four-tier elevation system with accent glow.
  * Ported from the web app's shadow-sm, shadow, shadow-lg.
  *
  * On React Native, shadows require both shadow* (iOS) and elevation (Android).
@@ -36,4 +36,14 @@ export const shadows = {
     shadowRadius: 32,
     elevation: 6,
   } as ViewStyle,
+
+  /** Accent glow — for FABs and primary buttons */
+  glow: (accentColor: string) =>
+    ({
+      shadowColor: accentColor,
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: isAndroid ? 0.35 : 0.25,
+      shadowRadius: 16,
+      elevation: 8,
+    } as ViewStyle),
 } as const;
