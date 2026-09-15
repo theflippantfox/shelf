@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {useTheme} from '../ThemeProvider';
 import {spacing, radii, typeScale} from '../../theme';
-import {Svg, Defs, LinearGradient, Stop, Rect} from 'react-native-svg';
 
 export interface ActionTile {
   id: string;
@@ -44,60 +43,28 @@ export function QuickActionTileGrid({
             <TouchableOpacity
               key={tile.id}
               activeOpacity={0.7}
-              style={styles.tileWrapper}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: isActive
+                    ? tokens.navAccent
+                    : tokens.surface,
+                  borderColor: isActive ? tokens.navAccent : tokens.border,
+                },
+              ]}
               onPress={() => onSelect(tile.id)}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  {backgroundColor: isActive ? 'transparent' : tokens.surface},
-                ]}>
-                {isActive && (
-                  <View
-                    style={[
-                      StyleSheet.absoluteFillObject,
-                      {borderRadius: radii.md, overflow: 'hidden'},
-                    ]}>
-                    <Svg width="100%" height="100%">
-                      <Defs>
-                        <LinearGradient
-                          id="activeGrad"
-                          x1="0"
-                          y1="0"
-                          x2="1"
-                          y2="1">
-                          <Stop
-                            offset="0"
-                            stopColor="#8B5CF6"
-                            stopOpacity="1"
-                          />
-                          <Stop
-                            offset="1"
-                            stopColor="#3B82F6"
-                            stopOpacity="1"
-                          />
-                        </LinearGradient>
-                      </Defs>
-                      <Rect
-                        width="100%"
-                        height="100%"
-                        fill="url(#activeGrad)"
-                      />
-                    </Svg>
-                  </View>
-                )}
+              <View style={styles.iconWrap}>
                 {tile.icon({
                   color: isActive ? '#FFFFFF' : tokens.text2,
-                  size: 24,
+                  size: 16,
                 })}
               </View>
-
               <Text
                 style={[
-                  typeScale.caption,
                   styles.label,
                   {
-                    color: isActive ? tokens.text : tokens.text2,
-                    fontWeight: isActive ? '600' : '400',
+                    color: isActive ? '#FFFFFF' : tokens.text2,
+                    fontWeight: isActive ? '600' : '500',
                   },
                 ]}
                 numberOfLines={1}>
@@ -115,22 +82,22 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     paddingHorizontal: spacing.xl,
-    marginBottom: spacing.xl,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  tileWrapper: {
+  chip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: 72,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    gap: spacing.xs,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.md,
+  iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
   },
   label: {
-    textAlign: 'center',
+    ...typeScale.caption,
   },
 });
