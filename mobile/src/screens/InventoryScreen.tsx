@@ -20,6 +20,7 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
+import {BarcodeScannerModal} from '../components/BarcodeScannerModal';
 import {
   fetchProducts,
   fetchCategories,
@@ -50,6 +51,7 @@ import {
   Plus,
   X,
   Search,
+  ScanLine,
 } from 'lucide-react-native';
 import type {ComponentType} from 'react';
 
@@ -127,6 +129,7 @@ export function InventoryScreen() {
     product: Product | null;
   }>({visible: false, product: null});
   const [deleting, setDeleting] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   const setField = <K extends keyof ProductForm>(
     key: K,
@@ -256,7 +259,9 @@ export function InventoryScreen() {
 
   const handleArchive = async () => {
     const p = deleteConfirm.product;
-    if (!p) {return;}
+    if (!p) {
+      return;
+    }
     setDeleting(true);
     try {
       await deleteProduct(p.id);
@@ -276,7 +281,9 @@ export function InventoryScreen() {
   // ── Derived ─────────────────────────────────────────────────
 
   const getCategoryName = (id: string | null) => {
-    if (!id) {return 'Uncategorized';}
+    if (!id) {
+      return 'Uncategorized';
+    }
     return categories.find(c => c.id === id)?.name ?? 'Unknown';
   };
 
@@ -433,7 +440,10 @@ export function InventoryScreen() {
           </Text>
           <View style={styles.headerRight}>
             <Text
-              style={[typeScale.caption, {color: tokens.text3, marginRight: 12}]}>
+              style={[
+                typeScale.caption,
+                {color: tokens.text3, marginRight: 12},
+              ]}>
               {filtered.length} items
               {lowStockCount > 0 ? ` · ${lowStockCount} low` : ''}
             </Text>
@@ -546,7 +556,8 @@ export function InventoryScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Package size={40} color={tokens.text3} strokeWidth={1.25} />
-            <Text style={[styles.emptyText, {color: tokens.text3, marginTop: 12}]}>
+            <Text
+              style={[styles.emptyText, {color: tokens.text3, marginTop: 12}]}>
               No products found
             </Text>
             <TouchableOpacity
@@ -570,14 +581,20 @@ export function InventoryScreen() {
           <View style={[styles.modal, {backgroundColor: tokens.bg}]}>
             {/* Modal header */}
             <View
-              style={[
-                styles.modalHeader,
-                {borderBottomColor: tokens.border},
-              ]}>
+              style={[styles.modalHeader, {borderBottomColor: tokens.border}]}>
               <TouchableOpacity onPress={() => setFormVisible(false)}>
                 <X size={22} color={tokens.text} strokeWidth={2} />
               </TouchableOpacity>
-              <Text style={[typeScale.title, {color: tokens.text, flex: 1, textAlign: 'center', marginHorizontal: 12}]}>
+              <Text
+                style={[
+                  typeScale.title,
+                  {
+                    color: tokens.text,
+                    flex: 1,
+                    textAlign: 'center',
+                    marginHorizontal: 12,
+                  },
+                ]}>
                 {editId ? 'Edit Product' : 'Add Product'}
               </Text>
               <TouchableOpacity onPress={handleSave} disabled={saving}>
@@ -602,7 +619,14 @@ export function InventoryScreen() {
               {/* Name */}
               <FieldLabel text="Product name" required />
               <TextInput
-                style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={form.name}
                 onChangeText={v => setField('name', v)}
                 placeholder="e.g. Rice 5kg"
@@ -614,7 +638,14 @@ export function InventoryScreen() {
                 <View style={styles.col}>
                   <FieldLabel text="SKU" required />
                   <TextInput
-                    style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                    style={[
+                      styles.input,
+                      {
+                        color: tokens.text,
+                        borderColor: tokens.border,
+                        backgroundColor: tokens.surface,
+                      },
+                    ]}
                     value={form.sku}
                     onChangeText={v => setField('sku', v)}
                     placeholder="e.g. RIC-5KG"
@@ -633,7 +664,9 @@ export function InventoryScreen() {
                             styles.unitChip,
                             {
                               backgroundColor:
-                                form.unit === u ? tokens.navAccent : tokens.surface2,
+                                form.unit === u
+                                  ? tokens.navAccent
+                                  : tokens.surface2,
                             },
                           ]}
                           onPress={() => setField('unit', u)}>
@@ -657,7 +690,14 @@ export function InventoryScreen() {
                 <View style={styles.col}>
                   <FieldLabel text="Selling price" required />
                   <TextInput
-                    style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                    style={[
+                      styles.input,
+                      {
+                        color: tokens.text,
+                        borderColor: tokens.border,
+                        backgroundColor: tokens.surface,
+                      },
+                    ]}
                     value={form.price}
                     onChangeText={v => setField('price', v)}
                     placeholder="0.00"
@@ -668,7 +708,14 @@ export function InventoryScreen() {
                 <View style={styles.col}>
                   <FieldLabel text="Cost price" />
                   <TextInput
-                    style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                    style={[
+                      styles.input,
+                      {
+                        color: tokens.text,
+                        borderColor: tokens.border,
+                        backgroundColor: tokens.surface,
+                      },
+                    ]}
                     value={form.cost_price}
                     onChangeText={v => setField('cost_price', v)}
                     placeholder="0.00"
@@ -681,7 +728,14 @@ export function InventoryScreen() {
               {/* Stock qty */}
               <FieldLabel text="Quantity in stock" />
               <TextInput
-                style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                style={[
+                  styles.input,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
+                ]}
                 value={form.qty}
                 onChangeText={v => setField('qty', v)}
                 placeholder="0"
@@ -732,7 +786,14 @@ export function InventoryScreen() {
                 <>
                   <FieldLabel text="Low-stock alert at" />
                   <TextInput
-                    style={[styles.input, {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface}]}
+                    style={[
+                      styles.input,
+                      {
+                        color: tokens.text,
+                        borderColor: tokens.border,
+                        backgroundColor: tokens.surface,
+                      },
+                    ]}
                     value={form.low_stock_threshold}
                     onChangeText={v => setField('low_stock_threshold', v)}
                     placeholder="e.g. 5"
@@ -763,7 +824,9 @@ export function InventoryScreen() {
                   ]}
                   onPress={() => {
                     setField('track_barcode', !form.track_barcode);
-                    if (form.track_barcode) {setField('barcode', '');}
+                    if (form.track_barcode) {
+                      setField('barcode', '');
+                    }
                   }}>
                   <View
                     style={[
@@ -777,17 +840,33 @@ export function InventoryScreen() {
               {form.track_barcode && (
                 <>
                   <FieldLabel text="Barcode" />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.mono,
-                      {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface},
-                    ]}
-                    value={form.barcode}
-                    onChangeText={v => setField('barcode', v)}
-                    placeholder="Scan or type barcode"
-                    placeholderTextColor={tokens.text3}
-                  />
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.mono,
+                        {
+                          flex: 1,
+                          color: tokens.text,
+                          borderColor: tokens.border,
+                          backgroundColor: tokens.surface,
+                        },
+                      ]}
+                      value={form.barcode}
+                      onChangeText={v => setField('barcode', v)}
+                      placeholder="Scan or type barcode"
+                      placeholderTextColor={tokens.text3}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setScannerVisible(true)}
+                      style={[
+                        styles.scanBtn,
+                        {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                      ]}
+                      activeOpacity={0.7}>
+                      <ScanLine size={20} color={tokens.navAccent} strokeWidth={2} />
+                    </TouchableOpacity>
+                  </View>
                 </>
               )}
 
@@ -822,14 +901,15 @@ export function InventoryScreen() {
                         {
                           backgroundColor:
                             form.category_id === c.id
-                              ? (c.color ?? tokens.navAccent)
+                              ? c.color ?? tokens.navAccent
                               : tokens.surface2,
                         },
                       ]}
                       onPress={() => setField('category_id', c.id)}>
                       <Text
                         style={{
-                          color: form.category_id === c.id ? '#fff' : tokens.text2,
+                          color:
+                            form.category_id === c.id ? '#fff' : tokens.text2,
                           ...typeScale.caption,
                           fontWeight: '600',
                         }}>
@@ -846,7 +926,11 @@ export function InventoryScreen() {
                 style={[
                   styles.input,
                   styles.textArea,
-                  {color: tokens.text, borderColor: tokens.border, backgroundColor: tokens.surface},
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.surface,
+                  },
                 ]}
                 value={form.description}
                 onChangeText={v => setField('description', v)}
@@ -895,7 +979,8 @@ export function InventoryScreen() {
                 style={[styles.deleteBtn]}
                 onPress={handleArchive}
                 disabled={deleting}>
-                <Text style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
+                <Text
+                  style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
                   {deleting ? 'Archiving...' : 'Archive'}
                 </Text>
               </TouchableOpacity>
@@ -903,6 +988,13 @@ export function InventoryScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Barcode Scanner */}
+      <BarcodeScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onResult={code => setField('barcode', code)}
+      />
     </View>
   );
 }
@@ -1109,5 +1201,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: '#EF4444',
+  },
+  scanBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
 });
