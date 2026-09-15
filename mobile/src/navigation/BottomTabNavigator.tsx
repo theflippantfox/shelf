@@ -17,7 +17,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react-native';
 import {useTheme} from '../components/ThemeProvider';
-import {shadows, spacing} from '../theme';
+import {shadows} from '../theme';
 
 // Screens
 import {DashboardScreen} from '../screens/DashboardScreen';
@@ -55,21 +55,19 @@ export function BottomTabNavigator() {
         headerShown: false,
         tabBarShowLabel: false,
           tabBarStyle: {
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 24 : 16,
-          left: spacing.lg,
-          right: spacing.lg,
-          backgroundColor: tokens.surface,
-          borderTopWidth: 0,
-          elevation: 0,
-          height: 68,
-          borderRadius: 34,
-          paddingBottom: 0,
-          paddingTop: 4,
-          borderWidth: 1,
-          borderColor: tokens.border,
-          ...shadows.lg,
-        },
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: tokens.surface + 'F2', // 95% opacity
+            borderTopWidth: 1,
+            borderTopColor: tokens.border,
+            elevation: 0,
+            height: 64,
+            paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+            paddingTop: 8,
+            borderRadius: 0,
+          },
         tabBarActiveTintColor: tokens.navActive,
         tabBarInactiveTintColor: tokens.navMuted,
       }}>
@@ -143,17 +141,17 @@ function TabIcon({
   tokens: ReturnType<typeof useTheme>['tokens'];
 }) {
   return (
-    <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
+    <View style={styles.tabIconContainer}>
+      {focused && (
+        <View
+          style={[styles.activeTopBar, {backgroundColor: tokens.navAccent}]}
+        />
+      )}
       <Icon
         size={ICON_SIZE}
         color={focused ? tokens.navAccent : tokens.text3}
-        strokeWidth={focused ? 2.25 : 1.75}
+        strokeWidth={focused ? 2 : 1.75}
       />
-      {focused && (
-        <View
-          style={[styles.activeIndicator, {backgroundColor: tokens.navAccent}]}
-        />
-      )}
     </View>
   );
 }
@@ -197,9 +195,14 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 44,
-    width: 44,
-    gap: 2,
+    position: 'relative',
+  },
+  activeTopBar: {
+    position: 'absolute',
+    top: -8,
+    width: 32,
+    height: 3,
+    borderRadius: 99,
   },
   tabIconFocused: {},
   activeIndicator: {
@@ -212,12 +215,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 0,
-    marginTop: -28,
+    marginTop: -20,
   },
   fabButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
