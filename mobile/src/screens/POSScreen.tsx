@@ -1,10 +1,12 @@
 /**
  * POSScreen — the core money-making screen.
  *
- * Layout:
- *   Top: Search bar + category chips
- *   Middle: Product grid (2 columns)
- *   Bottom: Cart bar (tap to expand) → full cart + checkout
+ * Two modes:
+ *   Normal:  Search bar + category chips + product grid + cart bar
+ *   Scanner: Inline camera preview + editable cart list below + checkout
+ *
+ * Scanner mode blocks duplicate barcode scans (already-in-cart shows a toast).
+ * Cart items have +/- and remove for editing while scanning.
  */
 import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
@@ -24,7 +26,7 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {BarcodeScannerModal} from '../components/BarcodeScannerModal';
+import {BarcodeScannerView} from '../components/BarcodeScannerView';
 import {
   fetchProducts,
   fetchCategories,
@@ -81,8 +83,10 @@ export function POSScreen() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [submitting, setSubmitting] = useState(false);
 
-  // Scanner
-  const [scannerVisible, setScannerVisible] = useState(false);
+  // Scanner mode (inline)
+  const [scannerMode, setScannerMode] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const [lastScannedCode, setLastScannedCode] = useState('');
 
   // Discount
   const [discountType, setDiscountType] = useState<string>('none');
@@ -140,7 +144,6 @@ export function POSScreen() {
     setCart(prev => {
       const existing = prev.find(c => c.product.id === product.id);
       if (existing) {
-        // Check stock
         if (product.track_stock && existing.qty >= product.qty) {
           Alert.alert('Out of stock', `${product.name} has no stock left`);
           return prev;
@@ -149,7 +152,6 @@ export function POSScreen() {
           c.product.id === product.id ? {...c, qty: c.qty + 1} : c,
         );
       }
-      // New item
       if (product.track_stock && product.qty <= 0) {
         Alert.alert('Out of stock', `${product.name} is out of stock`);
         return prev;
@@ -167,7 +169,6 @@ export function POSScreen() {
           if (c.product.id !== productId) {
             return c;
           }
-          // Check stock
           if (c.product.track_stock && qty > c.product.qty) {
             Alert.alert('Stock limit', `Only ${c.product.qty} in stock`);
             return c;
@@ -247,6 +248,8 @@ export function POSScreen() {
           onPress: () => {
             clearCart();
             setCheckoutVisible(false);
+            setScannerMode(false);
+            setScanCount(0);
           },
         },
       ]);
@@ -261,26 +264,53 @@ export function POSScreen() {
 
   const handleScanResult = useCallback(
     async (code: string) => {
-      // Check local inventory first
+      // Find product by barcode locally first
       const local = products.find(p => p.barcode === code);
       if (local) {
+        // Block duplicate: if already in cart, show message and don't add
+        const inCart = cart.find(c => c.product.id === local.id);
+        if (inCart) {
+          Alert.alert(
+            'Already in cart',
+            `${local.name} is already in the cart. Use +/- to adjust quantity.`,
+          );
+          return;
+        }
         if (local.track_stock && local.qty <= 0) {
           Alert.alert('Out of stock', `${local.name} is out of stock`);
           return;
         }
         addToCart(local);
+        setScanCount(prev => prev + 1);
+        setLastScannedCode(code);
         return;
       }
       // Try API lookup
       try {
         const product = await fetchProductByBarcode(code);
+        const inCart = cart.find(c => c.product.id === product.id);
+        if (inCart) {
+          Alert.alert(
+            'Already in cart',
+            `${product.name} is already in the cart. Use +/- to adjust quantity.`,
+          );
+          return;
+        }
         addToCart(product);
+        setScanCount(prev => prev + 1);
+        setLastScannedCode(code);
       } catch {
         Alert.alert('Not found', `No product for barcode: ${code}`);
       }
     },
-    [products, addToCart],
+    [products, cart, addToCart],
   );
+
+  // ── Scanner mode: close handler ────────────────────────────────────
+
+  const handleScannerClose = useCallback(() => {
+    setScannerMode(false);
+  }, []);
 
   // ── Render product card ───────────────────────────────────────────────
 
@@ -301,7 +331,6 @@ export function POSScreen() {
         onPress={() => addToCart(item)}
         disabled={outOfStock}
         activeOpacity={0.7}>
-        {/* Image placeholder */}
         <View style={[styles.productImage, {backgroundColor: tokens.surface2}]}>
           <Package size={28} color={tokens.text3} strokeWidth={1.5} />
         </View>
@@ -318,7 +347,7 @@ export function POSScreen() {
 
         <View style={styles.productFooter}>
           <Text style={[styles.productPrice, {color: tokens.navAccent}]}>
-            {shop ? formatPrice(item.price, shop) : `₹${item.price}`}
+            {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
           </Text>
           {item.track_stock && (
             <Text style={[styles.productStock, {color: tokens.text3}]}>
@@ -336,6 +365,53 @@ export function POSScreen() {
     );
   };
 
+  // ── Scanner mode cart item render ──────────────────────────────────
+
+  const renderScannerCartItem = ({item: c}: {item: CartItem}) => (
+    <View
+      style={[
+        styles.scannerCartItem,
+        {backgroundColor: tokens.surface, borderColor: tokens.border},
+      ]}>
+      <View style={styles.scannerCartItemInfo}>
+        <Text
+          style={[styles.scannerCartName, {color: tokens.text}]}
+          numberOfLines={1}>
+          {c.product.name}
+        </Text>
+        <Text style={[styles.scannerCartSku, {color: tokens.text3}]}>
+          {c.product.sku}
+        </Text>
+      </View>
+
+      <View style={styles.qtyControls}>
+        <TouchableOpacity
+          style={[
+            styles.qtyBtn,
+            {backgroundColor: tokens.surface2, borderColor: tokens.border},
+          ]}
+          onPress={() => updateCartQty(c.product.id, c.qty - 1)}>
+          <Text style={[styles.qtyBtnText, {color: tokens.text}]}>\u2212</Text>
+        </TouchableOpacity>
+        <Text style={[styles.qtyValue, {color: tokens.text}]}>{c.qty}</Text>
+        <TouchableOpacity
+          style={[
+            styles.qtyBtn,
+            {backgroundColor: tokens.surface2, borderColor: tokens.border},
+          ]}
+          onPress={() => updateCartQty(c.product.id, c.qty + 1)}>
+          <Text style={[styles.qtyBtnText, {color: tokens.text}]}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.scannerCartItemTotal, {color: tokens.navAccent}]}>
+        {shop
+          ? formatPrice(c.product.price * c.qty, shop)
+          : `\u20B9${c.product.price * c.qty}`}
+      </Text>
+    </View>
+  );
+
   // ── Main render ───────────────────────────────────────────────────────
 
   if (loading) {
@@ -346,9 +422,102 @@ export function POSScreen() {
     );
   }
 
+  // ── SCANNER MODE ─────────────────────────────────────────────────────
+
+  if (scannerMode) {
+    return (
+      <View style={[styles.container, {backgroundColor: tokens.bg}]}>
+        {/* Inline scanner */}
+        <View style={{paddingTop: insets.top + spacing.sm}}>
+          <BarcodeScannerView
+            onClose={handleScannerClose}
+            onResult={handleScanResult}
+            scanCount={scanCount}
+            lastScannedCode={lastScannedCode}
+          />
+        </View>
+
+        {/* Cart items list */}
+        <View style={styles.scannerCartHeader}>
+          <Text style={[styles.scannerCartTitle, {color: tokens.text}]}>
+            Cart ({cartCount})
+          </Text>
+          {cart.length > 0 && (
+            <TouchableOpacity onPress={clearCart}>
+              <Text style={{color: '#EF4444', ...typeScale.body, fontWeight: '600'}}>
+                Clear
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <FlatList
+          data={cart}
+          keyExtractor={c => c.product.id}
+          contentContainerStyle={[
+            styles.scannerCartList,
+            {paddingBottom: insets.bottom + 100},
+          ]}
+          ListEmptyComponent={
+            <View style={styles.scannerCartEmpty}>
+              <ScanLine size={32} color={tokens.text3} strokeWidth={1.5} />
+              <Text style={[styles.scannerCartEmptyText, {color: tokens.text3}]}>
+                Scan a barcode to add items
+              </Text>
+            </View>
+          }
+          renderItem={renderScannerCartItem}
+        />
+
+        {/* Fixed bottom: total + checkout */}
+        {cartCount > 0 && (
+          <View
+            style={[
+              styles.scannerBottom,
+              {paddingBottom: insets.bottom + 12, backgroundColor: tokens.bg},
+            ]}>
+            {/* Total */}
+            <View
+              style={[
+                styles.scannerTotalRow,
+                {borderTopColor: tokens.border},
+              ]}>
+              <Text style={[styles.scannerTotalLabel, {color: tokens.text2}]}>
+                Total
+              </Text>
+              <Text
+                style={[styles.scannerTotalValue, {color: tokens.navAccent}]}>
+                {shop ? formatPrice(total, shop) : `\u20B9${total}`}
+              </Text>
+            </View>
+
+            {/* Checkout button */}
+            <TouchableOpacity
+              style={[
+                styles.scannerCheckoutBtn,
+                {backgroundColor: tokens.navAccent},
+              ]}
+              onPress={() => {
+                setScannerMode(false);
+                setCheckoutVisible(true);
+              }}
+              activeOpacity={0.8}>
+              <Text style={styles.scannerCheckoutText}>Checkout</Text>
+              <Text style={styles.scannerCheckoutTotal}>
+                {shop ? formatPrice(total, shop) : `\u20B9${total}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // ── NORMAL MODE ──────────────────────────────────────────────────────
+
   return (
     <View style={[styles.container, {backgroundColor: tokens.bg}]}>
-      {/* Search + Categories */}
+      {/* Search + scan button */}
       <View style={[styles.topBar, {paddingTop: insets.top + spacing.sm}]}>
         <View
           style={[
@@ -366,12 +535,14 @@ export function POSScreen() {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={[styles.clearBtn, {color: tokens.text3}]}>✕</Text>
+              <Text style={[styles.clearBtn, {color: tokens.text3}]}>
+                \u2715
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
         <TouchableOpacity
-          onPress={() => setScannerVisible(true)}
+          onPress={() => setScannerMode(true)}
           style={[
             styles.scanBtn,
             {backgroundColor: tokens.surface2, borderColor: tokens.border},
@@ -422,9 +593,7 @@ export function POSScreen() {
             <Text
               style={[
                 styles.categoryChipText,
-                {
-                  color: selectedCategory === cat.id ? '#fff' : tokens.text2,
-                },
+                {color: selectedCategory === cat.id ? '#fff' : tokens.text2},
               ]}>
               {cat.icon} {cat.name}
             </Text>
@@ -457,10 +626,7 @@ export function POSScreen() {
         <TouchableOpacity
           style={[
             styles.cartBar,
-            {
-              backgroundColor: tokens.navAccent,
-              bottom: insets.bottom + 16,
-            },
+            {backgroundColor: tokens.navAccent, bottom: insets.bottom + 16},
           ]}
           onPress={() => setCartVisible(true)}
           activeOpacity={0.8}>
@@ -473,13 +639,13 @@ export function POSScreen() {
             </Text>
           </View>
           <Text style={styles.cartBarTotal}>
-            {shop ? formatPrice(total, shop) : `₹${total}`}
+            {shop ? formatPrice(total, shop) : `\u20B9${total}`}
           </Text>
-          <Text style={styles.cartBarArrow}>→</Text>
+          <Text style={styles.cartBarArrow}>\u2192</Text>
         </TouchableOpacity>
       )}
 
-      {/* ── Cart modal ──────────────────────────────────────────────────── */}
+      {/* ── Cart modal (normal mode) ─────────────────────────────────── */}
       <Modal
         visible={cartVisible}
         animationType="slide"
@@ -489,11 +655,11 @@ export function POSScreen() {
           style={{flex: 1}}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[styles.cartContainer, {backgroundColor: tokens.bg}]}>
-            {/* Cart header */}
             <View
               style={[styles.cartHeader, {borderBottomColor: tokens.border}]}>
               <TouchableOpacity onPress={() => setCartVisible(false)}>
-                <Text style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
+                <Text
+                  style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -507,33 +673,36 @@ export function POSScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Cart items */}
             <FlatList
               data={cart}
               keyExtractor={c => c.product.id}
               contentContainerStyle={styles.cartItems}
               ListEmptyComponent={
                 <View style={styles.cartEmpty}>
-                  <Text style={[styles.cartEmptyText, {color: tokens.text3}]}>
+                  <Text
+                    style={[styles.cartEmptyText, {color: tokens.text3}]}>
                     Cart is empty
                   </Text>
                 </View>
               }
               renderItem={({item: c}) => (
                 <View
-                  style={[styles.cartItem, {borderBottomColor: tokens.border}]}>
+                  style={[
+                    styles.cartItem,
+                    {borderBottomColor: tokens.border},
+                  ]}>
                   <View style={styles.cartItemInfo}>
                     <Text
                       style={[styles.cartItemName, {color: tokens.text}]}
                       numberOfLines={1}>
                       {c.product.name}
                     </Text>
-                    <Text style={[styles.cartItemSku, {color: tokens.text3}]}>
+                    <Text
+                      style={[styles.cartItemSku, {color: tokens.text3}]}>
                       {c.product.sku}
                     </Text>
                   </View>
 
-                  {/* Qty controls */}
                   <View style={styles.qtyControls}>
                     <TouchableOpacity
                       style={[
@@ -543,9 +712,12 @@ export function POSScreen() {
                           borderColor: tokens.border,
                         },
                       ]}
-                      onPress={() => updateCartQty(c.product.id, c.qty - 1)}>
-                      <Text style={[styles.qtyBtnText, {color: tokens.text}]}>
-                        −
+                      onPress={() =>
+                        updateCartQty(c.product.id, c.qty - 1)
+                      }>
+                      <Text
+                        style={[styles.qtyBtnText, {color: tokens.text}]}>
+                        \u2212
                       </Text>
                     </TouchableOpacity>
                     <Text style={[styles.qtyValue, {color: tokens.text}]}>
@@ -559,25 +731,35 @@ export function POSScreen() {
                           borderColor: tokens.border,
                         },
                       ]}
-                      onPress={() => updateCartQty(c.product.id, c.qty + 1)}>
-                      <Text style={[styles.qtyBtnText, {color: tokens.text}]}>
+                      onPress={() =>
+                        updateCartQty(c.product.id, c.qty + 1)
+                      }>
+                      <Text
+                        style={[styles.qtyBtnText, {color: tokens.text}]}>
                         +
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   <Text
-                    style={[styles.cartItemTotal, {color: tokens.navAccent}]}>
+                    style={[
+                      styles.cartItemTotal,
+                      {color: tokens.navAccent},
+                    ]}>
                     {shop
                       ? formatPrice(c.product.price * c.qty, shop)
-                      : `₹${c.product.price * c.qty}`}
+                      : `\u20B9${c.product.price * c.qty}`}
                   </Text>
                 </View>
               )}
             />
 
-            {/* Discount row */}
-            <View style={[styles.discountRow, {borderTopColor: tokens.border}]}>
+            {/* Discount */}
+            <View
+              style={[
+                styles.discountRow,
+                {borderTopColor: tokens.border},
+              ]}>
               <Text style={[styles.discountLabel, {color: tokens.text2}]}>
                 Discount
               </Text>
@@ -600,13 +782,16 @@ export function POSScreen() {
                   <Text
                     style={[
                       styles.discountTypeText,
-                      {color: discountType === 'none' ? tokens.text2 : '#fff'},
+                      {
+                        color:
+                          discountType === 'none' ? tokens.text2 : '#fff',
+                      },
                     ]}>
                     {discountType === 'none'
                       ? 'None'
                       : discountType === 'percentage'
                       ? '%'
-                      : '₹'}
+                      : '\u20B9'}
                   </Text>
                 </TouchableOpacity>
                 {discountType !== 'none' && (
@@ -627,13 +812,16 @@ export function POSScreen() {
 
             {/* Totals */}
             <View
-              style={[styles.totalsSection, {borderTopColor: tokens.border}]}>
+              style={[
+                styles.totalsSection,
+                {borderTopColor: tokens.border},
+              ]}>
               <View style={styles.totalRow}>
                 <Text style={[styles.totalLabel, {color: tokens.text2}]}>
                   Subtotal
                 </Text>
                 <Text style={[styles.totalValue, {color: tokens.text}]}>
-                  {shop ? formatPrice(subtotal, shop) : `₹${subtotal}`}
+                  {shop ? formatPrice(subtotal, shop) : `\u20B9${subtotal}`}
                 </Text>
               </View>
               {discountAmount > 0 && (
@@ -642,10 +830,10 @@ export function POSScreen() {
                     Discount
                   </Text>
                   <Text style={[styles.totalValue, {color: '#EF4444'}]}>
-                    −
+                    \u2212
                     {shop
                       ? formatPrice(discountAmount, shop)
-                      : `₹${discountAmount}`}
+                      : `\u20B9${discountAmount}`}
                   </Text>
                 </View>
               )}
@@ -664,13 +852,16 @@ export function POSScreen() {
                   Total
                 </Text>
                 <Text
-                  style={[styles.totalValueFinal, {color: tokens.navAccent}]}>
-                  {shop ? formatPrice(total, shop) : `₹${total}`}
+                  style={[
+                    styles.totalValueFinal,
+                    {color: tokens.navAccent},
+                  ]}>
+                  {shop ? formatPrice(total, shop) : `\u20B9${total}`}
                 </Text>
               </View>
             </View>
 
-            {/* Checkout button */}
+            {/* Checkout */}
             <View
               style={[
                 styles.checkoutSection,
@@ -689,7 +880,7 @@ export function POSScreen() {
                 activeOpacity={0.8}>
                 <Text style={styles.checkoutButtonText}>Checkout</Text>
                 <Text style={styles.checkoutButtonTotal}>
-                  {shop ? formatPrice(total, shop) : `₹${total}`}
+                  {shop ? formatPrice(total, shop) : `\u20B9${total}`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -697,7 +888,7 @@ export function POSScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Checkout modal ──────────────────────────────────────────────── */}
+      {/* ── Checkout modal ────────────────────────────────────────────── */}
       <Modal
         visible={checkoutVisible}
         animationType="slide"
@@ -705,9 +896,13 @@ export function POSScreen() {
         onRequestClose={() => setCheckoutVisible(false)}>
         <View style={[styles.checkoutContainer, {backgroundColor: tokens.bg}]}>
           <View
-            style={[styles.checkoutHeader, {borderBottomColor: tokens.border}]}>
+            style={[
+              styles.checkoutHeader,
+              {borderBottomColor: tokens.border},
+            ]}>
             <TouchableOpacity onPress={() => setCheckoutVisible(false)}>
-              <Text style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
+              <Text
+                style={[styles.cartCloseBtn, {color: tokens.navAccent}]}>
                 Back
               </Text>
             </TouchableOpacity>
@@ -718,19 +913,21 @@ export function POSScreen() {
           </View>
 
           <View style={styles.checkoutBody}>
-            {/* Total display */}
             <View
-              style={[styles.totalDisplay, {backgroundColor: tokens.surface2}]}>
-              <Text style={[styles.totalDisplayLabel, {color: tokens.text3}]}>
+              style={[
+                styles.totalDisplay,
+                {backgroundColor: tokens.surface2},
+              ]}>
+              <Text
+                style={[styles.totalDisplayLabel, {color: tokens.text3}]}>
                 Amount Due
               </Text>
               <Text
                 style={[styles.totalDisplayValue, {color: tokens.navAccent}]}>
-                {shop ? formatPrice(total, shop) : `₹${total}`}
+                {shop ? formatPrice(total, shop) : `\u20B9${total}`}
               </Text>
             </View>
 
-            {/* Payment method */}
             <Text style={[styles.sectionTitle, {color: tokens.text2}]}>
               Payment Method
             </Text>
@@ -756,13 +953,18 @@ export function POSScreen() {
                   onPress={() => setPaymentMethod(pm.id)}>
                   <pm.Icon
                     size={16}
-                    color={paymentMethod === pm.id ? '#fff' : tokens.text}
+                    color={
+                      paymentMethod === pm.id ? '#fff' : tokens.text
+                    }
                     strokeWidth={2}
                   />
                   <Text
                     style={[
                       styles.paymentMethodText,
-                      {color: paymentMethod === pm.id ? '#fff' : tokens.text},
+                      {
+                        color:
+                          paymentMethod === pm.id ? '#fff' : tokens.text,
+                      },
                     ]}>
                     {pm.label}
                   </Text>
@@ -770,7 +972,6 @@ export function POSScreen() {
               ))}
             </View>
 
-            {/* Confirm button */}
             <TouchableOpacity
               style={[
                 styles.confirmButton,
@@ -782,20 +983,14 @@ export function POSScreen() {
               {submitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
+                <Text style={styles.confirmButtonText}>
+                  Confirm Payment
+                </Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
-      {/* Barcode Scanner */}
-      <BarcodeScannerModal
-        visible={scannerVisible}
-        onClose={() => setScannerVisible(false)}
-        onResult={handleScanResult}
-        stayOpen
-      />
     </View>
   );
 }
@@ -816,7 +1011,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 44,
   },
-  searchIcon: {fontSize: 14, marginRight: 8},
   searchInput: {flex: 1, ...typeScale.body, paddingVertical: 0},
   scanBtn: {
     width: 44,
@@ -860,7 +1054,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  productIcon: {fontSize: 28},
   productName: {...typeScale.title, marginBottom: 2},
   productSku: {...typeScale.tiny, marginBottom: spacing.xs},
   productFooter: {
@@ -910,7 +1103,91 @@ const styles = StyleSheet.create({
   cartBarTotal: {color: '#fff', ...typeScale.heading, marginRight: 12},
   cartBarArrow: {color: '#fff', fontSize: 20},
 
-  // Cart modal
+  // ── Scanner mode ────────────────────────────────────────────────────
+
+  scannerCartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  scannerCartTitle: {...typeScale.heading},
+  scannerCartList: {paddingHorizontal: spacing.lg},
+  scannerCartEmpty: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 10,
+  },
+  scannerCartEmptyText: {...typeScale.body},
+  scannerCartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginBottom: spacing.xs,
+  },
+  scannerCartItemInfo: {flex: 1},
+  scannerCartName: {...typeScale.title},
+  scannerCartSku: {...typeScale.tiny, marginTop: 1},
+  scannerCartItemTotal: {...typeScale.title, marginLeft: spacing.sm},
+  scannerBottom: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.lg,
+  },
+  scannerTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  scannerTotalLabel: {...typeScale.heading},
+  scannerTotalValue: {...typeScale.heading},
+  scannerCheckoutBtn: {
+    borderRadius: radii.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  scannerCheckoutText: {color: '#fff', ...typeScale.heading},
+  scannerCheckoutTotal: {color: '#fff', ...typeScale.heading},
+
+  // ── Qty controls (shared) ───────────────────────────────────────────
+
+  qtyControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.sm,
+  },
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  qtyBtnText: {fontSize: 18, fontWeight: '600'},
+  qtyValue: {
+    ...typeScale.title,
+    marginHorizontal: spacing.sm,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+
+  // ── Cart modal (normal mode) ───────────────────────────────────────
+
   cartContainer: {flex: 1},
   cartHeader: {
     flexDirection: 'row',
@@ -935,28 +1212,6 @@ const styles = StyleSheet.create({
   cartItemInfo: {flex: 1},
   cartItemName: {...typeScale.title},
   cartItemSku: {...typeScale.tiny, marginTop: 2},
-
-  // Qty controls
-  qtyControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.md,
-  },
-  qtyBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  qtyBtnText: {fontSize: 18, fontWeight: '600'},
-  qtyValue: {
-    ...typeScale.title,
-    marginHorizontal: spacing.sm,
-    minWidth: 24,
-    textAlign: 'center',
-  },
   cartItemTotal: {...typeScale.title, marginLeft: spacing.sm},
 
   // Discount
