@@ -44,7 +44,6 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const ICON_SIZE = 22;
 
-import {Svg, Defs, LinearGradient, Stop, Rect} from 'react-native-svg';
 
 export function BottomTabNavigator() {
   const {tokens} = useTheme();
@@ -173,18 +172,7 @@ function POSSab({
       accessibilityRole="button"
       accessibilityLabel="New sale"
       accessibilityState={{selected: isSelected}}>
-      <View style={[styles.fabButton, shadows.glow(tokens.primary)]}>
-        <View style={StyleSheet.absoluteFillObject}>
-          <Svg width="100%" height="100%" style={{borderRadius: 28}}>
-            <Defs>
-              <LinearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="#8B5CF6" stopOpacity="1" />
-                <Stop offset="1" stopColor="#3B82F6" stopOpacity="1" />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#grad)" />
-          </Svg>
-        </View>
+      <View style={[styles.fabButton, {backgroundColor: tokens.navAccent}, shadows.glow(tokens.navAccent)]}>
         <ShoppingCart size={24} color={'#FFFFFF'} strokeWidth={2.5} />
       </View>
     </TouchableOpacity>

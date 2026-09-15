@@ -16,6 +16,7 @@ import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {Card, Avatar, SectionHeader, TopBar} from '../components/ui';
 import {spacing, radii, shadows, typeScale} from '../theme';
+import {PALETTES} from '../theme/palettes';
 import {
   Palette,
   Sun,
@@ -44,7 +45,7 @@ interface SettingItem {
 }
 
 export function MoreScreen() {
-  const {tokens, paletteId, setPaletteId, isDark, setMode} = useTheme();
+  const {tokens, paletteId, setPaletteId, isDark, setMode, palette} = useTheme();
   const {shop, user, logout} = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -60,36 +61,15 @@ export function MoreScreen() {
     setMode(isDark ? 'light' : 'dark');
   };
 
-  const cyclePalette = () => {
-    const palettes = [
-      'graphite-mint',
-      'graphite-violet',
-      'graphite-rose',
-      'warm-sand',
-      'warm-copper',
-      'warm-amber',
-      'nord-frost',
-      'nord-aurora',
-      'midnight-teal',
-      'midnight-lime',
-      'midnight-amber',
-    ];
-    const idx = palettes.indexOf(paletteId);
-    const next = palettes[(idx + 1) % palettes.length];
-    setPaletteId(next);
-  };
-
   const iconSize = 20;
 
   const settings: SettingItem[] = [
     {
       Icon: Palette,
-      iconColor: '#8B5CF6',
-      label: 'Color Theme',
-      value: paletteId
-        .replace(/-/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase()),
-      onPress: cyclePalette,
+      iconColor: palette.accent,
+      label: 'Palette',
+      value: palette.name,
+      onPress: () => {},
     },
     {
       Icon: isDark ? Sun : Moon,
@@ -257,6 +237,41 @@ export function MoreScreen() {
         </View>
       )}
 
+      {/* Palette picker */}
+      <View style={styles.section}>
+        <SectionHeader title="Palette" />
+        <Card variant="outlined" style={styles.sectionCard} padding={spacing.md}>
+          <View style={styles.paletteGrid}>
+            {PALETTES.map(p => (
+              <TouchableOpacity
+                key={p.id}
+                onPress={() => setPaletteId(p.id)}
+                style={[
+                  styles.paletteSwatch,
+                  {
+                    borderColor:
+                      paletteId === p.id ? tokens.text : tokens.border,
+                    borderWidth: paletteId === p.id ? 2.5 : 1.5,
+                  },
+                ]}
+                activeOpacity={0.7}>
+                <View
+                  style={[styles.swatchCircle, {backgroundColor: p.accent}]} />
+                <Text
+                  style={[
+                    styles.paletteLabel,
+                    {color: paletteId === p.id ? tokens.text : tokens.text3},
+                    paletteId === p.id && {fontWeight: '600'},
+                  ]}
+                  numberOfLines={1}>
+                  {p.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+      </View>
+
       {/* Appearance */}
       {renderSection('Appearance', settings)}
 
@@ -370,6 +385,28 @@ const styles = StyleSheet.create({
   // Sections
   section: {marginHorizontal: spacing.xl, marginBottom: spacing.lg},
   sectionCard: {borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden'},
+  paletteGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  paletteSwatch: {
+    width: '30.5%',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: 'transparent',
+  },
+  swatchCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginBottom: 6,
+  },
+  paletteLabel: {
+    ...typeScale.tiny,
+    textAlign: 'center',
+  },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
