@@ -22,6 +22,7 @@ import ShopSelectScreen from './src/screens/auth/ShopSelectScreen';
 
 // Sub-screens (pushed over tabs)
 import {CustomersScreen} from './src/screens/CustomersScreen';
+import {CustomerDetailScreen} from './src/screens/CustomerDetailScreen';
 import {CashRegisterScreen} from './src/screens/CashRegisterScreen';
 
 const AuthStack = createNativeStackNavigator();
@@ -72,6 +73,7 @@ function AppContent() {
       }}>
       <MainStack.Screen name="Main" component={BottomTabNavigator} />
       <MainStack.Screen name="Customers" component={CustomersScreen} />
+      <MainStack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <MainStack.Screen name="CashRegister" component={CashRegisterScreen} />
     </MainStack.Navigator>
   );

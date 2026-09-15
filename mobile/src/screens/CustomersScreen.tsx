@@ -22,12 +22,26 @@ import {useAuth} from '../components/AuthProvider';
 import {fetchCustomers, createCustomer, type Customer} from '../lib/api';
 import {formatPrice} from '../lib/format';
 import {spacing, radii, typeScale} from '../theme';
-import {Users, Plus, User, Phone, Mail, FileText, X, UserPlus, ArrowLeft} from 'lucide-react-native';
+import {
+  Users,
+  Plus,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  X,
+  UserPlus,
+  ArrowLeft,
+} from 'lucide-react-native';
 
 // Customer tier logic (matches web app config)
 function getTier(c: Customer): 'vip' | 'regular' | 'new' {
-  if (c.visit_count >= 15 || c.total_spent >= 500000) {return 'vip';}
-  if (c.visit_count >= 8 || c.total_spent >= 10000) {return 'regular';}
+  if (c.visit_count >= 15 || c.total_spent >= 500000) {
+    return 'vip';
+  }
+  if (c.visit_count >= 8 || c.total_spent >= 10000) {
+    return 'regular';
+  }
   return 'new';
 }
 
@@ -46,8 +60,16 @@ function getInitials(name: string): string {
 // Hash name to a consistent color
 function nameColor(name: string): string {
   const colors = [
-    '#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6',
-    '#06B6D4', '#EF4444', '#F97316', '#14B8A6', '#3B82F6',
+    '#6366F1',
+    '#10B981',
+    '#F59E0B',
+    '#EC4899',
+    '#8B5CF6',
+    '#06B6D4',
+    '#EF4444',
+    '#F97316',
+    '#14B8A6',
+    '#3B82F6',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -150,7 +172,9 @@ export function CustomersScreen() {
     const tier = getTier(item);
     const color = nameColor(item.name);
     return (
-      <View
+      <TouchableOpacity
+        activeOpacity={0.6}
+        onPress={() => navigation.navigate('CustomerDetail' as never, {customerId: item.id, customerName: item.name} as never)}
         style={[
           styles.customerCard,
           {backgroundColor: tokens.surface, borderColor: tokens.border},
@@ -170,7 +194,11 @@ export function CustomersScreen() {
               numberOfLines={1}>
               {item.name}
             </Text>
-            <View style={[styles.tierBadge, {backgroundColor: TIER_COLORS[tier] + '18'}]}>
+            <View
+              style={[
+                styles.tierBadge,
+                {backgroundColor: TIER_COLORS[tier] + '18'},
+              ]}>
               <Text style={[styles.tierText, {color: TIER_COLORS[tier]}]}>
                 {TIER_LABELS[tier]}
               </Text>
@@ -189,7 +217,7 @@ export function CustomersScreen() {
           </Text>
           <Text style={[styles.spentLabel, {color: tokens.text3}]}>spent</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -207,7 +235,9 @@ export function CustomersScreen() {
       <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}>
               <ArrowLeft size={22} color={tokens.text} strokeWidth={2} />
             </TouchableOpacity>
             <Text style={[typeScale.heading, {color: tokens.text}]}>
@@ -242,7 +272,9 @@ export function CustomersScreen() {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{color: tokens.text3, fontSize: 16}}>{'\u2715'}</Text>
+              <Text style={{color: tokens.text3, fontSize: 16}}>
+                {'\u2715'}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -313,7 +345,10 @@ export function CustomersScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
                   <User size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
@@ -335,7 +370,10 @@ export function CustomersScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
                   <Phone size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
@@ -357,7 +395,10 @@ export function CustomersScreen() {
                 <View
                   style={[
                     styles.inputRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
                   <Mail size={16} color={tokens.text3} strokeWidth={1.75} />
                   <TextInput
@@ -381,7 +422,10 @@ export function CustomersScreen() {
                   style={[
                     styles.inputRow,
                     styles.textAreaRow,
-                    {backgroundColor: tokens.surface2, borderColor: tokens.border},
+                    {
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.border,
+                    },
                   ]}>
                   <FileText
                     size={16}
@@ -390,7 +434,11 @@ export function CustomersScreen() {
                     style={{marginTop: 4}}
                   />
                   <TextInput
-                    style={[styles.input, styles.textArea, {color: tokens.text}]}
+                    style={[
+                      styles.input,
+                      styles.textArea,
+                      {color: tokens.text},
+                    ]}
                     value={formNotes}
                     onChangeText={setFormNotes}
                     placeholder="Any notes..."

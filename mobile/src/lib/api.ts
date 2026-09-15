@@ -443,8 +443,28 @@ export interface Customer {
 }
 
 export async function fetchCustomers(): Promise<Customer[]> {
-  const res = await apiFetch<{data: Customer[]; meta: Record<string, unknown>}>('/api/customers');
+  const res = await apiFetch<{data: Customer[]; meta: Record<string, unknown>}>(
+    '/api/customers',
+  );
   return res.data ?? [];
+}
+
+export async function fetchCustomerById(id: string): Promise<Customer> {
+  return apiFetch<Customer>(`/api/customers/${id}`);
+}
+
+export async function updateCustomer(
+  id: string,
+  data: {name?: string; phone?: string; email?: string; notes?: string},
+): Promise<Customer> {
+  return apiFetch<Customer>(`/api/customers/${id}`, {
+    method: 'PATCH',
+    body: data,
+  });
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+  await apiFetch(`/api/customers/${id}`, {method: 'DELETE'});
 }
 
 export async function createCustomer(data: {
