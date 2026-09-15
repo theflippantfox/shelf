@@ -2,13 +2,7 @@
  * HistoryScreen — recent sales list with date filtering.
  */
 import React, {useState, useEffect, useCallback, useMemo} from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import {View, Text, ActivityIndicator, Alert, ScrollView} from 'react-native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {
@@ -140,10 +134,7 @@ export function HistoryScreen() {
           paddingBottom: spacing.xxxl,
         }}>
         {/* Header */}
-        <PageHeadingBlock
-          heading="Sales History"
-          eyebrow={shop?.name ?? ''}
-        />
+        <PageHeadingBlock heading="Sales History" eyebrow={shop?.name ?? ''} />
 
         {/* Time range filters */}
         <View style={{marginBottom: spacing.lg}}>
@@ -208,7 +199,9 @@ export function HistoryScreen() {
                 typeScale.heading,
                 {color: tokens.text, fontWeight: '700'},
               ]}>
-              {shop ? formatPrice(stats.avg, shop) : `₹${Math.round(stats.avg)}`}
+              {shop
+                ? formatPrice(stats.avg, shop)
+                : `₹${Math.round(stats.avg)}`}
             </Text>
             <Text style={[typeScale.tiny, {color: tokens.text3, marginTop: 2}]}>
               Average

@@ -316,7 +316,10 @@ export function CustomersScreen() {
       </ScrollView>
 
       {/* Add Customer Modal */}
-      <Modal visible={showAdd} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={showAdd}
+        animationType="slide"
+        presentationStyle="pageSheet">
         <KeyboardAvoidingView
           style={{flex: 1, backgroundColor: tokens.bg}}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

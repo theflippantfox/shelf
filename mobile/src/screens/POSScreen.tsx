@@ -26,6 +26,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {BarcodeScannerView} from '../components/BarcodeScannerView';
+import {CategoryIcon} from '../lib/categoryIcons';
 import {
   Card,
   Badge,
@@ -180,16 +181,18 @@ export function POSScreen() {
         <LayoutGrid color={color} size={size} strokeWidth={1.75} />
       ),
     },
-    ...categories.map(c => {
-      // (Simplified: just use Package for dynamically loaded POS categories to avoid huge switch. We could do better but this is fine.)
-      return {
-        id: c.id,
-        label: c.name,
-        icon: ({color, size}: {color: string; size: number}) => (
-          <Package color={color} size={size} strokeWidth={1.75} />
-        ),
-      };
-    }),
+    ...categories.map(c => ({
+      id: c.id,
+      label: c.name,
+      icon: ({color, size}: {color: string; size: number}) => (
+        <CategoryIcon
+          category={c.name}
+          size={size}
+          color={color}
+          strokeWidth={1.75}
+        />
+      ),
+    })),
   ];
 
   const addToCart = useCallback((product: Product) => {
@@ -614,11 +617,13 @@ export function POSScreen() {
       </View>
 
       {/* Category chips */}
-      <QuickActionTileGrid
-        tiles={categoryTiles}
-        activeId={selectedCategory || ''}
-        onSelect={id => setSelectedCategory(id === '' ? null : id)}
-      />
+      <View style={{marginBottom: spacing.md}}>
+        <QuickActionTileGrid
+          tiles={categoryTiles}
+          activeId={selectedCategory || ''}
+          onSelect={id => setSelectedCategory(id === '' ? null : id)}
+        />
+      </View>
 
       {/* Product grid */}
       <FlatList
@@ -981,7 +986,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
@@ -1007,7 +1012,7 @@ const styles = StyleSheet.create({
 
   // Categories
   categoryRow: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
@@ -1020,7 +1025,7 @@ const styles = StyleSheet.create({
   categoryChipText: {...typeScale.caption, fontWeight: '600'},
 
   // Products
-  productGrid: {paddingHorizontal: spacing.lg},
+  productGrid: {paddingHorizontal: spacing.xl},
   productRow: {gap: spacing.sm, marginBottom: spacing.sm},
   productCard: {
     flex: 1,
@@ -1072,7 +1077,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 16,
     ...shadows.lg,
   },
@@ -1097,12 +1102,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
   scannerCartTitle: {...typeScale.heading},
-  scannerCartList: {paddingHorizontal: spacing.lg},
+  scannerCartList: {paddingHorizontal: spacing.xl},
   scannerCartEmpty: {
     paddingVertical: 40,
     alignItems: 'center',
@@ -1127,7 +1132,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   scannerTotalRow: {
     flexDirection: 'row',
@@ -1145,7 +1150,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     marginBottom: spacing.sm,
   },
   scannerCheckoutText: {color: '#fff', ...typeScale.heading},
@@ -1181,14 +1186,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
   cartCloseBtn: {...typeScale.body, fontWeight: '600'},
   cartTitle: {...typeScale.heading},
   cartClearBtn: {...typeScale.body, fontWeight: '600'},
-  cartItems: {paddingHorizontal: spacing.lg},
+  cartItems: {paddingHorizontal: spacing.xl},
   cartEmpty: {paddingVertical: 60, alignItems: 'center'},
   cartEmptyText: {...typeScale.body},
   cartItem: {
@@ -1209,7 +1214,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.06)',
@@ -1235,7 +1240,7 @@ const styles = StyleSheet.create({
 
   // Totals
   totalsSection: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     borderTopWidth: 1,
   },
@@ -1255,14 +1260,14 @@ const styles = StyleSheet.create({
   totalValueFinal: {...typeScale.heading},
 
   // Checkout
-  checkoutSection: {paddingHorizontal: spacing.lg, paddingTop: spacing.md},
+  checkoutSection: {paddingHorizontal: spacing.xl, paddingTop: spacing.md},
   checkoutButton: {
     borderRadius: radii.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 18,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     ...shadows.lg,
   },
   checkoutButtonText: {color: '#fff', ...typeScale.heading},
@@ -1274,7 +1279,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
@@ -1282,7 +1287,7 @@ const styles = StyleSheet.create({
   totalDisplay: {
     borderRadius: radii.xl,
     paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
     marginBottom: spacing.xl,
   },

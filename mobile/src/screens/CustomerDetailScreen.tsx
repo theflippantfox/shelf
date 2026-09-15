@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   saleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 12,
     gap: 10,
   },
