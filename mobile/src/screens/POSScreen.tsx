@@ -21,6 +21,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
@@ -33,6 +34,7 @@ import {
   Button,
   QuickActionTileGrid,
   EmptyState,
+  PageHeadingBlock,
   type ActionTile,
 } from '../components/ui';
 import {
@@ -581,70 +583,77 @@ export function POSScreen() {
 
   return (
     <View style={[styles.container, {backgroundColor: tokens.bg}]}>
-      {/* Search + scan button */}
-      <View style={[styles.topBar, {paddingTop: insets.top + spacing.sm}]}>
-        <View
-          style={[
-            styles.searchBar,
-            {backgroundColor: tokens.surface2, borderColor: tokens.border},
-          ]}>
-          <Search size={18} color={tokens.text3} strokeWidth={2} />
-          <TextInput
-            style={[styles.searchInput, {color: tokens.text}]}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search products..."
-            placeholderTextColor={tokens.text3}
-            returnKeyType="search"
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={[styles.clearBtn, {color: tokens.text3}]}>
-                \u2715
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{
+          paddingTop: spacing.xxl + spacing.lg,
+          paddingBottom: insets.bottom + 100,
+        }}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <PageHeadingBlock heading="Point of Sale" eyebrow={shop?.name ?? ''} />
+          <TouchableOpacity
+            onPress={() => setScannerMode(true)}
+            style={[
+              styles.scanBtnHeader,
+              {backgroundColor: tokens.navAccent},
+            ]}
+            activeOpacity={0.7}>
+            <ScanLine size={18} color="#fff" strokeWidth={2.5} />
+            <Text style={styles.scanBtnText}>Scan</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          onPress={() => setScannerMode(true)}
-          style={[
-            styles.scanBtn,
-            {backgroundColor: tokens.surface2, borderColor: tokens.border},
-          ]}
-          activeOpacity={0.7}>
-          <ScanLine size={20} color={tokens.navAccent} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
 
-      {/* Category chips */}
-      <View style={{marginBottom: spacing.md}}>
-        <QuickActionTileGrid
-          tiles={categoryTiles}
-          activeId={selectedCategory || ''}
-          onSelect={id => setSelectedCategory(id === '' ? null : id)}
-        />
-      </View>
+        {/* Search */}
+        <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.md}}>
+          <View
+            style={[
+              styles.searchBar,
+              {backgroundColor: tokens.surface, borderColor: tokens.border},
+            ]}>
+            <Search size={16} color={tokens.text3} strokeWidth={1.75} />
+            <TextInput
+              style={[styles.searchInput, {color: tokens.text}]}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search products..."
+              placeholderTextColor={tokens.text3}
+              returnKeyType="search"
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Text style={[styles.clearBtn, {color: tokens.text3}]}>
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
 
-      {/* Product grid */}
-      <FlatList
-        key="pos-grid"
-        data={filtered}
-        renderItem={renderProduct}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.productRow}
-        contentContainerStyle={[
-          styles.productGrid,
-          {paddingBottom: insets.bottom + 80},
-        ]}
-        ListEmptyComponent={
-          <EmptyState
-            icon={<Package size={32} color={tokens.text3} strokeWidth={1} />}
-            title="No products found"
-            subtitle="Try a different search or category"
+        {/* Category chips */}
+        <View style={{marginBottom: spacing.md}}>
+          <QuickActionTileGrid
+            tiles={categoryTiles}
+            activeId={selectedCategory || ''}
+            onSelect={id => setSelectedCategory(id === '' ? null : id)}
           />
-        }
-      />
+        </View>
+
+        {/* Product grid */}
+        <View style={{paddingHorizontal: spacing.xl}}>
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon={<Package size={32} color={tokens.text3} strokeWidth={1} />}
+              title="No products found"
+              subtitle="Try a different search or category"
+            />
+          ) : (
+            <View style={styles.productGrid}>
+              {filtered.map(item => renderProduct({item}))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
       {/* Cart bar (fixed at bottom) */}
       {cartCount > 0 && (
@@ -982,33 +991,40 @@ const styles = StyleSheet.create({
   container: {flex: 1},
   loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
 
-  // Top bar
-  topBar: {
+  // Header
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
+  scanBtnHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.lg,
+  },
+  scanBtnText: {
+    ...typeScale.caption,
+    color: '#fff',
+    fontWeight: '600',
+  },
+
+  // Search
   searchBar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radii.lg,
     borderWidth: 1,
     paddingHorizontal: 14,
     height: 48,
+    gap: 8,
   },
   searchInput: {flex: 1, ...typeScale.body, paddingVertical: 0},
-  scanBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  clearBtn: {fontSize: 16, paddingLeft: 8},
+  clearBtn: {fontSize: 16},
 
   // Categories
   categoryRow: {
