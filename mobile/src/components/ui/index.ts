@@ -14,3 +14,4 @@ export {QuickActionTileGrid, type ActionTile} from './QuickActionTileGrid';
 export {Chip} from './Chip';
 export {TopBar} from './TopBar';
 export {PageHeadingBlock} from './PageHeadingBlock';
+export {Skeleton, StatCardSkeleton, ListRowSkeleton, ProductGridSkeleton} from './Skeleton';

@@ -841,19 +841,19 @@ const styles = StyleSheet.create({
 
   // Balance card
   balanceCard: {
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    padding: spacing.lg,
+    padding: spacing.xl,
     marginBottom: spacing.md,
   },
   balanceLabel: {
     ...typeScale.tiny,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   balanceValue: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     marginTop: spacing.xs,
     fontVariant: ['tabular-nums'],
   },
@@ -890,11 +890,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.lg,
     borderWidth: 1,
   },
-  actionLabel: {...typeScale.body, fontWeight: '600'},
+  actionLabel: {...typeScale.caption, fontWeight: '600'},
 
   // Info
   infoText: {
