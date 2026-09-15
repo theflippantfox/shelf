@@ -17,7 +17,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react-native';
 import {useTheme} from '../components/ThemeProvider';
-import {shadows} from '../theme';
+import {shadows, spacing} from '../theme';
 
 // Screens
 import {DashboardScreen} from '../screens/DashboardScreen';
@@ -54,19 +54,21 @@ export function BottomTabNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: {
+          tabBarStyle: {
           position: 'absolute',
           bottom: Platform.OS === 'ios' ? 24 : 16,
-          left: 20,
-          right: 20,
+          left: spacing.lg,
+          right: spacing.lg,
           backgroundColor: tokens.surface,
           borderTopWidth: 0,
           elevation: 0,
-          height: 64,
-          borderRadius: 32,
+          height: 68,
+          borderRadius: 34,
           paddingBottom: 0,
-          paddingTop: 0,
-          ...shadows.glow('#00000040'),
+          paddingTop: 4,
+          borderWidth: 1,
+          borderColor: tokens.border,
+          ...shadows.lg,
         },
         tabBarActiveTintColor: tokens.navActive,
         tabBarInactiveTintColor: tokens.navMuted,
@@ -145,7 +147,7 @@ function TabIcon({
       <Icon
         size={ICON_SIZE}
         color={focused ? tokens.navAccent : tokens.text3}
-        strokeWidth={focused ? 2.5 : 1.75}
+        strokeWidth={focused ? 2.25 : 1.75}
       />
       {focused && (
         <View
@@ -213,9 +215,9 @@ const styles = StyleSheet.create({
     marginTop: -28,
   },
   fabButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

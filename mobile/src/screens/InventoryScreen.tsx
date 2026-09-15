@@ -36,7 +36,7 @@ import {
   getLocalCategories,
 } from '../lib/sync';
 import {formatPrice} from '../lib/format';
-import {spacing, typeScale} from '../theme';
+import {spacing, radii, typeScale} from '../theme';
 import {
   TopBar,
   PageHeadingBlock,
@@ -436,6 +436,22 @@ export function InventoryScreen() {
           activeId={selectedCategory || ''}
           onSelect={setSelectedCategory}
         />
+      </View>
+
+      {/* Summary stats */}
+      <View style={styles.summaryRow}>
+        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>{products.filter(p => !p.archived_at).length}</Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Total</Text>
+        </View>
+        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>{lowStockCount}</Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Low stock</Text>
+        </View>
+        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>{categories.length}</Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Categories</Text>
+        </View>
       </View>
 
       {/* Search */}
@@ -1053,10 +1069,10 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1,
     paddingHorizontal: 14,
-    height: 42,
+    height: 48,
     gap: 8,
   },
   searchInput: {flex: 1, ...typeScale.body, paddingVertical: 0},
@@ -1070,11 +1086,27 @@ const styles = StyleSheet.create({
   filterChip: {paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16},
   sortBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: radii.md,
     marginLeft: spacing.sm,
+    height: 48,
+    justifyContent: 'center',
   },
   sortBtnText: {...typeScale.caption, fontWeight: '600'},
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+  },
+  summaryValue: {...typeScale.heading, fontWeight: '700'},
+  summaryLabel: {...typeScale.tiny, marginTop: 2},
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',

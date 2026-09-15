@@ -14,8 +14,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {Card, Avatar, SectionHeader} from '../components/ui';
-import {spacing, radii, typeScale} from '../theme';
+import {Card, Avatar, SectionHeader, TopBar} from '../components/ui';
+import {spacing, radii, shadows, typeScale} from '../theme';
 import {
   Palette,
   Sun,
@@ -175,11 +175,11 @@ export function MoreScreen() {
               styles.settingRow,
               i < items.length - 1 && {
                 borderBottomColor: tokens.border,
-                borderBottomWidth: 1,
+                borderBottomWidth: StyleSheet.hairlineWidth,
               },
             ]}
             onPress={item.onPress}
-            activeOpacity={0.7}>
+            activeOpacity={0.6}>
             <View
               style={[
                 styles.settingIconWrap,
@@ -194,12 +194,13 @@ export function MoreScreen() {
             <Text style={[styles.settingLabel, {color: tokens.text}]}>
               {item.label}
             </Text>
-            <Text
-              style={[styles.settingValue, {color: tokens.text3}]}
-              numberOfLines={1}>
-              {item.value ?? ''}
-            </Text>
-            {!item.value && (
+            {item.value ? (
+              <Text
+                style={[styles.settingValue, {color: tokens.text3}]}
+                numberOfLines={1}>
+                {item.value}
+              </Text>
+            ) : (
               <ChevronRight size={16} color={tokens.text3} strokeWidth={2} />
             )}
           </TouchableOpacity>
@@ -213,31 +214,44 @@ export function MoreScreen() {
       style={[styles.container, {backgroundColor: tokens.bg}]}
       contentContainerStyle={{paddingBottom: insets.bottom + 20}}>
       {/* Header */}
-      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
-        <Text style={[typeScale.heading, {color: tokens.text}]}>More</Text>
+      <View style={{paddingTop: insets.top}}>
+        <TopBar />
+      </View>
+      <View style={styles.header}>
+        <Text style={[typeScale.display, {color: tokens.text, fontWeight: '800'}]}>
+          More
+        </Text>
+        <Text style={[typeScale.body, {color: tokens.text3, marginTop: 2}]}>
+          Settings & account
+        </Text>
       </View>
 
       {/* Profile card */}
       {shop && (
-        <Card
-          variant="outlined"
-          style={styles.profileCard}
-          padding={spacing.lg}>
-          <Avatar name={shop.name} size={52} />
-          <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, {color: tokens.text}]}>
-              {shop.name}
-            </Text>
-            <Text style={[styles.profileSlug, {color: tokens.text3}]}>
-              /{shop.slug}
-            </Text>
-            {user?.email && (
-              <Text style={[styles.profileSlug, {color: tokens.text3}]}>
-                {user.email}
-              </Text>
-            )}
-          </View>
-        </Card>
+        <View style={styles.profileCardWrapper}>
+          <View style={[styles.profileAccent, {backgroundColor: tokens.navAccent}]} />
+          <Card
+            variant="outlined"
+            style={styles.profileCard}
+            padding={spacing.lg}>
+            <View style={styles.profileRow}>
+              <Avatar name={shop.name} size={56} />
+              <View style={styles.profileInfo}>
+                <Text style={[styles.profileName, {color: tokens.text}]}>
+                  {shop.name}
+                </Text>
+                <Text style={[styles.profileSlug, {color: tokens.text3}]}>
+                  /{shop.slug}
+                </Text>
+                {user?.email && (
+                  <Text style={[styles.profileEmail, {color: tokens.text3}]}>
+                    {user.email}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </Card>
+        </View>
       )}
 
       {/* Appearance */}
@@ -256,9 +270,9 @@ export function MoreScreen() {
           <TouchableOpacity
             style={[
               styles.settingRow,
-              {borderBottomColor: tokens.border, borderBottomWidth: 1},
+              {borderBottomColor: tokens.border, borderBottomWidth: StyleSheet.hairlineWidth},
             ]}
-            activeOpacity={0.7}>
+            activeOpacity={0.6}>
             <View
               style={[styles.settingIconWrap, {backgroundColor: '#6366F118'}]}>
               <User size={iconSize} color="#6366F1" strokeWidth={1.75} />
@@ -272,9 +286,9 @@ export function MoreScreen() {
           <TouchableOpacity
             style={[
               styles.settingRow,
-              {borderBottomColor: tokens.border, borderBottomWidth: 1},
+              {borderBottomColor: tokens.border, borderBottomWidth: StyleSheet.hairlineWidth},
             ]}
-            activeOpacity={0.7}>
+            activeOpacity={0.6}>
             <View
               style={[styles.settingIconWrap, {backgroundColor: '#F59E0B18'}]}>
               <Users size={iconSize} color="#F59E0B" strokeWidth={1.75} />
@@ -290,7 +304,7 @@ export function MoreScreen() {
           <TouchableOpacity
             style={styles.settingRow}
             onPress={handleLogout}
-            activeOpacity={0.7}>
+            activeOpacity={0.6}>
             <View
               style={[styles.settingIconWrap, {backgroundColor: '#EF444418'}]}>
               <LogOut size={iconSize} color="#EF4444" strokeWidth={1.75} />
@@ -317,31 +331,35 @@ const styles = StyleSheet.create({
   header: {paddingHorizontal: spacing.xl, marginBottom: spacing.lg},
 
   // Profile
+  profileCardWrapper: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  profileAccent: {
+    height: 4,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+  },
   profileCard: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderWidth: 1,
+    borderTopWidth: 0,
+  },
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.xl,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    marginBottom: spacing.lg,
   },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  avatarText: {color: '#fff', fontSize: 22, fontWeight: '700'},
-  profileInfo: {flex: 1},
-  profileName: {...typeScale.heading},
+  profileInfo: {flex: 1, marginLeft: spacing.md},
+  profileName: {...typeScale.heading, fontWeight: '700'},
   profileSlug: {...typeScale.caption, marginTop: 2},
+  profileEmail: {...typeScale.tiny, marginTop: 2},
 
   // Sections
   section: {marginHorizontal: spacing.xl, marginBottom: spacing.lg},
-  sectionTitle: {...typeScale.tiny, marginBottom: spacing.sm, marginLeft: 4},
   sectionCard: {borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden'},
   settingRow: {
     flexDirection: 'row',

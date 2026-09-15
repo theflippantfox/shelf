@@ -11,11 +11,9 @@ import {
   Alert,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {
-  Card,
   EmptyState,
   TopBar,
   PageHeadingBlock,
@@ -62,7 +60,6 @@ export function HistoryScreen() {
   const {tokens} = useTheme();
   const {shop} = useAuth();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +143,7 @@ export function HistoryScreen() {
         styles.container,
         {backgroundColor: tokens.bg, paddingTop: insets.top},
       ]}>
-      <TopBar onBack={() => navigation.goBack()} />
+      <TopBar />
       <PageHeadingBlock
         heading="Sales History"
         eyebrow={`${sales.length} transactions`}
