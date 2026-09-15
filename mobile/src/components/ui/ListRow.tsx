@@ -1,5 +1,11 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ViewStyle} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 import {useTheme} from '../ThemeProvider';
 import {spacing, radii, typeScale} from '../../theme';
 

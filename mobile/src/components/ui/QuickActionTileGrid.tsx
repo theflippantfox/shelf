@@ -1,5 +1,12 @@
 import React from 'react';
-import {ScrollView, View, Text, TouchableOpacity, StyleSheet, ViewStyle} from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 import {useTheme} from '../ThemeProvider';
 import {spacing, radii, typeScale} from '../../theme';
 import {Svg, Defs, LinearGradient, Stop, Rect} from 'react-native-svg';
@@ -27,53 +34,78 @@ export function QuickActionTileGrid({
 
   return (
     <View style={style}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.grid}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.grid}>
         {tiles.map(tile => {
-        const isActive = tile.id === activeId;
-        return (
-          <TouchableOpacity
-            key={tile.id}
-            activeOpacity={0.7}
-            style={styles.tileWrapper}
-            onPress={() => onSelect(tile.id)}>
+          const isActive = tile.id === activeId;
+          return (
+            <TouchableOpacity
+              key={tile.id}
+              activeOpacity={0.7}
+              style={styles.tileWrapper}
+              onPress={() => onSelect(tile.id)}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  {backgroundColor: isActive ? 'transparent' : tokens.surface},
+                ]}>
+                {isActive && (
+                  <View
+                    style={[
+                      StyleSheet.absoluteFillObject,
+                      {borderRadius: radii.md, overflow: 'hidden'},
+                    ]}>
+                    <Svg width="100%" height="100%">
+                      <Defs>
+                        <LinearGradient
+                          id="activeGrad"
+                          x1="0"
+                          y1="0"
+                          x2="1"
+                          y2="1">
+                          <Stop
+                            offset="0"
+                            stopColor="#8B5CF6"
+                            stopOpacity="1"
+                          />
+                          <Stop
+                            offset="1"
+                            stopColor="#3B82F6"
+                            stopOpacity="1"
+                          />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect
+                        width="100%"
+                        height="100%"
+                        fill="url(#activeGrad)"
+                      />
+                    </Svg>
+                  </View>
+                )}
+                {tile.icon({
+                  color: isActive ? '#FFFFFF' : tokens.text2,
+                  size: 24,
+                })}
+              </View>
 
-            <View
-              style={[
-                styles.iconContainer,
-                {backgroundColor: isActive ? 'transparent' : tokens.surface},
-              ]}>
-              {isActive && (
-                <View style={[StyleSheet.absoluteFillObject, {borderRadius: radii.md, overflow: 'hidden'}]}>
-                  <Svg width="100%" height="100%">
-                    <Defs>
-                      <LinearGradient id="activeGrad" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#8B5CF6" stopOpacity="1" />
-                        <Stop offset="1" stopColor="#3B82F6" stopOpacity="1" />
-                      </LinearGradient>
-                    </Defs>
-                    <Rect width="100%" height="100%" fill="url(#activeGrad)" />
-                  </Svg>
-                </View>
-              )}
-              {tile.icon({color: isActive ? '#FFFFFF' : tokens.text2, size: 24})}
-            </View>
-
-            <Text
-              style={[
-                typeScale.caption,
-                styles.label,
-                {
-                  color: isActive ? tokens.text : tokens.text2,
-                  fontWeight: isActive ? '600' : '400',
-                },
-              ]}
-              numberOfLines={1}>
-              {tile.label}
-            </Text>
-
-          </TouchableOpacity>
-        );
-      })}
+              <Text
+                style={[
+                  typeScale.caption,
+                  styles.label,
+                  {
+                    color: isActive ? tokens.text : tokens.text2,
+                    fontWeight: isActive ? '600' : '400',
+                  },
+                ]}
+                numberOfLines={1}>
+                {tile.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );

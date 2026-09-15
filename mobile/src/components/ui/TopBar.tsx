@@ -29,8 +29,7 @@ export function TopBar({
           <TouchableOpacity
             style={[styles.iconButton, {backgroundColor: tokens.surface}]}
             onPress={onBack}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             {leadingIcon || <ChevronLeft size={24} color={tokens.text2} />}
           </TouchableOpacity>
         )}
@@ -41,7 +40,10 @@ export function TopBar({
         {trailingIcons.map((icon, i) => (
           <TouchableOpacity
             key={`icon-${i}`}
-            style={[styles.iconButton, {backgroundColor: tokens.surface, marginLeft: spacing.sm}]}
+            style={[
+              styles.iconButton,
+              {backgroundColor: tokens.surface, marginLeft: spacing.sm},
+            ]}
             activeOpacity={0.7}>
             {icon}
           </TouchableOpacity>

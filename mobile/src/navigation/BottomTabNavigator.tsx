@@ -76,11 +76,7 @@ export function BottomTabNavigator() {
         component={DashboardScreen}
         options={{
           tabBarIcon: ({focused}) => (
-            <TabIcon
-              icon={LayoutDashboard}
-              focused={focused}
-              tokens={tokens}
-            />
+            <TabIcon icon={LayoutDashboard} focused={focused} tokens={tokens} />
           ),
         }}
       />
@@ -89,11 +85,7 @@ export function BottomTabNavigator() {
         component={InventoryScreen}
         options={{
           tabBarIcon: ({focused}) => (
-            <TabIcon
-              icon={Package}
-              focused={focused}
-              tokens={tokens}
-            />
+            <TabIcon icon={Package} focused={focused} tokens={tokens} />
           ),
         }}
       />
@@ -116,11 +108,7 @@ export function BottomTabNavigator() {
         component={HistoryScreen}
         options={{
           tabBarIcon: ({focused}) => (
-            <TabIcon
-              icon={Clock}
-              focused={focused}
-              tokens={tokens}
-            />
+            <TabIcon icon={Clock} focused={focused} tokens={tokens} />
           ),
         }}
       />
@@ -129,11 +117,7 @@ export function BottomTabNavigator() {
         component={MoreScreen}
         options={{
           tabBarIcon: ({focused}) => (
-            <TabIcon
-              icon={MoreHorizontal}
-              focused={focused}
-              tokens={tokens}
-            />
+            <TabIcon icon={MoreHorizontal} focused={focused} tokens={tokens} />
           ),
         }}
       />
@@ -160,9 +144,14 @@ function TabIcon({
     <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
       <Icon
         size={ICON_SIZE}
-        color={focused ? tokens.text : tokens.text2}
-        strokeWidth={focused ? 2.5 : 2}
+        color={focused ? tokens.navAccent : tokens.text3}
+        strokeWidth={focused ? 2.5 : 1.75}
       />
+      {focused && (
+        <View
+          style={[styles.activeIndicator, {backgroundColor: tokens.navAccent}]}
+        />
+      )}
     </View>
   );
 }
@@ -208,16 +197,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 44,
     width: 44,
+    gap: 2,
   },
-  tabIconFocused: {
-    // optional indicator if needed
+  tabIconFocused: {},
+  activeIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   fabContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 0,
-    marginTop: -28, 
+    marginTop: -28,
   },
   fabButton: {
     width: 56,

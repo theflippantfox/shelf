@@ -11,13 +11,28 @@ import {
   Alert,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {Card, Badge, EmptyState, PageHeadingBlock, ListRow, QuickActionTileGrid, type ActionTile} from '../components/ui';
+import {
+  Card,
+  EmptyState,
+  TopBar,
+  PageHeadingBlock,
+  ListRow,
+  QuickActionTileGrid,
+  type ActionTile,
+} from '../components/ui';
 import {fetchSales, type Sale} from '../lib/api';
 import {formatPrice, formatDateTime} from '../lib/format';
 import {spacing, radii, typeScale} from '../theme';
-import {User, CalendarClock, CalendarDays, Calendar as CalendarIcon, History, Receipt} from 'lucide-react-native';
+import {
+  CalendarClock,
+  CalendarDays,
+  Calendar as CalendarIcon,
+  History,
+  Receipt,
+} from 'lucide-react-native';
 
 type TimeRange = 'today' | 'week' | 'month' | 'all';
 
@@ -47,6 +62,7 @@ export function HistoryScreen() {
   const {tokens} = useTheme();
   const {shop} = useAuth();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,29 +111,42 @@ export function HistoryScreen() {
     {
       id: 'today',
       label: 'Today',
-      icon: ({color, size}) => <CalendarClock color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}) => (
+        <CalendarClock color={color} size={size} strokeWidth={1.75} />
+      ),
     },
     {
       id: 'week',
       label: '7 Days',
-      icon: ({color, size}) => <CalendarDays color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}) => (
+        <CalendarDays color={color} size={size} strokeWidth={1.75} />
+      ),
     },
     {
       id: 'month',
       label: '30 Days',
-      icon: ({color, size}) => <CalendarIcon color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}) => (
+        <CalendarIcon color={color} size={size} strokeWidth={1.75} />
+      ),
     },
     {
       id: 'all',
       label: 'All Time',
-      icon: ({color, size}) => <History color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}) => (
+        <History color={color} size={size} strokeWidth={1.75} />
+      ),
     },
   ];
 
   /* Remove manual renderSale */
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
+    <View
+      style={[
+        styles.container,
+        {backgroundColor: tokens.bg, paddingTop: insets.top},
+      ]}>
+      <TopBar onBack={() => navigation.goBack()} />
       <PageHeadingBlock
         heading="Sales History"
         eyebrow={`${sales.length} transactions`}
@@ -128,7 +157,7 @@ export function HistoryScreen() {
         <QuickActionTileGrid
           tiles={rangeTiles}
           activeId={range}
-          onSelect={(id) => setRange(id as TimeRange)}
+          onSelect={id => setRange(id as TimeRange)}
         />
       </View>
 
@@ -171,7 +200,9 @@ export function HistoryScreen() {
           renderItem={({item}) => (
             <ListRow
               title={item.sale_ref}
-              subtitle={`${formatDateTime(item.created_at, shop!)}${item.customer?.name ? ` · ${item.customer.name}` : ''}`}
+              subtitle={`${formatDateTime(item.created_at, shop!)}${
+                item.customer?.name ? ` · ${item.customer.name}` : ''
+              }`}
               value={shop ? formatPrice(item.total, shop) : `₹${item.total}`}
               icon={<Receipt size={20} color={tokens.text2} />}
               iconBgColor={tokens.surface2}

@@ -26,9 +26,15 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
 import {BarcodeScannerView} from '../components/BarcodeScannerView';
-import {Card, Badge, Button, QuickActionTileGrid, EmptyState, type ActionTile} from '../components/ui';
 import {
-  fetchCategories,
+  Card,
+  Badge,
+  Button,
+  QuickActionTileGrid,
+  EmptyState,
+  type ActionTile,
+} from '../components/ui';
+import {
   fetchProductByBarcode,
   type Product,
   type Category,
@@ -49,7 +55,7 @@ import {
   calculateDiscount,
   taxLabel,
 } from '../lib/format';
-import {spacing, radii, typeScale} from '../theme';
+import {spacing, radii, shadows, typeScale} from '../theme';
 import {
   Package,
   Search,
@@ -170,14 +176,18 @@ export function POSScreen() {
     {
       id: '',
       label: 'All',
-      icon: ({color, size}: {color: string; size: number}) => <LayoutGrid color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}: {color: string; size: number}) => (
+        <LayoutGrid color={color} size={size} strokeWidth={1.75} />
+      ),
     },
     ...categories.map(c => {
       // (Simplified: just use Package for dynamically loaded POS categories to avoid huge switch. We could do better but this is fine.)
       return {
         id: c.id,
         label: c.name,
-        icon: ({color, size}: {color: string; size: number}) => <Package color={color} size={size} strokeWidth={1.75} />,
+        icon: ({color, size}: {color: string; size: number}) => (
+          <Package color={color} size={size} strokeWidth={1.75} />
+        ),
       };
     }),
   ];
@@ -367,44 +377,47 @@ export function POSScreen() {
           styles.productCard,
           {
             borderColor: inCart ? tokens.navAccent : tokens.border,
-            borderWidth: 1,
+            borderWidth: inCart ? 2 : 1,
             opacity: outOfStock ? 0.5 : 1,
           },
         ]}
         onPress={() => addToCart(item)}
-        padding={spacing.md}>
+        padding={0}>
+        {/* Image area */}
         <View style={[styles.productImage, {backgroundColor: tokens.surface2}]}>
           <Package size={28} color={tokens.text3} strokeWidth={1.5} />
-        </View>
-
-        <Text
-          style={[styles.productName, {color: tokens.text}]}
-          numberOfLines={2}>
-          {item.name}
-        </Text>
-
-        <Text style={[styles.productSku, {color: tokens.text3}]}>
-          {item.sku}
-        </Text>
-
-        <View style={styles.productFooter}>
-          <Text style={[styles.productPrice, {color: tokens.text}]}>
-            {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
-          </Text>
-          {item.track_stock && (
-            <Badge
-              variant={item.qty < 5 ? 'warning' : 'default'}
-              label={`${item.qty} left`}
-              style={{marginTop: 2}}
-            />
+          {inCart && (
+            <View
+              style={[styles.cartBadge, {backgroundColor: tokens.navAccent}]}>
+              <Text style={styles.cartBadgeText}>{inCart.qty}</Text>
+            </View>
           )}
         </View>
 
-        {inCart && (
-          <View style={[styles.cartBadge, {backgroundColor: tokens.navAccent}]}>
-            <Text style={styles.cartBadgeText}>{inCart.qty}</Text>
+        {/* Info */}
+        <View style={styles.productInfo}>
+          <Text
+            style={[styles.productName, {color: tokens.text}]}
+            numberOfLines={2}>
+            {item.name}
+          </Text>
+
+          <View style={styles.productMeta}>
+            <Text style={[styles.productSku, {color: tokens.text3}]}>
+              {item.sku}
+            </Text>
+            {item.track_stock && (
+              <Badge
+                variant={item.qty < 5 ? 'warning' : 'default'}
+                label={`${item.qty} left`}
+              />
+            )}
           </View>
-        )}
+
+          <Text style={[styles.productPrice, {color: tokens.text}]}>
+            {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
+          </Text>
+        </View>
       </Card>
     );
   };
@@ -604,7 +617,7 @@ export function POSScreen() {
       <QuickActionTileGrid
         tiles={categoryTiles}
         activeId={selectedCategory || ''}
-        onSelect={(id) => setSelectedCategory(id === '' ? null : id)}
+        onSelect={id => setSelectedCategory(id === '' ? null : id)}
       />
 
       {/* Product grid */}
@@ -1018,13 +1031,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   productName: {...typeScale.title, marginBottom: 2},
-  productSku: {...typeScale.tiny, marginBottom: spacing.xs},
-  productFooter: {
+  productInfo: {padding: spacing.md},
+  productMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
+    marginBottom: spacing.xs,
   },
-  productPrice: {...typeScale.heading},
+  productSku: {...typeScale.tiny},
+  productPrice: {...typeScale.heading, marginTop: spacing.xs},
   productStock: {...typeScale.tiny},
   cartBadge: {
     position: 'absolute',
@@ -1050,6 +1065,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: 16,
+    ...shadows.lg,
   },
   cartBarLeft: {flex: 1, flexDirection: 'row', alignItems: 'center'},
   cartCountBadge: {

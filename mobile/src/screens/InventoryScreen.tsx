@@ -37,7 +37,13 @@ import {
 } from '../lib/sync';
 import {formatPrice} from '../lib/format';
 import {spacing, typeScale} from '../theme';
-import {TopBar, PageHeadingBlock, ListRow, QuickActionTileGrid, type ActionTile} from '../components/ui';
+import {
+  TopBar,
+  PageHeadingBlock,
+  ListRow,
+  QuickActionTileGrid,
+  type ActionTile,
+} from '../components/ui';
 import {
   Package,
   Tag,
@@ -354,14 +360,23 @@ export function InventoryScreen() {
     {
       id: '',
       label: 'All',
-      icon: ({color, size}: {color: string; size: number}) => <LayoutGrid color={color} size={size} strokeWidth={1.75} />,
+      icon: ({color, size}: {color: string; size: number}) => (
+        <LayoutGrid color={color} size={size} strokeWidth={1.75} />
+      ),
     },
     ...categories.map(c => {
-      const IconComp = c.icon ? CATEGORY_ICON_MAP[c.icon.toLowerCase()] : Package;
+      const IconComp = c.icon
+        ? CATEGORY_ICON_MAP[c.icon.toLowerCase()]
+        : Package;
       return {
         id: c.id,
         label: c.name,
-        icon: ({color, size}: {color: string; size: number}) => IconComp ? <IconComp color={color} size={size} strokeWidth={1.75} /> : <Package color={color} size={size} strokeWidth={1.75} />,
+        icon: ({color, size}: {color: string; size: number}) =>
+          IconComp ? (
+            <IconComp color={color} size={size} strokeWidth={1.75} />
+          ) : (
+            <Package color={color} size={size} strokeWidth={1.75} />
+          ),
       };
     }),
   ];
@@ -377,12 +392,21 @@ export function InventoryScreen() {
   }
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
+    <View
+      style={[
+        styles.container,
+        {backgroundColor: tokens.bg, paddingTop: insets.top},
+      ]}>
       {/* Header */}
       <TopBar
         trailingIcons={[
           <Search key="search" size={24} color={tokens.text2} />,
-          <Plus key="add" size={24} color={tokens.navAccent} onPress={openAdd} />,
+          <Plus
+            key="add"
+            size={24}
+            color={tokens.navAccent}
+            onPress={openAdd}
+          />,
         ]}
       />
       <PageHeadingBlock
@@ -390,8 +414,16 @@ export function InventoryScreen() {
         eyebrow={`${filtered.length} items`}
         inlineBadge={
           lowStockCount > 0 ? (
-            <View style={{backgroundColor: '#F59E0B20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}}>
-              <Text style={{color: '#F59E0B', fontSize: 10, fontWeight: '600'}}>{lowStockCount} low</Text>
+            <View
+              style={{
+                backgroundColor: '#F59E0B20',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 12,
+              }}>
+              <Text style={{color: '#F59E0B', fontSize: 10, fontWeight: '600'}}>
+                {lowStockCount} low
+              </Text>
             </View>
           ) : null
         }
@@ -453,22 +485,53 @@ export function InventoryScreen() {
         data={filtered}
         renderItem={({item}) => {
           const category = categories.find(c => c.id === item.category_id);
-          const IconComp = category?.icon ? CATEGORY_ICON_MAP[category.icon.toLowerCase()] : Package;
-          const isLowStock = item.track_stock && item.qty <= item.low_stock_threshold;
+          const IconComp = category?.icon
+            ? CATEGORY_ICON_MAP[category.icon.toLowerCase()]
+            : Package;
+          const isLowStock =
+            item.track_stock && item.qty <= item.low_stock_threshold;
           const isOut = item.track_stock && item.qty <= 0;
-        return (
-          <View style={{paddingHorizontal: 16}}>
-            <ListRow
-              title={item.name}
-              subtitle={`${item.sku} · ${getCategoryName(item.category_id)} · ${item.track_stock ? (isOut ? 'OUT OF STOCK' : (isLowStock ? `LOW (${item.qty})` : `${item.qty} in stock`)) : '∞'}`}
-              value={shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
-              icon={IconComp ? <IconComp size={22} color={category?.color ?? tokens.text3} strokeWidth={1.75} /> : <Package size={22} color={tokens.text3} strokeWidth={1.75} />}
-              iconBgColor={category?.color ? category.color + '20' : tokens.surface2}
-              onPress={() => openEdit(item)}
-              style={{marginHorizontal: spacing.xl}}
-            />
-          </View>
-        );
+          return (
+            <View style={{paddingHorizontal: 16}}>
+              <ListRow
+                title={item.name}
+                subtitle={`${item.sku} · ${getCategoryName(
+                  item.category_id,
+                )} · ${
+                  item.track_stock
+                    ? isOut
+                      ? 'OUT OF STOCK'
+                      : isLowStock
+                      ? `LOW (${item.qty})`
+                      : `${item.qty} in stock`
+                    : '∞'
+                }`}
+                value={
+                  shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`
+                }
+                icon={
+                  IconComp ? (
+                    <IconComp
+                      size={22}
+                      color={category?.color ?? tokens.text3}
+                      strokeWidth={1.75}
+                    />
+                  ) : (
+                    <Package
+                      size={22}
+                      color={tokens.text3}
+                      strokeWidth={1.75}
+                    />
+                  )
+                }
+                iconBgColor={
+                  category?.color ? category.color + '20' : tokens.surface2
+                }
+                onPress={() => openEdit(item)}
+                style={{marginHorizontal: spacing.xl}}
+              />
+            </View>
+          );
         }}
         keyExtractor={item => item.id}
         refreshing={refreshing}
@@ -876,12 +939,24 @@ export function InventoryScreen() {
                 numberOfLines={3}
               />
               {editId && (
-                <TouchableOpacity onPress={() => {
-                  setFormVisible(false);
-                  const prod = products.find(p => p.id === editId);
-                  if (prod) confirmArchive(prod);
-                }} style={{marginTop: spacing.xl, padding: spacing.md, backgroundColor: '#FEE2E220', borderRadius: 12, alignItems: 'center'}}>
-                  <Text style={{color: '#EF4444', fontWeight: '600'}}>Archive Product</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setFormVisible(false);
+                    const prod = products.find(p => p.id === editId);
+                    if (prod) {
+                      confirmArchive(prod);
+                    }
+                  }}
+                  style={{
+                    marginTop: spacing.xl,
+                    padding: spacing.md,
+                    backgroundColor: '#FEE2E220',
+                    borderRadius: 12,
+                    alignItems: 'center',
+                  }}>
+                  <Text style={{color: '#EF4444', fontWeight: '600'}}>
+                    Archive Product
+                  </Text>
                 </TouchableOpacity>
               )}
             </ScrollView>

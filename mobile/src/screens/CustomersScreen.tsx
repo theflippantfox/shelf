@@ -22,17 +22,17 @@ import {useAuth} from '../components/AuthProvider';
 import {createCustomer, type Customer} from '../lib/api';
 import {isOnline, syncCustomersDown, getLocalCustomers} from '../lib/sync';
 import {formatPrice} from '../lib/format';
-import {Card, Badge, Button, Avatar, EmptyState, TopBar, PageHeadingBlock} from '../components/ui';
-import {spacing, radii, typeScale} from '../theme';
 import {
-  Users,
-  Plus,
-  User,
-  Phone,
-  Mail,
-  FileText,
-  X,
-} from 'lucide-react-native';
+  Card,
+  Badge,
+  Button,
+  Avatar,
+  EmptyState,
+  TopBar,
+  PageHeadingBlock,
+} from '../components/ui';
+import {spacing, radii, typeScale} from '../theme';
+import {Users, Plus, User, Phone, Mail, FileText, X} from 'lucide-react-native';
 
 // Customer tier logic (matches web app config)
 function getTier(c: Customer): 'vip' | 'regular' | 'new' {
@@ -201,18 +201,27 @@ export function CustomersScreen() {
   }
 
   return (
-    <View style={[styles.container, {backgroundColor: tokens.bg, paddingTop: insets.top}]}>
+    <View
+      style={[
+        styles.container,
+        {backgroundColor: tokens.bg, paddingTop: insets.top},
+      ]}>
       {/* Header */}
-      <TopBar 
+      <TopBar
         onBack={() => navigation.goBack()}
         trailingIcons={[
-          <Plus key="add" size={24} color={tokens.navAccent} onPress={() => {
-            resetForm();
-            setShowAdd(true);
-          }} />
+          <Plus
+            key="add"
+            size={24}
+            color={tokens.navAccent}
+            onPress={() => {
+              resetForm();
+              setShowAdd(true);
+            }}
+          />,
         ]}
       />
-      
+
       <PageHeadingBlock
         heading="Customers"
         eyebrow={`${filtered.length} customers`}

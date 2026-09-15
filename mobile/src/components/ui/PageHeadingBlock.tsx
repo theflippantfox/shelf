@@ -21,12 +21,14 @@ export function PageHeadingBlock({
   return (
     <View style={[styles.container, style]}>
       {eyebrow && (
-        <Text style={[typeScale.caption, {color: tokens.text2, marginBottom: 4}]}>
+        <Text
+          style={[typeScale.caption, {color: tokens.text2, marginBottom: 4}]}>
           {eyebrow}
         </Text>
       )}
       <View style={styles.headingRow}>
-        <Text style={[typeScale.display, {color: tokens.text, fontWeight: '700'}]}>
+        <Text
+          style={[typeScale.display, {color: tokens.text, fontWeight: '700'}]}>
           {heading}
         </Text>
         {inlineBadge && <View style={styles.badgeWrap}>{inlineBadge}</View>}

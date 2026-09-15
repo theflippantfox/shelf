@@ -1,5 +1,7 @@
 /**
- * DashboardScreen — polished analytics dashboard with stat cards.
+ * DashboardScreen — rich dashboard with stats, quick actions, and insights.
+ *
+ * Data is fetched from the API on mount and synced to SQLite for offline use.
  */
 import React, {useState, useEffect, useCallback} from 'react';
 import {
@@ -7,42 +9,53 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {fetchAnalytics, type DailySummary} from '../lib/api';
-import {formatPrice} from '../lib/format';
-import {spacing} from '../theme';
-import {SectionHeader, PageHeadingBlock, HeroStatCard, ListRow} from '../components/ui';
 import {
-  TrendingUp,
-  Receipt,
-  BarChart3,
+  fetchProducts,
+  fetchSales,
+  fetchCustomers,
+  fetchAnalytics,
+  type Product,
+  type Sale,
+  type Customer,
+  type DailySummary,
+} from '../lib/api';
+import {isOnline, syncProductsDown, syncCustomersDown} from '../lib/sync';
+import {formatPrice} from '../lib/format';
+import {
+  HeroStatCard,
+  SectionHeader,
+  PageHeadingBlock,
+  Card,
+} from '../components/ui';
+import {spacing, typeScale, radii} from '../theme';
+import {
   ShoppingCart,
-  Sun,
-  Sunset,
-  Moon,
+  Package,
+  IndianRupee,
+  Users,
+  LayoutGrid,
+  TrendingUp,
+  BarChart3,
+  History,
+  Calculator,
+  Grid3X3,
 } from 'lucide-react-native';
-
-function getGreeting(): {text: string; Icon: typeof Sun} {
-  const h = new Date().getHours();
-  if (h < 12) {
-    return {text: 'Good morning', Icon: Sun};
-  }
-  if (h < 17) {
-    return {text: 'Good afternoon', Icon: Sunset};
-  }
-  return {text: 'Good evening', Icon: Moon};
-}
 
 export function DashboardScreen() {
   const {tokens} = useTheme();
-  const {shop, user} = useAuth();
-  const insets = useSafeAreaInsets();
-  const [daily, setDaily] = useState<DailySummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {user, shop} = useAuth();
+  const navigation = useNavigation<any>();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [_analytics, setAnalytics] = useState<DailySummary[]>([]);
+  const [_loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -51,10 +64,25 @@ export function DashboardScreen() {
       return;
     }
     try {
-      const data = await fetchAnalytics();
-      setDaily(data);
+      const online = await isOnline();
+      if (online) {
+        await Promise.all([
+          syncProductsDown(shop.id),
+          syncCustomersDown(shop.id),
+        ]);
+      }
+      const [p, s, c, a] = await Promise.all([
+        fetchProducts().catch(() => []),
+        fetchSales().catch(() => []),
+        fetchCustomers().catch(() => []),
+        fetchAnalytics().catch(() => []),
+      ]);
+      setProducts(p);
+      setSales(s);
+      setCustomers(c);
+      setAnalytics(a);
     } catch (err) {
-      console.error('[Dashboard] Failed to load analytics:', err);
+      console.error('[Dashboard] load failed:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,138 +98,221 @@ export function DashboardScreen() {
     load();
   };
 
-  // Compute totals
-  const today = daily[daily.length - 1];
-  const totalSales = daily.reduce((s, d) => s + d.total_sales, 0);
-  const totalTxns = daily.reduce((s, d) => s + d.total_transactions, 0);
-  const avgBasket = totalTxns > 0 ? totalSales / totalTxns : 0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todaySales = sales
+    .filter(s => s.created_at?.startsWith(todayStr))
+    .reduce((sum, s) => sum + (s.total ?? 0), 0);
+  const todayTxns = sales.filter(s =>
+    s.created_at?.startsWith(todayStr),
+  ).length;
 
-  const greeting = getGreeting();
-  const firstName = user?.email?.split('@')[0] ?? 'there';
-
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: tokens.bg,
-        }}>
-        <ActivityIndicator size="large" color={tokens.navAccent} />
-      </View>
-    );
-  }
-
-  const statCards = [
+  const stats = [
     {
       label: "Today's sales",
-      value: shop ? formatPrice(today?.total_sales ?? 0, shop) : '0',
-      icon: <TrendingUp size={20} color={tokens.success} strokeWidth={2} />,
-      color: tokens.successDim,
+      value: todaySales,
+      prefix: '₹',
+      tone: 'teal' as const,
+      icon: <IndianRupee size={20} color="#115E59" strokeWidth={2} />,
     },
     {
-      label: 'Transactions',
-      value: String(today?.total_transactions ?? 0),
-      icon: <Receipt size={20} color={tokens.info} strokeWidth={2} />,
-      color: tokens.infoDim,
+      label: 'Transactions today',
+      value: todayTxns,
+      tone: 'blue' as const,
+      icon: <ShoppingCart size={20} color="#1E40AF" strokeWidth={2} />,
     },
     {
-      label: 'Avg basket',
-      value: shop ? formatPrice(avgBasket, shop) : '0',
-      icon: <ShoppingCart size={20} color={tokens.warning} strokeWidth={2} />,
-      color: tokens.warningDim,
+      label: 'Products',
+      value: products.length,
+      tone: 'violet' as const,
+      icon: <Package size={20} color="#5B21B6" strokeWidth={2} />,
     },
     {
-      label: 'Total sales',
-      value: shop ? formatPrice(totalSales, shop) : '0',
-      icon: <BarChart3 size={20} color={tokens.navAccent} strokeWidth={2} />,
-      color: tokens.accentGlow,
+      label: 'Customers',
+      value: customers.length,
+      tone: 'gold' as const,
+      icon: <Users size={20} color="#92400E" strokeWidth={2} />,
     },
   ];
+
+  // Quick actions
+  const quickActions = [
+    {
+      id: 'pos',
+      label: 'POS',
+      icon: ShoppingCart,
+      color: '#14B8A6',
+      onPress: () => navigation.navigate('POS'),
+    },
+    {
+      id: 'inventory',
+      label: 'Inventory',
+      icon: Grid3X3,
+      color: '#8B5CF6',
+      onPress: () => navigation.navigate('Inventory'),
+    },
+    {
+      id: 'history',
+      label: 'History',
+      icon: History,
+      color: '#F59E0B',
+      onPress: () => navigation.navigate('History'),
+    },
+    {
+      id: 'cash',
+      label: 'Cash',
+      icon: Calculator,
+      color: '#EF4444',
+      onPress: () => navigation.navigate('CashRegister'),
+    },
+  ];
+
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.email?.split('@')[0] ?? 'there';
 
   return (
     <ScrollView
       style={{flex: 1, backgroundColor: tokens.bg}}
       contentContainerStyle={{
-        paddingTop: insets.top + spacing.xl,
-        paddingBottom: insets.bottom + spacing.xxxl,
+        paddingTop: spacing.xxl + spacing.lg,
+        paddingBottom: spacing.xxxl,
       }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={tokens.navAccent}
-          colors={[tokens.navAccent]}
         />
       }>
-      {/* Greeting */}
+      {/* ── Header ─────────────────────────────────────── */}
       <PageHeadingBlock
-        eyebrow={greeting.text}
-        heading={firstName}
-        inlineBadge={shop ? (
-          <View style={{backgroundColor: tokens.surface2, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}}>
-            <Text style={{color: tokens.text2, fontSize: 10, fontWeight: '600'}}>{shop.name}</Text>
-          </View>
-        ) : null}
+        heading={`${greeting}, ${firstName}`}
+        eyebrow={shop?.name ?? ''}
       />
 
-      {/* Stat cards - Today's Hero */}
-      <View style={{paddingHorizontal: spacing.xl, marginBottom: spacing.md}}>
-        <HeroStatCard
-          label="Today's sales"
-          value={shop ? formatPrice(today?.total_sales ?? 0, shop) : '0'}
-          deltaText={`${today?.total_transactions ?? 0} transactions`}
-          deltaSign="neutral"
-          graphic={<TrendingUp size={64} color={tokens.success} strokeWidth={1} style={{opacity: 0.2, margin: -10}} />}
+      {/* ── Hero Stat Cards ────────────────────────────── */}
+      <View style={{paddingHorizontal: spacing.xl}}>
+        <SectionHeader
+          title="Overview"
+          icon={<BarChart3 size={16} color={tokens.text3} strokeWidth={2} />}
         />
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: spacing.md,
+          }}>
+          {stats.map(stat => (
+            <HeroStatCard key={stat.label} {...stat} style={{width: '47.5%'}} />
+          ))}
+        </View>
       </View>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          paddingHorizontal: spacing.xl,
-          gap: spacing.md,
-        }}>
-        {statCards.slice(1).map((card, i) => (
-          <HeroStatCard
-            key={i}
-            label={card.label}
-            value={card.value}
-            style={{
-              width: '47%' as any,
-              flexGrow: 1,
-            }}
-          />
-        ))}
+      {/* ── Quick Actions ──────────────────────────────── */}
+      <View style={{marginTop: spacing.xxl, paddingHorizontal: spacing.xl}}>
+        <SectionHeader
+          title="Quick actions"
+          icon={<LayoutGrid size={16} color={tokens.text3} strokeWidth={2} />}
+        />
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: spacing.md,
+          }}>
+          {quickActions.map(action => (
+            <TouchableOpacity
+              key={action.id}
+              activeOpacity={0.7}
+              onPress={action.onPress}
+              style={{flex: 1}}>
+              <Card
+                variant="outlined"
+                style={{
+                  alignItems: 'center',
+                  padding: spacing.lg,
+                  borderRadius: radii.lg,
+                  borderWidth: 1,
+                }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: radii.md,
+                    backgroundColor: action.color + '12',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: spacing.sm,
+                  }}>
+                  <action.icon
+                    size={22}
+                    color={action.color}
+                    strokeWidth={1.75}
+                  />
+                </View>
+                <Text style={[typeScale.caption, {color: tokens.text}]}>
+                  {action.label}
+                </Text>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Recent daily breakdown */}
-      {daily.length > 1 && (
-        <>
+      {/* ── Recent Sales ───────────────────────────────── */}
+      {sales.length > 0 && (
+        <View style={{marginTop: spacing.xxl, paddingHorizontal: spacing.xl}}>
           <SectionHeader
-            title="Daily breakdown"
-            icon={
-              <BarChart3 size={14} color={tokens.text3} strokeWidth={1.75} />
-            }
+            title="Recent sales"
+            icon={<TrendingUp size={16} color={tokens.text3} strokeWidth={2} />}
+            actionLabel="View all"
+            onAction={() => navigation.navigate('History')}
           />
-          <View style={{paddingHorizontal: spacing.xl}}>
-            {daily
-              .slice(-7)
-              .reverse()
-              .map((d, i) => (
-                <ListRow
-                  key={d.date + i}
-                  title={d.date}
-                  subtitle={`${d.total_transactions} txns`}
-                  value={shop ? formatPrice(d.total_sales, shop) : `\u20B9${d.total_sales}`}
-                  icon={<BarChart3 size={20} color={tokens.text2} />}
-                  iconBgColor={tokens.surface2}
+          {sales.slice(0, 5).map((sale, i) => (
+            <Card
+              key={sale.id}
+              variant="outlined"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: spacing.md,
+                borderRadius: radii.lg,
+                borderWidth: 1,
+                marginBottom: spacing.sm,
+              }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radii.sm,
+                  backgroundColor: tokens.navAccent + '12',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: spacing.md,
+                }}>
+                <ShoppingCart
+                  size={16}
+                  color={tokens.navAccent}
+                  strokeWidth={1.75}
                 />
-              ))}
-          </View>
-        </>
+              </View>
+              <View style={{flex: 1}}>
+                <Text
+                  style={[typeScale.title, {color: tokens.text}]}
+                  numberOfLines={1}>
+                  {sale.sale_ref ?? `Sale #${i + 1}`}
+                </Text>
+                <Text style={[typeScale.caption, {color: tokens.text3}]}>
+                  {sale.sale_ref}
+                </Text>
+              </View>
+              <Text style={[typeScale.title, {color: tokens.text}]}>
+                {shop ? formatPrice(sale.total, shop) : `₹${sale.total}`}
+              </Text>
+            </Card>
+          ))}
+        </View>
       )}
     </ScrollView>
   );

@@ -6,7 +6,13 @@
  */
 
 import React, {useEffect} from 'react';
-import {StatusBar, View, ActivityIndicator, StyleSheet} from 'react-native';
+import {
+  StatusBar,
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -14,6 +20,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {ThemeProvider, useTheme} from './src/components/ThemeProvider';
 import {AuthProvider, useAuth} from './src/components/AuthProvider';
 import {BottomTabNavigator} from './src/navigation/BottomTabNavigator';
+import {useLoadFonts} from './src/hooks/useLoadFonts';
 
 // Auth screens
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -89,10 +96,48 @@ const loadingStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#08080A',
   },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    backgroundColor: 'rgba(232,181,60,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#E8B53C',
+  },
+  brandName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FAFAFA',
+    letterSpacing: -0.3,
+  },
+  tagline: {
+    fontSize: 13,
+    color: '#71717A',
+    marginTop: 4,
+  },
 });
 
 function RootNavigator() {
   const {isDark, tokens} = useTheme();
+  const fontsLoaded = useLoadFonts();
+
+  if (!fontsLoaded) {
+    return (
+      <View style={loadingStyles.center}>
+        <View style={loadingStyles.logo}>
+          <Text style={loadingStyles.logoText}>S</Text>
+        </View>
+        <Text style={loadingStyles.brandName}>Shelf</Text>
+        <Text style={loadingStyles.tagline}>Point of Sale</Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -112,10 +157,10 @@ function RootNavigator() {
             notification: tokens.primary,
           },
           fonts: {
-            regular: {fontFamily: 'System', fontWeight: '400'},
-            medium: {fontFamily: 'System', fontWeight: '500'},
-            bold: {fontFamily: 'System', fontWeight: '600'},
-            heavy: {fontFamily: 'System', fontWeight: '700'},
+            regular: {fontFamily: 'PlusJakartaSans-Regular', fontWeight: '400'},
+            medium: {fontFamily: 'PlusJakartaSans-Medium', fontWeight: '500'},
+            bold: {fontFamily: 'PlusJakartaSans-SemiBold', fontWeight: '600'},
+            heavy: {fontFamily: 'PlusJakartaSans-Bold', fontWeight: '700'},
           },
         }}>
         <AppContent />
