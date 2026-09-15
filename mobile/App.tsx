@@ -31,6 +31,7 @@ import ShopSelectScreen from './src/screens/auth/ShopSelectScreen';
 import {CustomersScreen} from './src/screens/CustomersScreen';
 import {CustomerDetailScreen} from './src/screens/CustomerDetailScreen';
 import {CashRegisterScreen} from './src/screens/CashRegisterScreen';
+import {ProductDetailScreen} from './src/screens/ProductDetailScreen';
 
 const AuthStack = createNativeStackNavigator();
 const MainStack = createNativeStackNavigator();
@@ -85,6 +86,10 @@ function AppContent() {
         component={CustomerDetailScreen}
       />
       <MainStack.Screen name="CashRegister" component={CashRegisterScreen} />
+      <MainStack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+      />
     </MainStack.Navigator>
   );
 }
