@@ -1,1072 +1,453 @@
 /**
- * InventoryScreen — product list with search, category filters, stock info,
- * add/edit modal, and archive (delete) confirmation.
+ * InventoryScreen — product list with search, filter, sort.
  */
-import React, {useState, useEffect, useCallback, useMemo} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import React, {useState, useEffect, useMemo} from 'react';
+import {View, Text, FlatList, TouchableOpacity, ScrollView, TextInput} from 'react-native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {BarcodeScannerModal} from '../components/BarcodeScannerModal';
-import {
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  type Product,
-  type Category,
-} from '../lib/api';
-import {
-  isOnline,
-  syncProductsDown,
-  syncCategoriesDown,
-  getLocalProducts,
-  getLocalCategories,
-} from '../lib/sync';
+import {fetchProducts, type Product, type Shop} from '../lib/api';
 import {formatPrice} from '../lib/format';
+import {TopBar, EmptyState, Badge, PageHeadingBlock} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
 import {
-  TopBar,
-  PageHeadingBlock,
-  ListRow,
-  QuickActionTileGrid,
-  type ActionTile,
-} from '../components/ui';
-import {
-  Package,
-  Tag,
-  Shirt,
-  Coffee,
-  Apple,
-  Cpu,
-  BookOpen,
-  Home,
-  Car,
-  Gamepad2,
-  Heart,
-  Baby,
-  LayoutGrid,
   Plus,
-  X,
   Search,
-  ScanLine,
+  ArrowUpDown,
+  X,
+  Package,
 } from 'lucide-react-native';
-import type {ComponentType} from 'react';
 
-// Map category icons to lucide components
-const CATEGORY_ICON_MAP: Record<string, ComponentType<any>> = {
-  tag: Tag,
-  shirt: Shirt,
-  coffee: Coffee,
-  apple: Apple,
-  cpu: Cpu,
-  book: BookOpen,
-  home: Home,
-  car: Car,
-  gamepad: Gamepad2,
-  heart: Heart,
-  baby: Baby,
-  box: Package,
-  'layout-grid': LayoutGrid,
-};
-
-type SortKey = 'name' | 'price' | 'qty' | 'updated';
-
-interface ProductForm {
-  name: string;
-  sku: string;
-  price: string;
-  cost_price: string;
-  qty: string;
-  unit: string;
-  category_id: string;
-  description: string;
-  track_stock: boolean;
-  track_barcode: boolean;
-  low_stock_threshold: string;
-  barcode: string;
-}
-
-const EMPTY_FORM: ProductForm = {
-  name: '',
-  sku: '',
-  price: '',
-  cost_price: '',
-  qty: '0',
-  unit: 'piece',
-  category_id: '',
-  description: '',
-  track_stock: true,
-  track_barcode: true,
-  low_stock_threshold: '',
-  barcode: '',
-};
-
-const UNITS = ['piece', 'kg', 'g', 'l', 'ml', 'box', 'pack', 'dozen'];
-
-export function InventoryScreen() {
+export function InventoryScreen({navigation}: any) {
   const {tokens} = useTheme();
   const {shop} = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [_loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>('name');
-
-  // Modal state
-  const [formVisible, setFormVisible] = useState(false);
-  const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    visible: boolean;
-    product: Product | null;
-  }>({visible: false, product: null});
-  const [deleting, setDeleting] = useState(false);
-  const [scannerVisible, setScannerVisible] = useState(false);
-
-  const setField = <K extends keyof ProductForm>(
-    key: K,
-    value: ProductForm[K],
-  ) => {
-    setForm(prev => ({...prev, [key]: value}));
-  };
-
-  const loadInventory = useCallback(async () => {
-    if (!shop) {
-      setLoading(false);
-      return;
-    }
-    try {
-      // 1. Local first
-      const [localProds, localCats] = await Promise.all([
-        getLocalProducts(),
-        getLocalCategories(),
-      ]);
-      if (localProds.length > 0) {
-        setProducts(localProds);
-      }
-      if (localCats.length > 0) {
-        setCategories(localCats.filter(c => !c.archived_at));
-      }
-
-      // 2. Network if online
-      if (await isOnline()) {
-        await Promise.all([
-          syncCategoriesDown(shop.id),
-          syncProductsDown(shop.id),
-        ]);
-        const [freshProds, freshCats] = await Promise.all([
-          getLocalProducts(),
-          getLocalCategories(),
-        ]);
-        setProducts(freshProds);
-        setCategories(freshCats.filter(c => !c.archived_at));
-      }
-    } catch (err) {
-      console.error('[Inventory] Failed to load:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [shop]);
+  const [sortKey, setSortKey] = useState<
+    'name-asc' | 'name-desc' | 'stock-asc' | 'stock-desc'
+  >('name-asc');
+  const [showSort, setShowSort] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
-    loadInventory();
-  }, [loadInventory]);
-
-  // ── Add / Edit ──────────────────────────────────────────────
-
-  const openAdd = () => {
-    setForm({...EMPTY_FORM});
-    setEditId(null);
-    setFormVisible(true);
-  };
-
-  const openEdit = (p: Product) => {
-    setForm({
-      name: p.name,
-      sku: p.sku,
-      price: String(p.price),
-      cost_price: p.cost_price ? String(p.cost_price) : '',
-      qty: String(p.qty),
-      unit: p.unit ?? 'piece',
-      category_id: p.category_id ?? '',
-      description: p.description ?? '',
-      track_stock: p.track_stock !== false,
-      track_barcode: p.track_barcode !== false,
-      low_stock_threshold: p.low_stock_threshold
-        ? String(p.low_stock_threshold)
-        : '',
-      barcode: p.barcode ?? '',
-    });
-    setEditId(p.id);
-    setFormVisible(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      Alert.alert('Required', 'Product name is required');
-      return;
-    }
-    if (!form.sku.trim()) {
-      Alert.alert('Required', 'SKU is required');
-      return;
-    }
-    const price = parseFloat(form.price || '0');
-    if (isNaN(price) || price < 0) {
-      Alert.alert('Invalid', 'Enter a valid selling price');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        sku: form.sku.trim(),
-        price,
-        cost_price: parseFloat(form.cost_price || '0') || 0,
-        qty: parseInt(form.qty || '0', 10) || 0,
-        unit: form.unit,
-        category_id: form.category_id || null,
-        description: form.description.trim() || null,
-        track_stock: form.track_stock,
-        track_barcode: form.track_barcode,
-        low_stock_threshold:
-          form.track_stock && form.low_stock_threshold
-            ? parseInt(form.low_stock_threshold, 10)
-            : null,
-        barcode: form.barcode.trim() || null,
-      };
-
-      if (editId) {
-        const updated = await updateProduct(editId, payload);
-        setProducts(prev =>
-          prev.map(p => (p.id === editId ? {...p, ...updated} : p)),
-        );
-      } else {
-        const created = await createProduct(payload);
-        setProducts(prev => [created, ...prev]);
+    (async () => {
+      try {
+        const data = await fetchProducts();
+        setProducts(data);
+      } catch (e) {
+        console.error('Failed to load products', e);
+      } finally {
+        setLoading(false);
       }
-      setFormVisible(false);
-    } catch (err) {
-      console.error('[Inventory] Save failed:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to save product',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+    })();
+  }, []);
 
-  // ── Archive (Delete) ────────────────────────────────────────
-
-  const confirmArchive = (p: Product) => {
-    setDeleteConfirm({visible: true, product: p});
-  };
-
-  const handleArchive = async () => {
-    const p = deleteConfirm.product;
-    if (!p) {
-      return;
-    }
-    setDeleting(true);
-    try {
-      await deleteProduct(p.id);
-      setProducts(prev => prev.filter(x => x.id !== p.id));
-      setDeleteConfirm({visible: false, product: null});
-    } catch (err) {
-      console.error('[Inventory] Archive failed:', err);
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to archive product',
-      );
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  // ── Derived ─────────────────────────────────────────────────
-
-  const getCategoryName = (id: string | null) => {
-    if (!id) {
-      return 'Uncategorized';
-    }
-    return categories.find(c => c.id === id)?.name ?? 'Unknown';
-  };
-
-  const filtered = useMemo(() => {
-    let list = products.filter(p => !p.archived_at);
-
-    if (selectedCategory) {
-      list = list.filter(p => p.category_id === selectedCategory);
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        p =>
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          (p.barcode && p.barcode.includes(q)),
-      );
-    }
-
-    list.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'price':
-          return b.price - a.price;
-        case 'qty':
-          return a.qty - b.qty;
-        case 'updated':
-          return (
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-          );
-        default:
-          return 0;
+  const categories = useMemo(() => {
+    const cats = new Map<string, number>();
+    products.forEach(p => {
+      const cat = typeof p.category === 'object' ? p.category?.name : p.category;
+      if (cat) {
+        cats.set(cat, (cats.get(cat) || 0) + 1);
       }
     });
-
-    return list;
-  }, [products, selectedCategory, search, sortBy]);
+    return Array.from(cats.entries()).map(([name, count]) => ({name, count}));
+  }, [products]);
 
   const lowStockCount = useMemo(
     () =>
       products.filter(
-        p => !p.archived_at && p.track_stock && p.qty <= p.low_stock_threshold,
+        p =>
+          p.track_stock !== false &&
+          p.low_stock_threshold != null &&
+          p.qty <= p.low_stock_threshold &&
+          p.qty > 0,
       ).length,
     [products],
   );
 
-  const categoryTiles: ActionTile[] = [
-    {
-      id: '',
-      label: 'All',
-      icon: ({color, size}: {color: string; size: number}) => (
-        <LayoutGrid color={color} size={size} strokeWidth={1.75} />
-      ),
-    },
-    ...categories.map(c => {
-      const IconComp = c.icon
-        ? CATEGORY_ICON_MAP[c.icon.toLowerCase()]
-        : Package;
-      return {
-        id: c.id,
-        label: c.name,
-        icon: ({color, size}: {color: string; size: number}) =>
-          IconComp ? (
-            <IconComp color={color} size={size} strokeWidth={1.75} />
-          ) : (
-            <Package color={color} size={size} strokeWidth={1.75} />
-          ),
-      };
-    }),
+  const filtered = useMemo(() => {
+    let list = [...products];
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        p =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q),
+      );
+    }
+
+    if (categoryFilter) {
+      list = list.filter(p => {
+        const cat = typeof p.category === 'object' ? p.category?.name : p.category;
+        return cat === categoryFilter;
+      });
+    }
+
+    switch (sortKey) {
+      case 'name-asc':
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        list.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'stock-asc':
+        list.sort((a, b) => (a.qty || 0) - (b.qty || 0));
+        break;
+      case 'stock-desc':
+        list.sort((a, b) => (b.qty || 0) - (a.qty || 0));
+        break;
+    }
+
+    return list;
+  }, [products, search, sortKey, categoryFilter]);
+
+  const activeFilters = (search ? 1 : 0) + (categoryFilter ? 1 : 0);
+
+  const getStockBadge = (p: Product) => {
+    if (p.track_stock === false) {
+      return {label: 'Active', variant: 'success' as const};
+    }
+    if (p.qty === 0) {
+      return {label: 'Out of stock', variant: 'danger' as const};
+    }
+    if (p.low_stock_threshold != null && p.qty <= p.low_stock_threshold) {
+      return {label: `Low — ${p.qty}`, variant: 'warning' as const};
+    }
+    return {label: 'In stock', variant: 'success' as const};
+  };
+
+  const sortOptions = [
+    {key: 'name-asc' as const, label: 'Name · A → Z'},
+    {key: 'name-desc' as const, label: 'Name · Z → A'},
+    {key: 'stock-desc' as const, label: 'Stock · High → Low'},
+    {key: 'stock-asc' as const, label: 'Stock · Low → High'},
   ];
 
-  // ── Main render ─────────────────────────────────────────────
+  const renderProduct = ({item}: {item: Product}) => {
+    const badge = getStockBadge(item);
+    const catName =
+      typeof item.category === 'object'
+        ? item.category?.name
+        : item.category;
 
-  if (loading) {
     return (
-      <View style={[styles.loadingContainer, {backgroundColor: tokens.bg}]}>
-        <ActivityIndicator size="large" color={tokens.navAccent} />
-      </View>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('ProductDetail', {id: item.id})}
+        style={[
+          styles.productCard,
+          {backgroundColor: tokens.surface, borderColor: tokens.border},
+        ]}>
+        <View style={styles.productHeader}>
+          <View style={styles.productInfo}>
+            <Text
+              style={[styles.productName, {color: tokens.text}]}
+              numberOfLines={1}>
+              {item.name}
+            </Text>
+            <View style={styles.productMeta}>
+              <Text style={[styles.productSku, {color: tokens.text3}]}>
+                {item.sku}
+              </Text>
+              {catName && (
+                <>
+                  <Text style={{color: tokens.text3}}>&middot;</Text>
+                  <Text style={[styles.productCat, {color: tokens.text2}]}>
+                    {catName}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+          <Badge label={badge.label} variant={badge.variant} size="sm" />
+        </View>
+
+        <View style={styles.productBottom}>
+          <Text style={[styles.productPrice, {color: tokens.text}]}>
+            {shop ? formatPrice(item.price, shop) : `₹${item.price}`}
+          </Text>
+          <Text style={[styles.productStock, {color: tokens.text2}]}>
+            {item.qty} in stock
+          </Text>
+        </View>
+      </TouchableOpacity>
     );
-  }
+  };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {backgroundColor: tokens.bg, paddingTop: insets.top},
-      ]}>
-      {/* Header */}
+    <View style={[styles.container, {backgroundColor: tokens.bg}]}>
       <TopBar
+        leadingIcon={
+          <Text style={[typeScale.heading, {color: tokens.text}]}>Inventory</Text>
+        }
         trailingIcons={[
-          <Search key="search" size={24} color={tokens.text2} />,
-          <Plus
+          <TouchableOpacity
             key="add"
-            size={24}
-            color={tokens.navAccent}
-            onPress={openAdd}
-          />,
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('AddProduct')}
+            style={[styles.addBtn, {backgroundColor: tokens.navAccent}]}>
+            <Plus size={16} color="#fff" strokeWidth={2.5} />
+          </TouchableOpacity>,
         ]}
       />
-      <PageHeadingBlock
-        heading="Inventory"
-        eyebrow={`${filtered.length} items`}
-        inlineBadge={
-          lowStockCount > 0 ? (
-            <View
-              style={{
-                backgroundColor: '#F59E0B20',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 12,
-              }}>
-              <Text style={{color: '#F59E0B', fontSize: 10, fontWeight: '600'}}>
-                {lowStockCount} low
-              </Text>
-            </View>
-          ) : null
-        }
-      />
 
-      {/* Category filter */}
-      <View style={{marginBottom: spacing.md}}>
-        <QuickActionTileGrid
-          tiles={categoryTiles}
-          activeId={selectedCategory || ''}
-          onSelect={setSelectedCategory}
-        />
-      </View>
-
-      {/* Summary stats */}
+      {/* ── Summary stats ── */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>{products.filter(p => !p.archived_at).length}</Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Total</Text>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>
+            {products.filter(p => !p.archived_at).length}
+          </Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+            Total
+          </Text>
         </View>
         <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>{lowStockCount}</Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Low stock</Text>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>
+            {lowStockCount}
+          </Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+            Low stock
+          </Text>
         </View>
         <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>{categories.length}</Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>Categories</Text>
+          <Text style={[styles.summaryValue, {color: tokens.text}]}>
+            {categories.length}
+          </Text>
+          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+            Categories
+          </Text>
         </View>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchRow}>
+      {/* ── Search + Sort row ── */}
+      <View style={styles.searchFilterRow}>
         <View
           style={[
             styles.searchBar,
-            {backgroundColor: tokens.surface2, borderColor: tokens.border},
+            {borderColor: tokens.border, backgroundColor: tokens.surface},
           ]}>
           <Search size={16} color={tokens.text3} strokeWidth={1.75} />
           <TextInput
-            style={[styles.searchInput, {color: tokens.text}]}
             value={search}
             onChangeText={setSearch}
-            placeholder="Search inventory..."
+            placeholder="Search products..."
             placeholderTextColor={tokens.text3}
+            style={[styles.searchInput, {color: tokens.text}]}
           />
-          {search ? (
+          {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <X size={16} color={tokens.text3} strokeWidth={2} />
+              <X size={14} color={tokens.text3} strokeWidth={2} />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
-
-        {/* Sort toggle */}
         <TouchableOpacity
-          style={[styles.sortBtn, {backgroundColor: tokens.surface2}]}
-          onPress={() => {
-            const order: SortKey[] = ['name', 'price', 'qty', 'updated'];
-            const idx = order.indexOf(sortBy);
-            setSortBy(order[(idx + 1) % order.length]);
-          }}>
-          <Text style={[styles.sortBtnText, {color: tokens.text2}]}>
-            {sortBy === 'name'
-              ? 'A-Z'
-              : sortBy === 'price'
-              ? 'Price'
-              : sortBy === 'qty'
-              ? 'Stock'
-              : 'Recent'}
-          </Text>
+          activeOpacity={0.7}
+          onPress={() => setShowSort(!showSort)}
+          style={[
+            styles.filterBtn,
+            {borderColor: tokens.border, backgroundColor: tokens.surface},
+          ]}>
+          <ArrowUpDown size={16} color={tokens.text2} strokeWidth={1.75} />
         </TouchableOpacity>
       </View>
 
-      {/* Product list */}
-      <FlatList
-        data={filtered}
-        renderItem={({item}) => {
-          const category = categories.find(c => c.id === item.category_id);
-          const IconComp = category?.icon
-            ? CATEGORY_ICON_MAP[category.icon.toLowerCase()]
-            : Package;
-          const isLowStock =
-            item.track_stock && item.qty <= item.low_stock_threshold;
-          const isOut = item.track_stock && item.qty <= 0;
-          return (
-            <View style={{paddingHorizontal: 16}}>
-              <ListRow
-                title={item.name}
-                subtitle={`${item.sku} · ${getCategoryName(
-                  item.category_id,
-                )} · ${
-                  item.track_stock
-                    ? isOut
-                      ? 'OUT OF STOCK'
-                      : isLowStock
-                      ? `LOW (${item.qty})`
-                      : `${item.qty} in stock`
-                    : '∞'
-                }`}
-                value={
-                  shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`
-                }
-                icon={
-                  IconComp ? (
-                    <IconComp
-                      size={22}
-                      color={category?.color ?? tokens.text3}
-                      strokeWidth={1.75}
-                    />
-                  ) : (
-                    <Package
-                      size={22}
-                      color={tokens.text3}
-                      strokeWidth={1.75}
-                    />
-                  )
-                }
-                iconBgColor={
-                  category?.color ? category.color + '20' : tokens.surface2
-                }
-                onPress={() => openEdit(item)}
-                style={{marginHorizontal: spacing.xl}}
-              />
-            </View>
-          );
-        }}
-        keyExtractor={item => item.id}
-        refreshing={refreshing}
-        onRefresh={() => {
-          setRefreshing(true);
-          loadInventory();
-        }}
-        contentContainerStyle={{paddingBottom: insets.bottom + 20}}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Package size={40} color={tokens.text3} strokeWidth={1.25} />
-            <Text
-              style={[styles.emptyText, {color: tokens.text3, marginTop: 12}]}>
-              No products found
-            </Text>
+      {/* ── Sort dropdown ── */}
+      {showSort && (
+        <View
+          style={[
+            styles.sortDropdown,
+            {backgroundColor: tokens.surface, borderColor: tokens.border},
+          ]}>
+          {sortOptions.map(opt => (
             <TouchableOpacity
-              style={[styles.emptyCta, {backgroundColor: tokens.navAccent}]}
-              onPress={openAdd}>
-              <Text style={styles.emptyCtaText}>Add first product</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
-
-      {/* ── Add / Edit Modal ───────────────────────────────── */}
-      <Modal
-        visible={formVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setFormVisible(false)}>
-        <KeyboardAvoidingView
-          style={{flex: 1}}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.modal, {backgroundColor: tokens.bg}]}>
-            {/* Modal header */}
-            <View
-              style={[styles.modalHeader, {borderBottomColor: tokens.border}]}>
-              <TouchableOpacity onPress={() => setFormVisible(false)}>
-                <X size={22} color={tokens.text} strokeWidth={2} />
-              </TouchableOpacity>
+              key={opt.key}
+              activeOpacity={0.7}
+              onPress={() => {
+                setSortKey(opt.key);
+                setShowSort(false);
+              }}
+              style={[
+                styles.sortOption,
+                sortKey === opt.key && {
+                  backgroundColor: tokens.navAccent + '12',
+                },
+              ]}>
               <Text
                 style={[
-                  typeScale.title,
+                  styles.sortOptionText,
                   {
-                    color: tokens.text,
-                    flex: 1,
-                    textAlign: 'center',
-                    marginHorizontal: 12,
+                    color:
+                      sortKey === opt.key ? tokens.navAccent : tokens.text,
                   },
                 ]}>
-                {editId ? 'Edit Product' : 'Add Product'}
+                {opt.label}
               </Text>
-              <TouchableOpacity onPress={handleSave} disabled={saving}>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* ── Category chips ── */}
+      {categories.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setCategoryFilter('')}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: !categoryFilter
+                  ? tokens.navAccent
+                  : tokens.surface,
+                borderColor: !categoryFilter
+                  ? tokens.navAccent
+                  : tokens.border,
+              },
+            ]}>
+            <Text
+              style={[
+                styles.chipText,
+                {color: !categoryFilter ? '#fff' : tokens.text2},
+              ]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat.name}
+              activeOpacity={0.7}
+              onPress={() => setCategoryFilter(cat.name)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    categoryFilter === cat.name
+                      ? tokens.navAccent
+                      : tokens.surface,
+                  borderColor:
+                    categoryFilter === cat.name
+                      ? tokens.navAccent
+                      : tokens.border,
+                },
+              ]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  {
+                    color:
+                      categoryFilter === cat.name ? '#fff' : tokens.text2,
+                  },
+                ]}>
+                {cat.name}
+              </Text>
+              <View
+                style={[
+                  styles.chipCount,
+                  {
+                    backgroundColor:
+                      categoryFilter === cat.name
+                        ? 'rgba(255,255,255,0.25)'
+                        : tokens.surface2,
+                  },
+                ]}>
                 <Text
                   style={[
-                    typeScale.body,
+                    styles.chipCountText,
                     {
-                      color: tokens.navAccent,
-                      fontWeight: '700',
-                      opacity: saving ? 0.5 : 1,
+                      color:
+                        categoryFilter === cat.name ? '#fff' : tokens.text3,
                     },
                   ]}>
-                  {saving ? 'Saving...' : 'Save'}
+                  {cat.count}
                 </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={styles.modalScroll}
-              contentContainerStyle={styles.modalContent}
-              keyboardShouldPersistTaps="handled">
-              {/* Name */}
-              <FieldLabel text="Product name" required />
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: tokens.text,
-                    borderColor: tokens.border,
-                    backgroundColor: tokens.surface,
-                  },
-                ]}
-                value={form.name}
-                onChangeText={v => setField('name', v)}
-                placeholder="e.g. Rice 5kg"
-                placeholderTextColor={tokens.text3}
-              />
-
-              {/* SKU + Unit */}
-              <View style={styles.row}>
-                <View style={styles.col}>
-                  <FieldLabel text="SKU" required />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: tokens.text,
-                        borderColor: tokens.border,
-                        backgroundColor: tokens.surface,
-                      },
-                    ]}
-                    value={form.sku}
-                    onChangeText={v => setField('sku', v)}
-                    placeholder="e.g. RIC-5KG"
-                    placeholderTextColor={tokens.text3}
-                    autoCapitalize="characters"
-                  />
-                </View>
-                <View style={styles.col}>
-                  <FieldLabel text="Unit" />
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.chipRow}>
-                      {UNITS.map(u => (
-                        <TouchableOpacity
-                          key={u}
-                          style={[
-                            styles.unitChip,
-                            {
-                              backgroundColor:
-                                form.unit === u
-                                  ? tokens.navAccent
-                                  : tokens.surface2,
-                            },
-                          ]}
-                          onPress={() => setField('unit', u)}>
-                          <Text
-                            style={{
-                              color: form.unit === u ? '#fff' : tokens.text2,
-                              ...typeScale.caption,
-                              fontWeight: '600',
-                            }}>
-                            {u}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
               </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
-              {/* Price + Cost */}
-              <View style={styles.row}>
-                <View style={styles.col}>
-                  <FieldLabel text="Selling price" required />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: tokens.text,
-                        borderColor: tokens.border,
-                        backgroundColor: tokens.surface,
-                      },
-                    ]}
-                    value={form.price}
-                    onChangeText={v => setField('price', v)}
-                    placeholder="0.00"
-                    placeholderTextColor={tokens.text3}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={styles.col}>
-                  <FieldLabel text="Cost price" />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: tokens.text,
-                        borderColor: tokens.border,
-                        backgroundColor: tokens.surface,
-                      },
-                    ]}
-                    value={form.cost_price}
-                    onChangeText={v => setField('cost_price', v)}
-                    placeholder="0.00"
-                    placeholderTextColor={tokens.text3}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-
-              {/* Stock qty */}
-              <FieldLabel text="Quantity in stock" />
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: tokens.text,
-                    borderColor: tokens.border,
-                    backgroundColor: tokens.surface,
-                  },
-                ]}
-                value={form.qty}
-                onChangeText={v => setField('qty', v)}
-                placeholder="0"
-                placeholderTextColor={tokens.text3}
-                keyboardType="number-pad"
-              />
-
-              {/* Track stock toggle */}
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLabel}>
-                  <Text style={[typeScale.body, {color: tokens.text}]}>
-                    Low-stock alerts
-                  </Text>
-                  <Text style={[typeScale.tiny, {color: tokens.text3}]}>
-                    Warn when quantity drops below threshold
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.toggle,
-                    {
-                      backgroundColor: form.track_stock
-                        ? tokens.navAccent
-                        : tokens.surface2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setField('track_stock', !form.track_stock);
-                    if (!form.track_stock) {
-                      // turning on — set default threshold if empty
-                      if (!form.low_stock_threshold) {
-                        setField('low_stock_threshold', '5');
-                      }
-                    } else {
-                      setField('low_stock_threshold', '');
-                    }
-                  }}>
-                  <View
-                    style={[
-                      styles.toggleKnob,
-                      {transform: [{translateX: form.track_stock ? 20 : 0}]},
-                    ]}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {form.track_stock && (
-                <>
-                  <FieldLabel text="Low-stock alert at" />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: tokens.text,
-                        borderColor: tokens.border,
-                        backgroundColor: tokens.surface,
-                      },
-                    ]}
-                    value={form.low_stock_threshold}
-                    onChangeText={v => setField('low_stock_threshold', v)}
-                    placeholder="e.g. 5"
-                    placeholderTextColor={tokens.text3}
-                    keyboardType="number-pad"
-                  />
-                </>
-              )}
-
-              {/* Track barcode toggle */}
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLabel}>
-                  <Text style={[typeScale.body, {color: tokens.text}]}>
-                    Barcode tracking
-                  </Text>
-                  <Text style={[typeScale.tiny, {color: tokens.text3}]}>
-                    Track a barcode for this product
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.toggle,
-                    {
-                      backgroundColor: form.track_barcode
-                        ? tokens.navAccent
-                        : tokens.surface2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setField('track_barcode', !form.track_barcode);
-                    if (form.track_barcode) {
-                      setField('barcode', '');
-                    }
-                  }}>
-                  <View
-                    style={[
-                      styles.toggleKnob,
-                      {transform: [{translateX: form.track_barcode ? 20 : 0}]},
-                    ]}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {form.track_barcode && (
-                <>
-                  <FieldLabel text="Barcode" />
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.mono,
-                        {
-                          flex: 1,
-                          color: tokens.text,
-                          borderColor: tokens.border,
-                          backgroundColor: tokens.surface,
-                        },
-                      ]}
-                      value={form.barcode}
-                      onChangeText={v => setField('barcode', v)}
-                      placeholder="Scan or type barcode"
-                      placeholderTextColor={tokens.text3}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setScannerVisible(true)}
-                      style={[
-                        styles.scanBtn,
-                        {
-                          backgroundColor: tokens.surface2,
-                          borderColor: tokens.border,
-                        },
-                      ]}
-                      activeOpacity={0.7}>
-                      <ScanLine
-                        size={20}
-                        color={tokens.navAccent}
-                        strokeWidth={2}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-
-              {/* Category */}
-              <FieldLabel text="Category" />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.chipRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.unitChip,
-                      {
-                        backgroundColor: !form.category_id
-                          ? tokens.navAccent
-                          : tokens.surface2,
-                      },
-                    ]}
-                    onPress={() => setField('category_id', '')}>
-                    <Text
-                      style={{
-                        color: !form.category_id ? '#fff' : tokens.text2,
-                        ...typeScale.caption,
-                        fontWeight: '600',
-                      }}>
-                      None
-                    </Text>
-                  </TouchableOpacity>
-                  {categories.map(c => (
-                    <TouchableOpacity
-                      key={c.id}
-                      style={[
-                        styles.unitChip,
-                        {
-                          backgroundColor:
-                            form.category_id === c.id
-                              ? c.color ?? tokens.navAccent
-                              : tokens.surface2,
-                        },
-                      ]}
-                      onPress={() => setField('category_id', c.id)}>
-                      <Text
-                        style={{
-                          color:
-                            form.category_id === c.id ? '#fff' : tokens.text2,
-                          ...typeScale.caption,
-                          fontWeight: '600',
-                        }}>
-                        {c.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-
-              {/* Description */}
-              <FieldLabel text="Description" />
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.textArea,
-                  {
-                    color: tokens.text,
-                    borderColor: tokens.border,
-                    backgroundColor: tokens.surface,
-                  },
-                ]}
-                value={form.description}
-                onChangeText={v => setField('description', v)}
-                placeholder="Optional notes"
-                placeholderTextColor={tokens.text3}
-                multiline
-                numberOfLines={3}
-              />
-              {editId && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setFormVisible(false);
-                    const prod = products.find(p => p.id === editId);
-                    if (prod) {
-                      confirmArchive(prod);
-                    }
-                  }}
-                  style={{
-                    marginTop: spacing.xl,
-                    padding: spacing.md,
-                    backgroundColor: '#FEE2E220',
-                    borderRadius: 12,
-                    alignItems: 'center',
-                  }}>
-                  <Text style={{color: '#EF4444', fontWeight: '600'}}>
-                    Archive Product
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ── Archive Confirmation Modal ─────────────────────── */}
-      <Modal
-        visible={deleteConfirm.visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setDeleteConfirm({visible: false, product: null})
-        }>
-        <View style={styles.overlay}>
-          <View
-            style={[
-              styles.confirmCard,
-              {backgroundColor: tokens.surface, borderColor: tokens.border},
-            ]}>
-            <Text style={[typeScale.title, {color: tokens.text}]}>
-              Archive product?
+      {/* ── Active filter indicator ── */}
+      {activeFilters > 0 && (
+        <View style={styles.activeFilterRow}>
+          <Text style={[styles.activeFilterText, {color: tokens.text3}]}>
+            {filtered.length} of {products.length} products
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              setSearch('');
+              setCategoryFilter('');
+            }}
+            style={styles.clearFilterBtn}>
+            <X size={12} color={tokens.text3} strokeWidth={2} />
+            <Text style={[styles.clearFilterText, {color: tokens.text3}]}>
+              Clear {activeFilters} filter{activeFilters > 1 ? 's' : ''}
             </Text>
-            <Text style={[typeScale.body, {color: tokens.text2, marginTop: 8}]}>
-              {deleteConfirm.product?.name} will be archived. Sales history is
-              preserved but it won't appear in POS.
-            </Text>
-            <View style={styles.confirmActions}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, {borderColor: tokens.border}]}
-                onPress={() =>
-                  setDeleteConfirm({visible: false, product: null})
-                }>
-                <Text style={[typeScale.body, {color: tokens.text2}]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.deleteBtn]}
-                onPress={handleArchive}
-                disabled={deleting}>
-                <Text
-                  style={[typeScale.body, {color: '#fff', fontWeight: '600'}]}>
-                  {deleting ? 'Archiving...' : 'Archive'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      )}
 
-      {/* Barcode Scanner */}
-      <BarcodeScannerModal
-        visible={scannerVisible}
-        onClose={() => setScannerVisible(false)}
-        onResult={code => setField('barcode', code)}
+      {/* ── Product list ── */}
+      <FlatList
+        data={filtered}
+        keyExtractor={item => item.id}
+        renderItem={renderProduct}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <EmptyState
+            icon={<Package size={32} color={tokens.text3} strokeWidth={1.5} />}
+            title="No products found"
+            subtitle="Try adjusting your search or filters."
+          />
+        }
       />
     </View>
   );
 }
 
-// ── Small helper component ────────────────────────────────────
-
-function FieldLabel({text, required}: {text: string; required?: boolean}) {
-  return (
-    <Text style={styles.fieldLabel}>
-      {text}
-      {required ? <Text style={{color: '#EF4444'}}> *</Text> : null}
-    </Text>
-  );
-}
-
-// ── Styles ────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-  header: {paddingHorizontal: spacing.xl, marginBottom: spacing.sm},
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerRight: {flexDirection: 'row', alignItems: 'center'},
+const styles = {
+  container: {flex: 1} as const,
   addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  searchRow: {paddingHorizontal: spacing.xl, marginBottom: spacing.sm},
+  } as const,
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  } as const,
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+  } as const,
+  summaryValue: {
+    ...typeScale.heading,
+    fontWeight: '700',
+  } as const,
+  summaryLabel: {
+    ...typeScale.tiny,
+    marginTop: 2,
+  } as const,
+  searchFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  } as const,
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radii.lg,
@@ -1074,192 +455,131 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     gap: 8,
-  },
-  searchInput: {flex: 1, ...typeScale.body, paddingVertical: 0},
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  filterList: {gap: spacing.xs, flexGrow: 1},
-  filterChip: {paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16},
-  sortBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radii.md,
-    marginLeft: spacing.sm,
+  } as const,
+  searchInput: {
+    flex: 1,
+    ...typeScale.body,
+    paddingVertical: 0,
+  } as const,
+  filterBtn: {
+    width: 48,
     height: 48,
+    borderRadius: radii.lg,
+    borderWidth: 1,
     justifyContent: 'center',
-  },
-  sortBtnText: {...typeScale.caption, fontWeight: '600'},
-  summaryRow: {
-    flexDirection: 'row',
+    alignItems: 'center',
+  } as const,
+  sortDropdown: {
+    marginHorizontal: spacing.xl,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.xs,
+    marginBottom: spacing.sm,
+  } as const,
+  sortOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  } as const,
+  sortOptionText: {
+    ...typeScale.body,
+  } as const,
+  chipRow: {
     paddingHorizontal: spacing.xl,
     gap: spacing.sm,
     marginBottom: spacing.md,
-  },
-  summaryItem: {
-    flex: 1,
+  } as const,
+  chip: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radii.lg,
-  },
-  summaryValue: {...typeScale.heading, fontWeight: '700'},
-  summaryLabel: {...typeScale.tiny, marginTop: 2},
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-  },
-  productIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  productInfo: {flex: 1},
-  productName: {...typeScale.title},
-  productMeta: {...typeScale.tiny, marginTop: 2},
-  productRight: {alignItems: 'flex-end', marginLeft: spacing.sm},
-  productPrice: {...typeScale.body, fontWeight: '600'},
-  stockBadge: {...typeScale.tiny, marginTop: 2},
-  rowActions: {
-    flexDirection: 'row',
-    marginTop: 6,
-    gap: 6,
-  },
-  actionBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {...typeScale.body},
-  emptyCta: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  emptyCtaText: {color: '#fff', ...typeScale.body, fontWeight: '600'},
-
-  // Modal
-  modal: {flex: 1},
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-  },
-  modalScroll: {flex: 1},
-  modalContent: {
-    padding: spacing.xl,
-    paddingBottom: 40,
-  },
-  fieldLabel: {
-    ...typeScale.caption,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginBottom: 6,
-    marginTop: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
+    borderRadius: radii.pill,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    ...typeScale.body,
-  },
-  mono: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  row: {flexDirection: 'row', gap: 12},
-  col: {flex: 1},
-  chipRow: {flexDirection: 'row', gap: 6, paddingVertical: 4},
-  unitChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  toggleLabel: {flex: 1, marginRight: 12},
-  toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleKnob: {
-    width: 20,
+    gap: spacing.xs,
+  } as const,
+  chipText: {
+    ...typeScale.caption,
+    fontWeight: '500',
+  } as const,
+  chipCount: {
+    minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#fff',
-  },
-
-  // Confirm dialog
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  confirmCard: {
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-  },
-  confirmActions: {
+    paddingHorizontal: 6,
+  } as const,
+  chipCountText: {
+    ...typeScale.tiny,
+    fontWeight: '600',
+  } as const,
+  activeFilterRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 20,
-  },
-  cancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  deleteBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#EF4444',
-  },
-  scanBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+  } as const,
+  activeFilterText: {
+    ...typeScale.caption,
+  } as const,
+  clearFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  } as const,
+  clearFilterText: {
+    ...typeScale.caption,
+    fontWeight: '500',
+  } as const,
+  listContent: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  } as const,
+  productCard: {
     borderWidth: 1,
-  },
-});
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  } as const,
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  } as const,
+  productInfo: {
+    flex: 1,
+    marginRight: spacing.sm,
+  } as const,
+  productName: {
+    ...typeScale.title,
+    fontWeight: '600',
+    marginBottom: 2,
+  } as const,
+  productMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  } as const,
+  productSku: {
+    ...typeScale.tiny,
+    fontFamily: 'monospace',
+  } as const,
+  productCat: {
+    ...typeScale.tiny,
+  } as const,
+  productBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  } as const,
+  productPrice: {
+    ...typeScale.heading,
+    fontWeight: '700',
+  } as const,
+  productStock: {
+    ...typeScale.caption,
+  } as const,
+};
