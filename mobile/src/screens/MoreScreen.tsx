@@ -42,8 +42,7 @@ interface SettingItem {
 }
 
 export function MoreScreen() {
-  const {tokens, isDark, palette} =
-    useTheme();
+  const {tokens, isDark, palette} = useTheme();
   const {shop, user, logout} = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();

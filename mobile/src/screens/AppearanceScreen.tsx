@@ -25,8 +25,7 @@ const MODES: {id: ThemeMode; label: string; icon: typeof Sun}[] = [
 ];
 
 export function AppearanceScreen() {
-  const {tokens, paletteId, setPaletteId, setMode, mode} =
-    useTheme();
+  const {tokens, paletteId, setPaletteId, setMode, mode} = useTheme();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
@@ -126,16 +125,10 @@ export function AppearanceScreen() {
                     {/* Light/dark mini dots */}
                     <View style={styles.miniDots}>
                       <View
-                        style={[
-                          styles.miniDot,
-                          {backgroundColor: p.light.bg},
-                        ]}
+                        style={[styles.miniDot, {backgroundColor: p.light.bg}]}
                       />
                       <View
-                        style={[
-                          styles.miniDot,
-                          {backgroundColor: p.dark.bg},
-                        ]}
+                        style={[styles.miniDot, {backgroundColor: p.dark.bg}]}
                       />
                     </View>
                   </View>

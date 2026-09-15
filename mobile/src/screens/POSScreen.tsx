@@ -374,56 +374,81 @@ export function POSScreen() {
   const renderProduct = ({item}: {item: Product}) => {
     const inCart = cart.find(c => c.product.id === item.id);
     const outOfStock = item.track_stock && item.qty <= 0;
+    const catName =
+      typeof item.category === 'object'
+        ? item.category?.name
+        : typeof item.category === 'string'
+        ? item.category
+        : '';
 
     return (
-      <Card
-        variant={inCart ? 'default' : 'outlined'}
+      <TouchableOpacity
+        onPress={() => addToCart(item)}
+        activeOpacity={0.7}
         style={[
           styles.productCard,
           {
             borderColor: inCart ? tokens.navAccent : tokens.border,
             borderWidth: inCart ? 2 : 1,
-            opacity: outOfStock ? 0.5 : 1,
+            backgroundColor: inCart ? tokens.accentGlow : tokens.surface,
+            opacity: outOfStock ? 0.4 : 1,
           },
-        ]}
-        onPress={() => addToCart(item)}
-        padding={0}>
-        {/* Image area */}
-        <View style={[styles.productImage, {backgroundColor: tokens.surface2}]}>
-          <Package size={28} color={tokens.text3} strokeWidth={1.5} />
-          {inCart && (
-            <View
-              style={[styles.cartBadge, {backgroundColor: tokens.navAccent}]}>
-              <Text style={styles.cartBadgeText}>{inCart.qty}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Info */}
-        <View style={styles.productInfo}>
-          <Text
-            style={[styles.productName, {color: tokens.text}]}
-            numberOfLines={2}>
-            {item.name}
-          </Text>
-
-          <View style={styles.productMeta}>
+        ]}>
+        {/* Top row: icon + name + price */}
+        <View style={styles.cardTop}>
+          <View
+            style={[styles.cardIconWrap, {backgroundColor: tokens.surface2}]}>
+            <CategoryIcon category={catName} size={16} color={tokens.text3} />
+          </View>
+          <View style={{flex: 1}}>
+            <Text
+              style={[styles.productName, {color: tokens.text}]}
+              numberOfLines={1}>
+              {item.name}
+            </Text>
             <Text style={[styles.productSku, {color: tokens.text3}]}>
               {item.sku}
             </Text>
-            {item.track_stock && (
-              <Badge
-                variant={item.qty < 5 ? 'warning' : 'default'}
-                label={`${item.qty} left`}
-              />
-            )}
           </View>
-
           <Text style={[styles.productPrice, {color: tokens.text}]}>
-            {shop ? formatPrice(item.price, shop) : `\u20B9${item.price}`}
+            {shop ? formatPrice(item.price, shop) : `₹${item.price}`}
           </Text>
         </View>
-      </Card>
+
+        {/* Bottom row: stock + qty controls */}
+        <View style={styles.cardBottom}>
+          <View style={{flex: 1}}>
+            {item.track_stock ? (
+              <Badge
+                variant={item.qty === 0 ? 'danger' : item.qty < 5 ? 'warning' : 'default'}
+                label={item.qty === 0 ? 'Out' : `${item.qty} left`}
+              />
+            ) : (
+              <Badge variant="success" label="In stock" />
+            )}
+          </View>
+          {inCart ? (
+            <View style={styles.qtyControls}>
+              <TouchableOpacity
+                style={[styles.qtyBtn, {backgroundColor: tokens.surface2, borderColor: tokens.border}]}
+                onPress={() => updateCartQty(item.id, inCart.qty - 1)}>
+                <Text style={[styles.qtyBtnText, {color: tokens.text}]}>−</Text>
+              </TouchableOpacity>
+              <Text style={[styles.qtyValue, {color: tokens.navAccent}]}>{inCart.qty}</Text>
+              <TouchableOpacity
+                style={[styles.qtyBtn, {backgroundColor: tokens.navAccent}]}
+                onPress={() => updateCartQty(item.id, inCart.qty + 1)}>
+                <Text style={[styles.qtyBtnText, {color: '#fff'}]}>+</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.qtyBtn, {backgroundColor: tokens.surface2, borderColor: tokens.border, width: 28, height: 28}]}
+              accessible={false}>
+              <Text style={[styles.qtyBtnText, {color: tokens.text3, fontSize: 16}]}>+</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -587,7 +612,7 @@ export function POSScreen() {
         style={{flex: 1}}
         contentContainerStyle={{
           paddingTop: spacing.xxl + spacing.lg,
-          paddingBottom: insets.bottom + 100,
+          paddingBottom: insets.bottom + 140,
         }}>
         {/* Header */}
         <View style={styles.headerRow}>
@@ -662,7 +687,7 @@ export function POSScreen() {
         <TouchableOpacity
           style={[
             styles.cartBar,
-            {backgroundColor: tokens.navAccent, bottom: insets.bottom + 16},
+            {backgroundColor: tokens.navAccent, bottom: insets.bottom + 68},
           ]}
           onPress={() => setCartVisible(true)}
           activeOpacity={0.8}>
@@ -1043,36 +1068,69 @@ const styles = StyleSheet.create({
   categoryChipText: {...typeScale.caption, fontWeight: '600'},
 
   // Products
-  productGrid: {paddingHorizontal: spacing.xl},
-  productRow: {gap: spacing.sm, marginBottom: spacing.sm},
-  productCard: {
-    flex: 1,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    padding: 0,
-    maxWidth: '48%',
-    overflow: 'hidden',
+  productGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
-  productImage: {
-    height: 90,
+  productCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    width: '48%',
+    padding: spacing.sm,
+    gap: 6,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  productName: {...typeScale.title, marginBottom: 2, fontWeight: '600'},
-  productInfo: {padding: spacing.md},
+  cardBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  productImage: {
+    height: 72,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productInfo: {padding: spacing.sm},
+  productName: {...typeScale.caption, fontWeight: '600', marginBottom: 2},
   productMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
-  productSku: {...typeScale.tiny},
+  productSku: {...typeScale.tiny, fontFamily: 'monospace'},
   productPrice: {
-    ...typeScale.heading,
-    marginTop: spacing.xs,
+    ...typeScale.body,
+    marginTop: 2,
     fontWeight: '700',
   },
-  productStock: {...typeScale.tiny},
+  qtyControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  qtyBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  qtyBtnText: {fontSize: 14, fontWeight: '700'},
+  qtyValue: {...typeScale.body, fontWeight: '700', minWidth: 18, textAlign: 'center'},
   cartBadge: {
     position: 'absolute',
     top: 8,
@@ -1174,28 +1232,7 @@ const styles = StyleSheet.create({
   scannerCheckoutText: {color: '#fff', ...typeScale.heading},
   scannerCheckoutTotal: {color: '#fff', ...typeScale.heading},
 
-  // ── Qty controls (shared) ───────────────────────────────────────────
-
-  qtyControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.sm,
-  },
-  qtyBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  qtyBtnText: {fontSize: 18, fontWeight: '600'},
-  qtyValue: {
-    ...typeScale.title,
-    marginHorizontal: spacing.sm,
-    minWidth: 24,
-    textAlign: 'center',
-  },
+  // ── Qty controls (shared — see product card styles above)
 
   // ── Cart modal (normal mode) ───────────────────────────────────────
 
