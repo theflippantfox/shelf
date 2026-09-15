@@ -17,7 +17,13 @@ import {
 import {Camera, CameraType} from 'react-native-camera-kit';
 import {useTheme} from './ThemeProvider';
 import {spacing, typeScale} from '../theme';
-import {X, ScanLine, Flashlight, FlashlightOff, Check} from 'lucide-react-native';
+import {
+  X,
+  ScanLine,
+  Flashlight,
+  FlashlightOff,
+  Check,
+} from 'lucide-react-native';
 
 interface Props {
   onClose: () => void;
@@ -49,6 +55,8 @@ export function BarcodeScannerView({
   const lastCodeRef = useRef('');
   const throttleRef = useRef(0);
   const flashAnim = useRef(new Animated.Value(0)).current;
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
 
   const requestCameraPermission = useCallback(async () => {
     if (Platform.OS === 'android') {
@@ -94,19 +102,19 @@ export function BarcodeScannerView({
   const handleCode = useCallback(
     (code: string) => {
       const now = Date.now();
-      if (now - throttleRef.current < 1200) {
+      if (now - throttleRef.current < 1000) {
         return;
       }
       throttleRef.current = now;
       lastCodeRef.current = code;
-      onResult(code);
+      onResultRef.current(code);
       flashFeedback();
       // Allow re-scan of same barcode after cooldown
       setTimeout(() => {
         lastCodeRef.current = '';
-      }, 1200);
+      }, 1000);
     },
-    [onResult, flashFeedback],
+    [flashFeedback],
   );
 
   const handleManualSubmit = () => {
@@ -242,9 +250,7 @@ export function BarcodeScannerView({
               style={[
                 styles.submitText,
                 {
-                  color: manualCode.trim()
-                    ? '#fff'
-                    : 'rgba(255,255,255,0.4)',
+                  color: manualCode.trim() ? '#fff' : 'rgba(255,255,255,0.4)',
                 },
               ]}>
               Add
