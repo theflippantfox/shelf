@@ -2,20 +2,20 @@
  * InventoryScreen — product list with search, filter, sort.
  */
 import React, {useState, useEffect, useMemo} from 'react';
-import {View, Text, FlatList, TouchableOpacity, ScrollView, TextInput} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import {useTheme} from '../components/ThemeProvider';
 import {useAuth} from '../components/AuthProvider';
-import {fetchProducts, type Product, type Shop} from '../lib/api';
+import {fetchProducts, type Product} from '../lib/api';
 import {formatPrice} from '../lib/format';
-import {TopBar, EmptyState, Badge, PageHeadingBlock} from '../components/ui';
+import {EmptyState, Badge, PageHeadingBlock} from '../components/ui';
 import {spacing, radii, typeScale} from '../theme';
-import {
-  Plus,
-  Search,
-  ArrowUpDown,
-  X,
-  Package,
-} from 'lucide-react-native';
+import {Plus, Search, ArrowUpDown, X, Package} from 'lucide-react-native';
 
 export function InventoryScreen({navigation}: any) {
   const {tokens} = useTheme();
@@ -46,7 +46,8 @@ export function InventoryScreen({navigation}: any) {
   const categories = useMemo(() => {
     const cats = new Map<string, number>();
     products.forEach(p => {
-      const cat = typeof p.category === 'object' ? p.category?.name : p.category;
+      const cat =
+        typeof p.category === 'object' ? p.category?.name : p.category;
       if (cat) {
         cats.set(cat, (cats.get(cat) || 0) + 1);
       }
@@ -81,7 +82,8 @@ export function InventoryScreen({navigation}: any) {
 
     if (categoryFilter) {
       list = list.filter(p => {
-        const cat = typeof p.category === 'object' ? p.category?.name : p.category;
+        const cat =
+          typeof p.category === 'object' ? p.category?.name : p.category;
         return cat === categoryFilter;
       });
     }
@@ -126,15 +128,14 @@ export function InventoryScreen({navigation}: any) {
     {key: 'stock-asc' as const, label: 'Stock · Low → High'},
   ];
 
-  const renderProduct = ({item}: {item: Product}) => {
+  const renderProduct = (item: Product) => {
     const badge = getStockBadge(item);
     const catName =
-      typeof item.category === 'object'
-        ? item.category?.name
-        : item.category;
+      typeof item.category === 'object' ? item.category?.name : item.category;
 
     return (
       <TouchableOpacity
+        key={item.id}
         activeOpacity={0.7}
         onPress={() => navigation.navigate('ProductDetail', {id: item.id})}
         style={[
@@ -179,246 +180,268 @@ export function InventoryScreen({navigation}: any) {
 
   return (
     <View style={[styles.container, {backgroundColor: tokens.bg}]}>
-      <TopBar
-        leadingIcon={
-          <Text style={[typeScale.heading, {color: tokens.text}]}>Inventory</Text>
-        }
-        trailingIcons={[
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{
+          paddingTop: spacing.xxl + spacing.lg,
+          paddingBottom: spacing.xxxl,
+        }}>
+        {/* ── Header: Title + Add button ── */}
+        <View style={styles.headerRow}>
+          <PageHeadingBlock heading="Inventory" eyebrow={shop?.name ?? ''} />
           <TouchableOpacity
-            key="add"
             activeOpacity={0.7}
             onPress={() => navigation.navigate('AddProduct')}
             style={[styles.addBtn, {backgroundColor: tokens.navAccent}]}>
-            <Plus size={16} color="#fff" strokeWidth={2.5} />
-          </TouchableOpacity>,
-        ]}
-      />
+            <Plus size={18} color="#fff" strokeWidth={2.5} />
+            <Text style={styles.addBtnText}>Add</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* ── Summary stats ── */}
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>
-            {products.filter(p => !p.archived_at).length}
-          </Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
-            Total
-          </Text>
+        {/* ── Summary stats ── */}
+        <View style={styles.summaryRow}>
+          <View
+            style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+            <Text style={[styles.summaryValue, {color: tokens.text}]}>
+              {products.filter(p => !p.archived_at).length}
+            </Text>
+            <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+              Total
+            </Text>
+          </View>
+          <View
+            style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+            <Text style={[styles.summaryValue, {color: tokens.text}]}>
+              {lowStockCount}
+            </Text>
+            <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+              Low stock
+            </Text>
+          </View>
+          <View
+            style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
+            <Text style={[styles.summaryValue, {color: tokens.text}]}>
+              {categories.length}
+            </Text>
+            <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
+              Categories
+            </Text>
+          </View>
         </View>
-        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>
-            {lowStockCount}
-          </Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
-            Low stock
-          </Text>
-        </View>
-        <View style={[styles.summaryItem, {backgroundColor: tokens.surface2}]}>
-          <Text style={[styles.summaryValue, {color: tokens.text}]}>
-            {categories.length}
-          </Text>
-          <Text style={[styles.summaryLabel, {color: tokens.text3}]}>
-            Categories
-          </Text>
-        </View>
-      </View>
 
-      {/* ── Search + Sort row ── */}
-      <View style={styles.searchFilterRow}>
-        <View
-          style={[
-            styles.searchBar,
-            {borderColor: tokens.border, backgroundColor: tokens.surface},
-          ]}>
-          <Search size={16} color={tokens.text3} strokeWidth={1.75} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search products..."
-            placeholderTextColor={tokens.text3}
-            style={[styles.searchInput, {color: tokens.text}]}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <X size={14} color={tokens.text3} strokeWidth={2} />
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setShowSort(!showSort)}
-          style={[
-            styles.filterBtn,
-            {borderColor: tokens.border, backgroundColor: tokens.surface},
-          ]}>
-          <ArrowUpDown size={16} color={tokens.text2} strokeWidth={1.75} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Sort dropdown ── */}
-      {showSort && (
-        <View
-          style={[
-            styles.sortDropdown,
-            {backgroundColor: tokens.surface, borderColor: tokens.border},
-          ]}>
-          {sortOptions.map(opt => (
-            <TouchableOpacity
-              key={opt.key}
-              activeOpacity={0.7}
-              onPress={() => {
-                setSortKey(opt.key);
-                setShowSort(false);
-              }}
-              style={[
-                styles.sortOption,
-                sortKey === opt.key && {
-                  backgroundColor: tokens.navAccent + '12',
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.sortOptionText,
-                  {
-                    color:
-                      sortKey === opt.key ? tokens.navAccent : tokens.text,
-                  },
-                ]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* ── Category chips ── */}
-      {categories.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}>
+        {/* ── Search + Sort row ── */}
+        <View style={styles.searchFilterRow}>
+          <View
+            style={[
+              styles.searchBar,
+              {borderColor: tokens.border, backgroundColor: tokens.surface},
+            ]}>
+            <Search size={16} color={tokens.text3} strokeWidth={1.75} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search products..."
+              placeholderTextColor={tokens.text3}
+              style={[styles.searchInput, {color: tokens.text}]}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={14} color={tokens.text3} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => setCategoryFilter('')}
+            onPress={() => setShowSort(!showSort)}
             style={[
-              styles.chip,
-              {
-                backgroundColor: !categoryFilter
-                  ? tokens.navAccent
-                  : tokens.surface,
-                borderColor: !categoryFilter
-                  ? tokens.navAccent
-                  : tokens.border,
-              },
+              styles.filterBtn,
+              {borderColor: tokens.border, backgroundColor: tokens.surface},
             ]}>
-            <Text
-              style={[
-                styles.chipText,
-                {color: !categoryFilter ? '#fff' : tokens.text2},
-              ]}>
-              All
-            </Text>
+            <ArrowUpDown size={16} color={tokens.text2} strokeWidth={1.75} />
           </TouchableOpacity>
-          {categories.map(cat => (
+        </View>
+
+        {/* ── Sort dropdown ── */}
+        {showSort && (
+          <View
+            style={[
+              styles.sortDropdown,
+              {backgroundColor: tokens.surface, borderColor: tokens.border},
+            ]}>
+            {sortOptions.map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setSortKey(opt.key);
+                  setShowSort(false);
+                }}
+                style={[
+                  styles.sortOption,
+                  sortKey === opt.key && {
+                    backgroundColor: tokens.navAccent + '12',
+                  },
+                ]}>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    {
+                      color:
+                        sortKey === opt.key ? tokens.navAccent : tokens.text,
+                    },
+                  ]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* ── Category chips ── */}
+        {categories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}>
             <TouchableOpacity
-              key={cat.name}
               activeOpacity={0.7}
-              onPress={() => setCategoryFilter(cat.name)}
+              onPress={() => setCategoryFilter('')}
               style={[
                 styles.chip,
                 {
-                  backgroundColor:
-                    categoryFilter === cat.name
-                      ? tokens.navAccent
-                      : tokens.surface,
-                  borderColor:
-                    categoryFilter === cat.name
-                      ? tokens.navAccent
-                      : tokens.border,
+                  backgroundColor: !categoryFilter
+                    ? tokens.navAccent
+                    : tokens.surface,
+                  borderColor: !categoryFilter
+                    ? tokens.navAccent
+                    : tokens.border,
                 },
               ]}>
               <Text
                 style={[
                   styles.chipText,
-                  {
-                    color:
-                      categoryFilter === cat.name ? '#fff' : tokens.text2,
-                  },
+                  {color: !categoryFilter ? '#fff' : tokens.text2},
                 ]}>
-                {cat.name}
+                All
               </Text>
-              <View
+            </TouchableOpacity>
+            {categories.map(cat => (
+              <TouchableOpacity
+                key={cat.name}
+                activeOpacity={0.7}
+                onPress={() => setCategoryFilter(cat.name)}
                 style={[
-                  styles.chipCount,
+                  styles.chip,
                   {
                     backgroundColor:
                       categoryFilter === cat.name
-                        ? 'rgba(255,255,255,0.25)'
-                        : tokens.surface2,
+                        ? tokens.navAccent
+                        : tokens.surface,
+                    borderColor:
+                      categoryFilter === cat.name
+                        ? tokens.navAccent
+                        : tokens.border,
                   },
                 ]}>
                 <Text
                   style={[
-                    styles.chipCountText,
+                    styles.chipText,
                     {
                       color:
-                        categoryFilter === cat.name ? '#fff' : tokens.text3,
+                        categoryFilter === cat.name ? '#fff' : tokens.text2,
                     },
                   ]}>
-                  {cat.count}
+                  {cat.name}
                 </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+                <View
+                  style={[
+                    styles.chipCount,
+                    {
+                      backgroundColor:
+                        categoryFilter === cat.name
+                          ? 'rgba(255,255,255,0.25)'
+                          : tokens.surface2,
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      styles.chipCountText,
+                      {
+                        color:
+                          categoryFilter === cat.name ? '#fff' : tokens.text3,
+                      },
+                    ]}>
+                    {cat.count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
-      {/* ── Active filter indicator ── */}
-      {activeFilters > 0 && (
-        <View style={styles.activeFilterRow}>
-          <Text style={[styles.activeFilterText, {color: tokens.text3}]}>
-            {filtered.length} of {products.length} products
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              setSearch('');
-              setCategoryFilter('');
-            }}
-            style={styles.clearFilterBtn}>
-            <X size={12} color={tokens.text3} strokeWidth={2} />
-            <Text style={[styles.clearFilterText, {color: tokens.text3}]}>
-              Clear {activeFilters} filter{activeFilters > 1 ? 's' : ''}
+        {/* ── Active filter indicator ── */}
+        {activeFilters > 0 && (
+          <View style={styles.activeFilterRow}>
+            <Text style={[styles.activeFilterText, {color: tokens.text3}]}>
+              {filtered.length} of {products.length} products
             </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                setSearch('');
+                setCategoryFilter('');
+              }}
+              style={styles.clearFilterBtn}>
+              <X size={12} color={tokens.text3} strokeWidth={2} />
+              <Text style={[styles.clearFilterText, {color: tokens.text3}]}>
+                Clear {activeFilters} filter{activeFilters > 1 ? 's' : ''}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {/* ── Product list ── */}
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        renderItem={renderProduct}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <EmptyState
-            icon={<Package size={32} color={tokens.text3} strokeWidth={1.5} />}
-            title="No products found"
-            subtitle="Try adjusting your search or filters."
-          />
-        }
-      />
+        {/* ── Product list ── */}
+        {filtered.length === 0 ? (
+          <View style={{paddingHorizontal: spacing.xl}}>
+            <EmptyState
+              icon={
+                <Package size={32} color={tokens.text3} strokeWidth={1.5} />
+              }
+              title="No products found"
+              subtitle="Try adjusting your search or filters."
+            />
+          </View>
+        ) : (
+          <View style={{paddingHorizontal: spacing.xl}}>
+            {filtered.map(item => renderProduct(item))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = {
   container: {flex: 1} as const,
-  addBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.md,
-    justifyContent: 'center',
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+  } as const,
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.lg,
+  } as const,
+  addBtnText: {
+    ...typeScale.caption,
+    color: '#fff',
+    fontWeight: '600',
   } as const,
   summaryRow: {
     flexDirection: 'row',
@@ -532,10 +555,6 @@ const styles = {
   clearFilterText: {
     ...typeScale.caption,
     fontWeight: '500',
-  } as const,
-  listContent: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxxl,
   } as const,
   productCard: {
     borderWidth: 1,
