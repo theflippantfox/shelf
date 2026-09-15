@@ -372,7 +372,10 @@ export function POSScreen() {
         </View>
         <TouchableOpacity
           onPress={() => setScannerVisible(true)}
-          style={[styles.scanBtn, {backgroundColor: tokens.surface2, borderColor: tokens.border}]}
+          style={[
+            styles.scanBtn,
+            {backgroundColor: tokens.surface2, borderColor: tokens.border},
+          ]}
           activeOpacity={0.7}>
           <ScanLine size={20} color={tokens.navAccent} strokeWidth={2} />
         </TouchableOpacity>
@@ -791,6 +794,7 @@ export function POSScreen() {
         visible={scannerVisible}
         onClose={() => setScannerVisible(false)}
         onResult={handleScanResult}
+        stayOpen
       />
     </View>
   );

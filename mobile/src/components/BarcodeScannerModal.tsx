@@ -1,6 +1,9 @@
 /**
  * BarcodeScannerModal — full-screen camera barcode scanner.
  * Uses react-native-camera-kit's built-in barcode scanning.
+ *
+ * Pass stayOpen={true} to keep scanning after each hit (POS multi-scan mode).
+ * When stayOpen, a flash overlay gives visual feedback on each scan.
  */
 import React, {useState, useRef, useCallback} from 'react';
 import {
@@ -12,17 +15,19 @@ import {
   TextInput,
   Platform,
   PermissionsAndroid,
+  Animated,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Camera, CameraType} from 'react-native-camera-kit';
 import {useTheme} from './ThemeProvider';
 import {spacing, typeScale} from '../theme';
-import {X, ScanLine, Flashlight, FlashlightOff} from 'lucide-react-native';
+import {X, ScanLine, Flashlight, FlashlightOff, Check} from 'lucide-react-native';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   onResult: (code: string) => void;
+  stayOpen?: boolean;
 }
 
 const BARCODE_FORMATS = [
@@ -35,14 +40,22 @@ const BARCODE_FORMATS = [
   'qr',
 ];
 
-export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
+export function BarcodeScannerModal({
+  visible,
+  onClose,
+  onResult,
+  stayOpen = false,
+}: Props) {
   const {tokens} = useTheme();
   const insets = useSafeAreaInsets();
   const [torchOn, setTorchOn] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanCount, setScanCount] = useState(0);
+  const [lastScannedCode, setLastScannedCode] = useState('');
   const lastCodeRef = useRef('');
   const throttleRef = useRef(0);
+  const flashAnim = useRef(new Animated.Value(0)).current;
 
   const requestPermission = useCallback(async () => {
     if (Platform.OS === 'android') {
@@ -60,7 +73,6 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
         return false;
       }
     }
-    // iOS: permission is requested by the Camera component itself
     return true;
   }, []);
 
@@ -69,24 +81,56 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
       requestPermission().then(setHasPermission);
       setManualCode('');
       lastCodeRef.current = '';
+      if (!stayOpen) {
+        setScanCount(0);
+      }
     }
-  }, [visible, requestPermission]);
+  }, [visible, requestPermission, stayOpen]);
+
+  const flashFeedback = useCallback(() => {
+    flashAnim.setValue(0.5);
+    Animated.sequence([
+      Animated.timing(flashAnim, {
+        toValue: 0.8,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(flashAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [flashAnim]);
 
   const handleCode = useCallback(
     (code: string) => {
       const now = Date.now();
-      if (now - throttleRef.current < 1500) {
+      // In stayOpen mode, allow re-scanning after a short cooldown
+      const cooldown = stayOpen ? 1200 : 1500;
+      if (now - throttleRef.current < cooldown) {
         return;
       }
-      if (code === lastCodeRef.current) {
+      // In single-scan mode, reject duplicate of same barcode
+      if (!stayOpen && code === lastCodeRef.current) {
         return;
       }
       throttleRef.current = now;
       lastCodeRef.current = code;
+      setScanCount(prev => prev + 1);
+      setLastScannedCode(code);
       onResult(code);
-      onClose();
+      if (!stayOpen) {
+        onClose();
+      } else {
+        flashFeedback();
+        // Reset lastCodeRef after cooldown so same product can be scanned again
+        setTimeout(() => {
+          lastCodeRef.current = '';
+        }, cooldown);
+      }
     },
-    [onResult, onClose],
+    [onResult, onClose, stayOpen, flashFeedback],
   );
 
   const handleManualSubmit = () => {
@@ -95,7 +139,13 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
       return;
     }
     onResult(code);
-    onClose();
+    if (!stayOpen) {
+      onClose();
+    } else {
+      setScanCount(prev => prev + 1);
+      setLastScannedCode(code);
+      setManualCode('');
+    }
   };
 
   return (
@@ -123,14 +173,24 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
           />
         )}
 
+        {/* Flash feedback overlay */}
+        {stayOpen && (
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: '#10b981',
+                opacity: flashAnim,
+                pointerEvents: 'none',
+              },
+            ]}
+          />
+        )}
+
         {/* Overlay */}
         <View style={styles.overlay}>
           {/* Top bar */}
-          <View
-            style={[
-              styles.topBar,
-              {paddingTop: insets.top + spacing.md},
-            ]}>
+          <View style={[styles.topBar, {paddingTop: insets.top + spacing.md}]}>
             <TouchableOpacity
               onPress={onClose}
               style={styles.closeBtn}
@@ -153,15 +213,62 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
           {/* Scan window */}
           {hasPermission !== false && (
             <View style={styles.scanArea}>
-              <View style={styles.scanFrame}>
-                <View style={[styles.corner, styles.cornerTL]} />
-                <View style={[styles.corner, styles.cornerTR]} />
-                <View style={[styles.corner, styles.cornerBL]} />
-                <View style={[styles.corner, styles.cornerBR]} />
+              <View
+                style={[
+                  styles.scanFrame,
+                  {
+                    borderColor: stayOpen
+                      ? 'rgba(16,185,129,0.6)'
+                      : 'rgba(255,255,255,0.6)',
+                  },
+                ]}>
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerTL,
+                    {borderColor: stayOpen ? '#10b981' : '#fff'},
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerTR,
+                    {borderColor: stayOpen ? '#10b981' : '#fff'},
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerBL,
+                    {borderColor: stayOpen ? '#10b981' : '#fff'},
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerBR,
+                    {borderColor: stayOpen ? '#10b981' : '#fff'},
+                  ]}
+                />
               </View>
-              <Text style={styles.hint}>
-                Point camera at a barcode
-              </Text>
+              <Text style={styles.hint}>Point camera at a barcode</Text>
+
+              {/* Scan counter (stayOpen mode) */}
+              {stayOpen && scanCount > 0 && (
+                <View style={styles.scanBadge}>
+                  <Check size={14} color="#10b981" strokeWidth={3} />
+                  <Text style={[styles.scanBadgeText, {color: '#10b981'}]}>
+                    {scanCount} scanned
+                  </Text>
+                </View>
+              )}
+
+              {/* Last scanned code */}
+              {stayOpen && lastScannedCode ? (
+                <Text style={styles.lastCode}>
+                  Last: {lastScannedCode}
+                </Text>
+              ) : null}
             </View>
           )}
 
@@ -178,45 +285,64 @@ export function BarcodeScannerModal({visible, onClose, onResult}: Props) {
             </View>
           )}
 
-          {/* Manual entry */}
-          <View style={[styles.manualRow, {paddingBottom: insets.bottom + 16}]}>
-            <TextInput
-              style={[
-                styles.manualInput,
-                {
-                  backgroundColor: 'rgba(255,255,255,0.12)',
-                  color: '#fff',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                },
-              ]}
-              value={manualCode}
-              onChangeText={setManualCode}
-              placeholder="Or type barcode..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              keyboardType="default"
-              returnKeyType="done"
-              onSubmitEditing={handleManualSubmit}
-            />
-            <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                {
-                  backgroundColor: manualCode.trim()
-                    ? tokens.navAccent
-                    : 'rgba(255,255,255,0.15)',
-                },
-              ]}
-              onPress={handleManualSubmit}
-              disabled={!manualCode.trim()}
-              activeOpacity={0.7}>
-              <Text
+          {/* Bottom area */}
+          <View style={[styles.bottomArea, {paddingBottom: insets.bottom + 16}]}>
+            {/* Manual entry row */}
+            <View style={styles.manualRow}>
+              <TextInput
                 style={[
-                  styles.submitText,
-                  {color: manualCode.trim() ? '#fff' : 'rgba(255,255,255,0.4)'},
-                ]}>
-                Add
-              </Text>
-            </TouchableOpacity>
+                  styles.manualInput,
+                  {
+                    backgroundColor: 'rgba(255,255,255,0.12)',
+                    color: '#fff',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                  },
+                ]}
+                value={manualCode}
+                onChangeText={setManualCode}
+                placeholder="Or type barcode..."
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                keyboardType="default"
+                returnKeyType="done"
+                onSubmitEditing={handleManualSubmit}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.submitBtn,
+                  {
+                    backgroundColor: manualCode.trim()
+                      ? tokens.navAccent
+                      : 'rgba(255,255,255,0.15)',
+                  },
+                ]}
+                onPress={handleManualSubmit}
+                disabled={!manualCode.trim()}
+                activeOpacity={0.7}>
+                <Text
+                  style={[
+                    styles.submitText,
+                    {
+                      color: manualCode.trim()
+                        ? '#fff'
+                        : 'rgba(255,255,255,0.4)',
+                    },
+                  ]}>
+                  Add
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Done button (stayOpen mode) */}
+            {stayOpen && (
+              <TouchableOpacity
+                style={[styles.doneBtn, {backgroundColor: tokens.navAccent}]}
+                onPress={onClose}
+                activeOpacity={0.7}>
+                <Text style={styles.doneBtnText}>
+                  Done{scanCount > 0 ? ` (${scanCount})` : ''}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -301,6 +427,26 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontWeight: '600',
   },
+  scanBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  scanBadgeText: {
+    ...typeScale.caption,
+    fontWeight: '700',
+  },
+  lastCode: {
+    ...typeScale.caption,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: spacing.sm,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   permDenied: {
     flex: 1,
     justifyContent: 'center',
@@ -315,11 +461,14 @@ const styles = StyleSheet.create({
     ...typeScale.body,
     color: 'rgba(255,255,255,0.5)',
   },
+  bottomArea: {
+    gap: 10,
+    paddingHorizontal: spacing.xl,
+  },
   manualRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: spacing.xl,
   },
   manualInput: {
     flex: 1,
@@ -337,6 +486,16 @@ const styles = StyleSheet.create({
   },
   submitText: {
     ...typeScale.body,
+    fontWeight: '700',
+  },
+  doneBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  doneBtnText: {
+    color: '#fff',
+    ...typeScale.title,
     fontWeight: '700',
   },
 });
