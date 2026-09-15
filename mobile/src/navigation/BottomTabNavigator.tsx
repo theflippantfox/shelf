@@ -44,7 +44,6 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const ICON_SIZE = 22;
 
-
 export function BottomTabNavigator() {
   const {tokens} = useTheme();
 
@@ -172,7 +171,12 @@ function POSSab({
       accessibilityRole="button"
       accessibilityLabel="New sale"
       accessibilityState={{selected: isSelected}}>
-      <View style={[styles.fabButton, {backgroundColor: tokens.navAccent}, shadows.glow(tokens.navAccent)]}>
+      <View
+        style={[
+          styles.fabButton,
+          {backgroundColor: tokens.navAccent},
+          shadows.glow(tokens.navAccent),
+        ]}>
         <ShoppingCart size={24} color={'#FFFFFF'} strokeWidth={2.5} />
       </View>
     </TouchableOpacity>

@@ -45,7 +45,8 @@ interface SettingItem {
 }
 
 export function MoreScreen() {
-  const {tokens, paletteId, setPaletteId, isDark, setMode, palette} = useTheme();
+  const {tokens, paletteId, setPaletteId, isDark, setMode, palette} =
+    useTheme();
   const {shop, user, logout} = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -240,35 +241,52 @@ export function MoreScreen() {
       {/* Palette picker */}
       <View style={styles.section}>
         <SectionHeader title="Palette" />
-        <Card variant="outlined" style={styles.sectionCard} padding={spacing.md}>
-          <View style={styles.paletteGrid}>
-            {PALETTES.map(p => (
-              <TouchableOpacity
-                key={p.id}
-                onPress={() => setPaletteId(p.id)}
+        <Card variant="outlined" padding={0} style={styles.sectionCard}>
+          {PALETTES.map((p, i) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => setPaletteId(p.id)}
+              style={[
+                styles.paletteRow,
+                i < PALETTES.length - 1 && {
+                  borderBottomColor: tokens.border,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                },
+              ]}
+              activeOpacity={0.6}>
+              <View
                 style={[
-                  styles.paletteSwatch,
-                  {
-                    borderColor:
-                      paletteId === p.id ? tokens.text : tokens.border,
-                    borderWidth: paletteId === p.id ? 2.5 : 1.5,
+                  styles.paletteDot,
+                  {backgroundColor: p.accent},
+                  paletteId === p.id && {
+                    borderColor: tokens.text,
+                    borderWidth: 2,
                   },
                 ]}
-                activeOpacity={0.7}>
-                <View
-                  style={[styles.swatchCircle, {backgroundColor: p.accent}]} />
+              />
+              <View style={{flex: 1}}>
                 <Text
                   style={[
-                    styles.paletteLabel,
-                    {color: paletteId === p.id ? tokens.text : tokens.text3},
-                    paletteId === p.id && {fontWeight: '600'},
-                  ]}
-                  numberOfLines={1}>
+                    styles.paletteName,
+                    {
+                      color:
+                        paletteId === p.id ? tokens.text : tokens.text2,
+                    },
+                  ]}>
                   {p.name}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                <Text style={[styles.paletteTagline, {color: tokens.text3}]}>
+                  {p.tagline}
+                </Text>
+              </View>
+              {paletteId === p.id && (
+                <View
+                  style={[styles.checkCircle, {backgroundColor: tokens.navAccent}]}>
+                  <Text style={styles.checkMark}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
         </Card>
       </View>
 
@@ -385,27 +403,39 @@ const styles = StyleSheet.create({
   // Sections
   section: {marginHorizontal: spacing.xl, marginBottom: spacing.lg},
   sectionCard: {borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden'},
-  paletteGrid: {
+  paletteRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  paletteSwatch: {
-    width: '30.5%',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radii.lg,
-    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
   },
-  swatchCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginBottom: 6,
+  paletteDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  paletteLabel: {
+  paletteName: {
+    ...typeScale.body,
+    fontWeight: '500',
+  },
+  paletteTagline: {
     ...typeScale.tiny,
-    textAlign: 'center',
+    marginTop: 1,
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkMark: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   settingRow: {
     flexDirection: 'row',
