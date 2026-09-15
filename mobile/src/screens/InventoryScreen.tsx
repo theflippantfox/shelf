@@ -427,7 +427,7 @@ const styles = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingRight: spacing.xl,
     marginBottom: spacing.md,
   } as const,
   addBtn: {

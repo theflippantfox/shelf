@@ -591,13 +591,13 @@ export function POSScreen() {
         }}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <PageHeadingBlock heading="Point of Sale" eyebrow={shop?.name ?? ''} />
+          <PageHeadingBlock
+            heading="Point of Sale"
+            eyebrow={shop?.name ?? ''}
+          />
           <TouchableOpacity
             onPress={() => setScannerMode(true)}
-            style={[
-              styles.scanBtnHeader,
-              {backgroundColor: tokens.navAccent},
-            ]}
+            style={[styles.scanBtnHeader, {backgroundColor: tokens.navAccent}]}
             activeOpacity={0.7}>
             <ScanLine size={18} color="#fff" strokeWidth={2.5} />
             <Text style={styles.scanBtnText}>Scan</Text>
@@ -622,9 +622,7 @@ export function POSScreen() {
             />
             {search ? (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={[styles.clearBtn, {color: tokens.text3}]}>
-                  ✕
-                </Text>
+                <Text style={[styles.clearBtn, {color: tokens.text3}]}>✕</Text>
               </TouchableOpacity>
             ) : null}
           </View>
