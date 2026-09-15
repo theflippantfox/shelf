@@ -1,0 +1,375 @@
+/**
+ * MoreScreen — settings, profile, shop info, and logout.
+ */
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
+import {useTheme} from '../components/ThemeProvider';
+import {useAuth} from '../components/AuthProvider';
+import {spacing, radii, typeScale} from '../theme';
+import {
+  Palette,
+  Sun,
+  Moon,
+  Store,
+  Banknote,
+  BarChart3,
+  Globe,
+  Calendar,
+  Clock,
+  User,
+  Users,
+  LogOut,
+  ChevronRight,
+  Wallet,
+} from 'lucide-react-native';
+import type {ComponentType} from 'react';
+
+interface SettingItem {
+  Icon: ComponentType<{size?: number; color?: string; strokeWidth?: number}>;
+  iconColor: string;
+  label: string;
+  value?: string;
+  danger?: boolean;
+  onPress: () => void;
+}
+
+export function MoreScreen() {
+  const {tokens, paletteId, setPaletteId, isDark, setMode} = useTheme();
+  const {shop, logout} = useAuth();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
+
+  const handleLogout = () => {
+    Alert.alert('Sign Out', 'Are you sure?', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Sign Out', style: 'destructive', onPress: logout},
+    ]);
+  };
+
+  const toggleTheme = () => {
+    setMode(isDark ? 'light' : 'dark');
+  };
+
+  const cyclePalette = () => {
+    const palettes = [
+      'graphite-mint',
+      'graphite-violet',
+      'graphite-rose',
+      'warm-sand',
+      'warm-copper',
+      'warm-amber',
+      'nord-frost',
+      'nord-aurora',
+      'midnight-teal',
+      'midnight-lime',
+      'midnight-amber',
+    ];
+    const idx = palettes.indexOf(paletteId);
+    const next = palettes[(idx + 1) % palettes.length];
+    setPaletteId(next);
+  };
+
+  const iconSize = 20;
+
+  const settings: SettingItem[] = [
+    {
+      Icon: Palette,
+      iconColor: '#8B5CF6',
+      label: 'Color Theme',
+      value: paletteId
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase()),
+      onPress: cyclePalette,
+    },
+    {
+      Icon: isDark ? Sun : Moon,
+      iconColor: isDark ? '#F59E0B' : '#6366F1',
+      label: isDark ? 'Light Mode' : 'Dark Mode',
+      onPress: toggleTheme,
+    },
+  ];
+
+  const shopSettings: SettingItem[] = shop
+    ? [
+        {
+          Icon: Store,
+          iconColor: '#10B981',
+          label: 'Shop Name',
+          value: shop.name,
+          onPress: () => {},
+        },
+        {
+          Icon: Banknote,
+          iconColor: '#059669',
+          label: 'Currency',
+          value: `${shop.currency_symbol} (${shop.currency_code})`,
+          onPress: () => {},
+        },
+        {
+          Icon: BarChart3,
+          iconColor: '#F59E0B',
+          label: 'Tax',
+          value:
+            shop.tax_rate > 0 ? `${shop.tax_name} ${shop.tax_rate}%` : 'None',
+          onPress: () => {},
+        },
+        {
+          Icon: Globe,
+          iconColor: '#6366F1',
+          label: 'Timezone',
+          value: shop.timezone,
+          onPress: () => {},
+        },
+        {
+          Icon: Calendar,
+          iconColor: '#EC4899',
+          label: 'Date Format',
+          value: shop.date_format,
+          onPress: () => {},
+        },
+        {
+          Icon: Clock,
+          iconColor: '#F97316',
+          label: 'Time Format',
+          value: (shop.time_format ?? '24h').toUpperCase(),
+          onPress: () => {},
+        },
+      ]
+    : [];
+
+  const quickActions: SettingItem[] = [
+    {
+      Icon: Users,
+      iconColor: '#EC4899',
+      label: 'Customers',
+      value: undefined,
+      onPress: () => navigation.navigate('Customers'),
+    },
+    {
+      Icon: Wallet,
+      iconColor: '#8B5CF6',
+      label: 'Cash Register',
+      value: undefined,
+      onPress: () => navigation.navigate('CashRegister'),
+    },
+  ];
+
+  const renderSection = (title: string, items: SettingItem[]) => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, {color: tokens.text3}]}>{title}</Text>
+      <View
+        style={[
+          styles.sectionCard,
+          {backgroundColor: tokens.surface, borderColor: tokens.border},
+        ]}>
+        {items.map((item, i) => (
+          <TouchableOpacity
+            key={item.label}
+            style={[
+              styles.settingRow,
+              i < items.length - 1 && {
+                borderBottomColor: tokens.border,
+                borderBottomWidth: 1,
+              },
+            ]}
+            onPress={item.onPress}
+            activeOpacity={0.7}>
+            <View
+              style={[
+                styles.settingIconWrap,
+                {backgroundColor: item.iconColor + '18'},
+              ]}>
+              <item.Icon
+                size={iconSize}
+                color={item.iconColor}
+                strokeWidth={1.75}
+              />
+            </View>
+            <Text style={[styles.settingLabel, {color: tokens.text}]}>
+              {item.label}
+            </Text>
+            <Text
+              style={[styles.settingValue, {color: tokens.text3}]}
+              numberOfLines={1}>
+              {item.value ?? ''}
+            </Text>
+            {!item.value && (
+              <ChevronRight size={16} color={tokens.text3} strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  return (
+    <ScrollView
+      style={[styles.container, {backgroundColor: tokens.bg}]}
+      contentContainerStyle={{paddingBottom: insets.bottom + 20}}>
+      {/* Header */}
+      <View style={[styles.header, {paddingTop: insets.top + spacing.lg}]}>
+        <Text style={[typeScale.heading, {color: tokens.text}]}>More</Text>
+      </View>
+
+      {/* Profile card */}
+      {shop && (
+        <View
+          style={[
+            styles.profileCard,
+            {backgroundColor: tokens.surface, borderColor: tokens.border},
+          ]}>
+          <View style={[styles.avatar, {backgroundColor: tokens.navAccent}]}>
+            <Text style={styles.avatarText}>
+              {shop.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.profileName, {color: tokens.text}]}>
+              {shop.name}
+            </Text>
+            <Text style={[styles.profileSlug, {color: tokens.text3}]}>
+              /{shop.slug}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Appearance */}
+      {renderSection('Appearance', settings)}
+
+      {/* Shop Settings (read-only — edit on web) */}
+      {shopSettings.length > 0 && renderSection('Shop Settings', shopSettings)}
+
+      {/* Quick Actions */}
+      {renderSection('Quick Actions', quickActions)}
+
+      {/* Account */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, {color: tokens.text3}]}>
+          Account
+        </Text>
+        <View
+          style={[
+            styles.sectionCard,
+            {backgroundColor: tokens.surface, borderColor: tokens.border},
+          ]}>
+          <TouchableOpacity
+            style={[
+              styles.settingRow,
+              {borderBottomColor: tokens.border, borderBottomWidth: 1},
+            ]}
+            activeOpacity={0.7}>
+            <View
+              style={[styles.settingIconWrap, {backgroundColor: '#6366F118'}]}>
+              <User size={iconSize} color="#6366F1" strokeWidth={1.75} />
+            </View>
+            <Text style={[styles.settingLabel, {color: tokens.text}]}>
+              Profile
+            </Text>
+            <ChevronRight size={16} color={tokens.text3} strokeWidth={2} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.settingRow,
+              {borderBottomColor: tokens.border, borderBottomWidth: 1},
+            ]}
+            activeOpacity={0.7}>
+            <View
+              style={[styles.settingIconWrap, {backgroundColor: '#F59E0B18'}]}>
+              <Users size={iconSize} color="#F59E0B" strokeWidth={1.75} />
+            </View>
+            <Text style={[styles.settingLabel, {color: tokens.text}]}>
+              Team Members
+            </Text>
+            <Text style={[styles.settingValue, {color: tokens.text3}]}>
+              Manage on web
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleLogout}
+            activeOpacity={0.7}>
+            <View
+              style={[styles.settingIconWrap, {backgroundColor: '#EF444418'}]}>
+              <LogOut size={iconSize} color="#EF4444" strokeWidth={1.75} />
+            </View>
+            <Text style={[styles.settingLabel, {color: '#EF4444'}]}>
+              Sign Out
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* App info */}
+      <View style={styles.footer}>
+        <Text style={[styles.footerText, {color: tokens.text3}]}>
+          Shelf POS · v0.1.0
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {flex: 1},
+  header: {paddingHorizontal: spacing.xl, marginBottom: spacing.lg},
+
+  // Profile
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    marginBottom: spacing.lg,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  avatarText: {color: '#fff', fontSize: 22, fontWeight: '700'},
+  profileInfo: {flex: 1},
+  profileName: {...typeScale.heading},
+  profileSlug: {...typeScale.caption, marginTop: 2},
+
+  // Sections
+  section: {marginHorizontal: spacing.xl, marginBottom: spacing.lg},
+  sectionTitle: {...typeScale.tiny, marginBottom: spacing.sm, marginLeft: 4},
+  sectionCard: {borderRadius: radii.lg, borderWidth: 1, overflow: 'hidden'},
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+  },
+  settingIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  settingLabel: {...typeScale.body, flex: 1},
+  settingValue: {...typeScale.caption, maxWidth: 150, textAlign: 'right'},
+
+  // Footer
+  footer: {alignItems: 'center', paddingVertical: spacing.xxl},
+  footerText: {...typeScale.caption},
+});
