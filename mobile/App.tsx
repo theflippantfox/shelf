@@ -86,10 +86,7 @@ function AppContent() {
         component={CustomerDetailScreen}
       />
       <MainStack.Screen name="CashRegister" component={CashRegisterScreen} />
-      <MainStack.Screen
-        name="ProductDetail"
-        component={ProductDetailScreen}
-      />
+      <MainStack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </MainStack.Navigator>
   );
 }

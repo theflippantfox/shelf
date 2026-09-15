@@ -10,7 +10,7 @@
 
 // Development: point to your local network or deployed web app.
 // Production: change this to your actual domain.
-const API_BASE = 'http://10.232.3.145:5173';
+const API_BASE = 'http://10.135.131.145:5173';
 
 // ── Token storage ─────────────────────────────────────────────────────────
 
